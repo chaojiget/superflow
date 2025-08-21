@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config'
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -10,10 +10,11 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'src/test/',
+        'src/**/__tests__/',
         '**/*.d.ts',
         '**/*.config.*',
         'dist/',
       ],
     },
   },
-})
+});
