@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Superflow Demo</title>
+    <script type="module">
+      import '../src/nodes/index.ts';
+      import '../src/flow/index.ts';
+
+      window.addEventListener('DOMContentLoaded', () => {
+        const node = document.querySelector('workflow-node') as any;
+        node.onLog((m: string) => console.log('log:', m));
+        node.run({ hello: 'world' });
+
+        const flow = document.querySelector('workflow-flow') as any;
+        flow.graph = {
+          nodes: {
+            a: (x: number) => x + 1,
+            b: (x: number) => x * 2,
+          },
+          edges: [{ from: 'a', to: 'b' }],
+        };
+        console.log('flow result', flow.run('a', 1));
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Superflow 示例</h1>
+    <workflow-node></workflow-node>
+    <workflow-flow></workflow-flow>
+  </body>
+</html>
