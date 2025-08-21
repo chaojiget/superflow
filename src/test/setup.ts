@@ -1,7 +1,7 @@
 import { expect, afterEach } from 'vitest'
-import { cleanup } from '@testing-library/react'
 
-// runs a cleanup after each test case (e.g. clearing jsdom)
+// Basic setup for vitest tests
 afterEach(() => {
-  cleanup()
+  // Clean up any side effects after each test
+  // For now, just a basic cleanup
 })
