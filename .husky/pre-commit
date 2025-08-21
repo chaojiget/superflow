@@ -1,0 +1,5 @@
+#!/bin/sh
+npx lint-staged
+
+npm test
+prettier --check .
