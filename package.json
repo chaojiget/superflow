@@ -1,0 +1,12 @@
+{
+  "name": "superflow",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "echo 'No tests yet'"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.0"
+  }
+}
