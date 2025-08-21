@@ -1,9 +1,16 @@
 // @ts-check
-import js from '@eslint/js'
+import js from '@eslint/js';
 
 export default [
   {
-    ignores: ['dist', 'node_modules', 'coverage', '*.config.js', '*.config.ts', '.github']
+    ignores: [
+      'dist',
+      'node_modules',
+      'coverage',
+      '*.config.js',
+      '*.config.ts',
+      '.github',
+    ],
   },
   js.configs.recommended,
   {
@@ -17,4 +24,4 @@ export default [
       'no-console': 'warn',
     },
   },
-]
+];

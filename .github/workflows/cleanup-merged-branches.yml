@@ -33,7 +33,7 @@ jobs:
           # 获取main分支的最新提交
           git checkout main
           git pull origin main
-          
+
           # 找出所有已合并到main的远程分支
           echo "=== 检查已合并的分支 ==="
           for branch in $(git branch -r --merged main | grep -v "origin/main" | grep -v "HEAD" | sed 's|origin/||'); do

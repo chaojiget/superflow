@@ -15,23 +15,23 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
-        
+
       - name: 设置Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          
+
       - name: 安装依赖
         run: npm ci
         continue-on-error: true
-        
+
       - name: 运行测试
         run: npm test
         continue-on-error: true
-        
+
       - name: 自动合并dependabot PR
-        if: always()  # 即使测试失败也尝试合并（针对依赖更新）
+        if: always() # 即使测试失败也尝试合并（针对依赖更新）
         run: |
           echo "正在合并PR: ${{ github.event.pull_request.html_url }}"
           gh pr merge --auto --squash "${{ github.event.pull_request.html_url }}" || echo "合并失败，可能需要手动处理"

@@ -18,6 +18,7 @@ superflow/
 ```
 
 ## Directory Map
+
 - `src/ideas`: idea to blueprint processing
 - `src/planner`: converts blueprints to DAG flows
 - `src/flow`: flow canvas and runtime
