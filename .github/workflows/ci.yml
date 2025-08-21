@@ -1,10 +1,11 @@
-name: CI
+name: CI (已暂停 - 避免计费)
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+# 暂时禁用以避免GitHub Actions计费问题
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+#     branches: [main]
 
 jobs:
   test:

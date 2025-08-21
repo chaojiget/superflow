@@ -7,7 +7,9 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "verify": "chmod +x scripts/verify-local.sh && scripts/verify-local.sh",
+    "pre-commit": "npm run format && npm run lint && npm test"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
