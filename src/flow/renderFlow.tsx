@@ -1,4 +1,3 @@
-import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import ReactFlow from 'reactflow';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';

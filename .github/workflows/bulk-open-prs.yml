@@ -93,4 +93,3 @@ jobs:
             echo "::endgroup::"
             sleep 1
           done < branches.txt
-

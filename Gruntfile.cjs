@@ -2,7 +2,7 @@
 module.exports = function (grunt) {
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
-    
+
     // 基本的构建任务配置
     copy: {
       main: {
@@ -11,11 +11,11 @@ module.exports = function (grunt) {
             expand: true,
             cwd: 'src/',
             src: '**',
-            dest: 'dist/'
-          }
-        ]
-      }
-    }
+            dest: 'dist/',
+          },
+        ],
+      },
+    },
   });
 
   // 加载任务插件
@@ -23,7 +23,7 @@ module.exports = function (grunt) {
 
   // 注册默认任务
   grunt.registerTask('default', ['copy']);
-  
+
   // 注册构建任务
   grunt.registerTask('build', ['copy']);
 };

@@ -29,18 +29,62 @@ describe('blueprintToDag', () => {
     const { nodes, edges } = blueprintToDag(blueprint);
     expect(nodes).toHaveLength(2);
     expect(edges).toHaveLength(1);
-    expect(edges[0]).toEqual({ id: 'start-end', source: 'start', target: 'end' });
+    expect(edges[0]).toEqual({
+      id: 'start-end',
+      source: 'start',
+      target: 'end',
+    });
   });
 
   it('支持节点类型、自动布局及多入口/出口', () => {
     const blueprint: Blueprint = {
       requirement: '',
       steps: [
-        { id: 'in1', label: '输入1', type: 'input', description: '', inputs: [], outputs: [], next: ['core'] },
-        { id: 'in2', label: '输入2', type: 'input', description: '', inputs: [], outputs: [], next: ['core'] },
-        { id: 'core', label: '处理', type: 'process', description: '', inputs: [], outputs: [], next: ['out1', 'out2'] },
-        { id: 'out1', label: '输出1', type: 'output', description: '', inputs: [], outputs: [], next: [] },
-        { id: 'out2', label: '输出2', type: 'output', description: '', inputs: [], outputs: [], next: [] },
+        {
+          id: 'in1',
+          label: '输入1',
+          type: 'input',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: ['core'],
+        },
+        {
+          id: 'in2',
+          label: '输入2',
+          type: 'input',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: ['core'],
+        },
+        {
+          id: 'core',
+          label: '处理',
+          type: 'process',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: ['out1', 'out2'],
+        },
+        {
+          id: 'out1',
+          label: '输出1',
+          type: 'output',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: [],
+        },
+        {
+          id: 'out2',
+          label: '输出2',
+          type: 'output',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: [],
+        },
       ],
     };
     const { nodes, edges } = blueprintToDag(blueprint);
@@ -57,8 +101,24 @@ describe('blueprintToDag', () => {
     const blueprint: Blueprint = {
       requirement: '',
       steps: [
-        { id: 'a', label: 'A', type: 'task', description: '', inputs: [], outputs: [], next: ['b'] },
-        { id: 'b', label: 'B', type: 'task', description: '', inputs: [], outputs: [], next: ['a'] },
+        {
+          id: 'a',
+          label: 'A',
+          type: 'task',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: ['b'],
+        },
+        {
+          id: 'b',
+          label: 'B',
+          type: 'task',
+          description: '',
+          inputs: [],
+          outputs: [],
+          next: ['a'],
+        },
       ],
     };
     expect(() => blueprintToDag(blueprint)).toThrow();

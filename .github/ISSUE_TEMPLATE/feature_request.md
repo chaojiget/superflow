@@ -2,7 +2,7 @@
 name: 功能需求
 about: 提出新的功能或改进
 labels: enhancement
-title: "[Feature]: "
+title: '[Feature]: '
 assignees: ''
 ---
 
@@ -21,4 +21,3 @@ assignees: ''
 ## 其他信息
 
 任何额外的上下文或截图。
-

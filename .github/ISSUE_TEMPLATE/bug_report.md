@@ -2,7 +2,7 @@
 name: Bug 报告
 about: 提交一个 Bug 以帮助我们改进
 labels: bug
-title: "[Bug]: "
+title: '[Bug]: '
 assignees: ''
 ---
 
@@ -12,9 +12,9 @@ assignees: ''
 
 ## 复现步骤
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## 期望行为
 
@@ -29,4 +29,3 @@ assignees: ''
 - 操作系统:
 - Node 版本:
 - 其他相关信息:
-

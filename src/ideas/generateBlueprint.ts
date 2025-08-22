@@ -16,31 +16,33 @@ export interface Blueprint {
 /**
  * 调用大模型接口，根据文本需求生成包含多个步骤的蓝图。
  */
-export async function generateBlueprint(requirement: string): Promise<Blueprint> {
+export async function generateBlueprint(
+  requirement: string
+): Promise<Blueprint> {
   const apiKey = process.env.OPENAI_API_KEY;
-  
+
   // 如果没有API key，返回默认蓝图
   if (!apiKey) {
     return {
       requirement,
       steps: [
-        { 
-          id: 'start', 
-          label: '开始', 
-          type: 'input', 
+        {
+          id: 'start',
+          label: '开始',
+          type: 'input',
           description: '流程开始节点',
           inputs: [],
           outputs: ['data'],
-          next: ['end'] 
+          next: ['end'],
         },
-        { 
-          id: 'end', 
-          label: '结束', 
-          type: 'output', 
+        {
+          id: 'end',
+          label: '结束',
+          type: 'output',
           description: '流程结束节点',
           inputs: ['data'],
           outputs: [],
-          next: [] 
+          next: [],
         },
       ],
     };
@@ -51,21 +53,18 @@ export async function generateBlueprint(requirement: string): Promise<Blueprint>
     `每个步骤需包含 id、label、description、inputs、outputs、next 字段。\n需求: ${requirement}`;
 
   try {
-    const response = await fetch(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0,
-        }),
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
       },
-    );
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+      }),
+    });
 
     const data = await response.json();
     let steps: BlueprintStep[] = [];
@@ -87,23 +86,23 @@ export async function generateBlueprint(requirement: string): Promise<Blueprint>
     return {
       requirement,
       steps: [
-        { 
-          id: 'start', 
-          label: '开始', 
-          type: 'input', 
+        {
+          id: 'start',
+          label: '开始',
+          type: 'input',
           description: '流程开始节点',
           inputs: [],
           outputs: ['data'],
-          next: ['end'] 
+          next: ['end'],
         },
-        { 
-          id: 'end', 
-          label: '结束', 
-          type: 'output', 
+        {
+          id: 'end',
+          label: '结束',
+          type: 'output',
           description: '流程结束节点',
           inputs: ['data'],
           outputs: [],
-          next: [] 
+          next: [],
         },
       ],
     };

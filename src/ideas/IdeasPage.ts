@@ -42,7 +42,7 @@ export class IdeasPageElement extends HTMLElement {
     this.dispatchEvent(
       new CustomEvent('blueprint-generated', {
         detail: { blueprint, dag },
-      }),
+      })
     );
   };
 }

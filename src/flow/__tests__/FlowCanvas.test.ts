@@ -7,39 +7,38 @@ vi.mock('../renderFlow', () => ({
       _container: HTMLElement,
       onChange?: (dag: { nodes: any[]; edges: any[] }) => void
     ) => {
-    let flow = {
-      nodes: [
-        { id: 'n1', data: { label: '' }, position: { x: 0, y: 0 } },
-      ],
-      edges: [] as { id: string; source: string; target: string }[],
-      dragNode(id: string, position: { x: number; y: number }) {
-        const node = flow.nodes.find((n) => n.id === id);
-        if (node) {
-          node.position = position;
+      let flow = {
+        nodes: [{ id: 'n1', data: { label: '' }, position: { x: 0, y: 0 } }],
+        edges: [] as { id: string; source: string; target: string }[],
+        dragNode(id: string, position: { x: number; y: number }) {
+          const node = flow.nodes.find((n) => n.id === id);
+          if (node) {
+            node.position = position;
+            onChange?.({ nodes: flow.nodes, edges: flow.edges });
+          }
+        },
+        connect(source: string, target: string) {
+          const id = `${source}-${target}`;
+          flow.edges.push({ id, source, target });
           onChange?.({ nodes: flow.nodes, edges: flow.edges });
-        }
-      },
-      connect(source: string, target: string) {
-        const id = `${source}-${target}`;
-        flow.edges.push({ id, source, target });
-        onChange?.({ nodes: flow.nodes, edges: flow.edges });
-        return id;
-      },
-      deleteNode(id: string) {
-        flow.nodes = flow.nodes.filter((n) => n.id !== id);
-        flow.edges = flow.edges.filter(
-          (e) => e.source !== id && e.target !== id
-        );
-        onChange?.({ nodes: flow.nodes, edges: flow.edges });
-      },
-      deleteEdge(id: string) {
-        flow.edges = flow.edges.filter((e) => e.id !== id);
-        onChange?.({ nodes: flow.nodes, edges: flow.edges });
-      },
-    };
-    onChange?.({ nodes: flow.nodes, edges: flow.edges });
-    return flow;
-  }),
+          return id;
+        },
+        deleteNode(id: string) {
+          flow.nodes = flow.nodes.filter((n) => n.id !== id);
+          flow.edges = flow.edges.filter(
+            (e) => e.source !== id && e.target !== id
+          );
+          onChange?.({ nodes: flow.nodes, edges: flow.edges });
+        },
+        deleteEdge(id: string) {
+          flow.edges = flow.edges.filter((e) => e.id !== id);
+          onChange?.({ nodes: flow.nodes, edges: flow.edges });
+        },
+      };
+      onChange?.({ nodes: flow.nodes, edges: flow.edges });
+      return flow;
+    }
+  ),
 }));
 
 import { FlowCanvasElement } from '../FlowCanvas';

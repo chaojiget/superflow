@@ -14,9 +14,13 @@ describe('IdeasPageElement', () => {
 
     textarea.value = '测试需求';
     const eventPromise = new Promise<CustomEvent>((resolve) =>
-      el.addEventListener('blueprint-generated', (e) => resolve(e as CustomEvent), {
-        once: true,
-      }),
+      el.addEventListener(
+        'blueprint-generated',
+        (e) => resolve(e as CustomEvent),
+        {
+          once: true,
+        }
+      )
     );
     button.click();
     const evt = await eventPromise;

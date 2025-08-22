@@ -29,12 +29,14 @@ describe('generateBlueprint', () => {
           choices: [
             {
               message: {
-                content: ['```json', JSON.stringify(mockSteps), '```'].join('\n'),
+                content: ['```json', JSON.stringify(mockSteps), '```'].join(
+                  '\n'
+                ),
               },
             },
           ],
         }),
-      })),
+      }))
     );
   });
 

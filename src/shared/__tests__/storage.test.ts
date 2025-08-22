@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { saveFlow, loadFlow, exportFlow, importFlow } from '../storage';
 
-
 describe('storage', () => {
   let store: Record<string, string>;
   let mockStorage: Storage;
@@ -22,7 +21,7 @@ describe('storage', () => {
       key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
       get length() {
         return Object.keys(store).length;
-      }
+      },
     } as Storage;
 
     vi.stubGlobal('localStorage', mockStorage);
@@ -35,7 +34,10 @@ describe('storage', () => {
   it('saves and loads flow', () => {
     const data = { hello: 'world' };
     saveFlow(data);
-    expect(mockStorage.setItem).toHaveBeenCalledWith('superflow:flow', JSON.stringify(data));
+    expect(mockStorage.setItem).toHaveBeenCalledWith(
+      'superflow:flow',
+      JSON.stringify(data)
+    );
     expect(loadFlow()).toEqual(data);
   });
 

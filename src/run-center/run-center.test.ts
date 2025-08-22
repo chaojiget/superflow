@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { logRun, getRunRecords, clearRunRecords, RunRecordList, type RunRecord } from './index';
-
+import {
+  logRun,
+  getRunRecords,
+  clearRunRecords,
+  RunRecordList,
+  type RunRecord,
+} from './index';
 
 describe('run-center', () => {
   let store: Record<string, string>;
@@ -23,7 +28,7 @@ describe('run-center', () => {
       key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
       get length() {
         return Object.keys(store).length;
-      }
+      },
     } as Storage;
 
     vi.stubGlobal('localStorage', mockStorage);

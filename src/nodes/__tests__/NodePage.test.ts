@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { NodePageElement, setupNodePage } from '../NodePage';
-import { exportFlow, importFlow } from '../../shared/storage';
+import { importFlow } from '../../shared/storage';
 
 vi.mock('../../shared/storage', () => ({
   exportFlow: vi.fn(() => 'mock-flow'),
@@ -22,7 +22,9 @@ describe('NodePageElement', () => {
     originalRevoke = URL.revokeObjectURL;
     global.URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
     global.URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
-    clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {

@@ -2,7 +2,10 @@ import { exportFlow, importFlow } from '../shared/storage';
 import { logRun } from '../run-center';
 
 interface CodeMirrorInstance {
-  fromTextArea(element: HTMLTextAreaElement, options: Record<string, unknown>): {
+  fromTextArea(
+    element: HTMLTextAreaElement,
+    options: Record<string, unknown>
+  ): {
     setValue: (value: string) => void;
     getValue: () => string;
     on: (event: string, callback: () => void) => void;
@@ -28,9 +31,8 @@ interface CodeVersion {
 }
 
 function saveVersion(code: string): number {
-  const newVersion = Number(
-    globalThis.localStorage.getItem('node:version') ?? '0'
-  ) + 1;
+  const newVersion =
+    Number(globalThis.localStorage.getItem('node:version') ?? '0') + 1;
   globalThis.localStorage.setItem('node:version', String(newVersion));
   globalThis.localStorage.setItem(`node:code:v${newVersion}`, code);
   return newVersion;
@@ -74,7 +76,10 @@ export function setupNodePage(options: NodePageOptions): void {
 
   function saveVersions(): void {
     try {
-      globalThis.localStorage.setItem('node:versions', JSON.stringify(versions));
+      globalThis.localStorage.setItem(
+        'node:versions',
+        JSON.stringify(versions)
+      );
     } catch {
       // ignore
     }
@@ -249,7 +254,9 @@ export class NodePageElement extends HTMLElement {
   private runButton: HTMLButtonElement;
   private logPanel: HTMLElement;
   private _code = '';
-  private version = Number(globalThis.localStorage.getItem('node:version') ?? '0');
+  private version = Number(
+    globalThis.localStorage.getItem('node:version') ?? '0'
+  );
 
   static get observedAttributes(): string[] {
     return ['code'];
@@ -277,7 +284,7 @@ export class NodePageElement extends HTMLElement {
       this.importInput,
       this.codeArea,
       this.runButton,
-      this.logPanel,
+      this.logPanel
     );
   }
 
@@ -290,7 +297,11 @@ export class NodePageElement extends HTMLElement {
     this.codeArea.value = value;
   }
 
-  attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
+  attributeChangedCallback(
+    name: string,
+    _old: string | null,
+    value: string | null
+  ): void {
     if (name === 'code') {
       this.code = value ?? '';
     }
@@ -355,12 +366,16 @@ export class NodePageElement extends HTMLElement {
         const div = document.createElement('div');
         div.textContent = `[${level}] ${data.join(' ')}`;
         this.logPanel.appendChild(div);
-        this.dispatchEvent(new CustomEvent('run-log', { detail: { level, data } }));
+        this.dispatchEvent(
+          new CustomEvent('run-log', { detail: { level, data } })
+        );
       } else if (type === 'result') {
         const div = document.createElement('div');
         div.textContent = `[result] ${JSON.stringify(e.data.output)}`;
         this.logPanel.appendChild(div);
-        this.dispatchEvent(new CustomEvent('run-success', { detail: e.data.output }));
+        this.dispatchEvent(
+          new CustomEvent('run-success', { detail: e.data.output })
+        );
         logRun({
           id: Date.now().toString(),
           input: '',
@@ -375,7 +390,9 @@ export class NodePageElement extends HTMLElement {
         const div = document.createElement('div');
         div.textContent = `[error] ${e.data.error}`;
         this.logPanel.appendChild(div);
-        this.dispatchEvent(new CustomEvent('run-error', { detail: e.data.error }));
+        this.dispatchEvent(
+          new CustomEvent('run-error', { detail: e.data.error })
+        );
         worker.terminate();
       }
     };

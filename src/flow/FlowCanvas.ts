@@ -79,7 +79,11 @@ export class FlowCanvasElement extends HTMLElement {
     this.flow?.deleteEdge(id);
   }
 
-  attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
+  attributeChangedCallback(
+    name: string,
+    _old: string | null,
+    value: string | null
+  ): void {
     if (name === 'blueprint') {
       try {
         this.blueprint = value ? JSON.parse(value) : null;

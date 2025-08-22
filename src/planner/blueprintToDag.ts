@@ -55,7 +55,7 @@ export function blueprintToDag(blueprint: Blueprint): Dag {
       const step = stepMap.get(id)!;
       for (const target of step.next) {
         edges.push({ id: `${id}-${target}`, source: id, target });
-        indegree.set(target, (indegree.get(target)! - 1));
+        indegree.set(target, indegree.get(target)! - 1);
         if (indegree.get(target) === 0) {
           queue.push(target);
         }
