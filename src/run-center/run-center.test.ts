@@ -67,6 +67,7 @@ describe('run-center', () => {
       status: 'success',
       duration: 10,
       createdAt: now,
+      version: 1,
     });
     logRun({
       id: '2',
@@ -75,6 +76,7 @@ describe('run-center', () => {
       status: 'error',
       duration: 20,
       createdAt: now,
+      version: 2,
     });
 
     const root = document.createElement('div');
