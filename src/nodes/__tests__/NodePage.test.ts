@@ -131,4 +131,53 @@ describe('setupNodePage', () => {
     expect(globalThis.localStorage.getItem('node:code')).toBe('code1');
     expect(globalThis.localStorage.getItem('node:version')).toBe('1');
   });
+
+  it('查看和删除版本', () => {
+    globalThis.localStorage.setItem('node:version', '2');
+    globalThis.localStorage.setItem('node:code', 'code2');
+    globalThis.localStorage.setItem(
+      'node:versions',
+      JSON.stringify([
+        { id: 1, code: 'code1' },
+        { id: 2, code: 'code2' },
+      ])
+    );
+
+    const exportButton = document.createElement('button');
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    const codeArea = document.createElement('textarea');
+    const runButton = document.createElement('button');
+    const logPanel = document.createElement('div');
+    const generateButton = document.createElement('button');
+    const repairButton = document.createElement('button');
+    const versionList = document.createElement('ul');
+
+    setupNodePage({
+      exportButton,
+      importInput,
+      codeArea,
+      runButton,
+      logPanel,
+      generateButton,
+      repairButton,
+      versionList,
+    });
+
+    const viewBtn = versionList.querySelector(
+      'li:nth-child(1) button:nth-of-type(1)'
+    ) as HTMLButtonElement;
+    viewBtn.click();
+    expect(editor.getValue()).toBe('code1');
+
+    const deleteBtn = versionList.querySelector(
+      'li:nth-child(2) button:nth-of-type(3)'
+    ) as HTMLButtonElement;
+    deleteBtn.click();
+
+    expect(versionList.querySelectorAll('li').length).toBe(1);
+    expect(
+      JSON.parse(globalThis.localStorage.getItem('node:versions') ?? '[]')
+    ).toEqual([{ id: 1, code: 'code1' }]);
+  });
 });
