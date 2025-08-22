@@ -212,34 +212,60 @@ export function setupNodePage(options: NodePageOptions): void {
 }
 
 export async function generateNodeCode(editor: any): Promise<number> {
+  const currentVersion = Number(
+    globalThis.localStorage.getItem('node:version') ?? '0'
+  );
   try {
     const res = await fetch('/api/node/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: editor.getValue() }),
     });
-    const data = await res.json();
+    if (!res.ok) {
+      console.error('生成节点代码失败', res.statusText);
+      return currentVersion;
+    }
+    let data: any;
+    try {
+      data = await res.json();
+    } catch (err) {
+      console.error('生成节点代码响应解析失败', err);
+      return currentVersion;
+    }
     editor.setValue(data.code ?? '');
     return saveVersion(editor.getValue());
   } catch (err) {
     console.error('生成节点代码失败', err);
-    return Number(globalThis.localStorage.getItem('node:version') ?? '0');
+    return currentVersion;
   }
 }
 
 export async function repairNodeCode(editor: any): Promise<number> {
+  const currentVersion = Number(
+    globalThis.localStorage.getItem('node:version') ?? '0'
+  );
   try {
     const res = await fetch('/api/node/repair', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: editor.getValue() }),
     });
-    const data = await res.json();
+    if (!res.ok) {
+      console.error('修复节点代码失败', res.statusText);
+      return currentVersion;
+    }
+    let data: any;
+    try {
+      data = await res.json();
+    } catch (err) {
+      console.error('修复节点代码响应解析失败', err);
+      return currentVersion;
+    }
     editor.setValue(data.code ?? '');
     return saveVersion(editor.getValue());
   } catch (err) {
     console.error('修复节点代码失败', err);
-    return Number(globalThis.localStorage.getItem('node:version') ?? '0');
+    return currentVersion;
   }
 }
 
