@@ -59,7 +59,7 @@ export class IdeasPageElement extends HTMLElement {
       this.errorMsg.style.display = 'block';
       this.dispatchEvent(
         new CustomEvent('blueprint-generated', {
-          detail: { error },
+          detail: { blueprint: null, dag: null, error },
         })
       );
     }

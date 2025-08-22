@@ -52,6 +52,8 @@ describe('IdeasPageElement', () => {
     button.click();
     const evt = await eventPromise;
     expect(evt.detail.error).toBeTruthy();
+    expect(evt.detail.blueprint).toBeNull();
+    expect(evt.detail.dag).toBeNull();
     await nextTick();
     const error = el.shadowRoot!.querySelector('.error') as HTMLDivElement;
     expect(error.style.display).toBe('block');
@@ -83,6 +85,8 @@ describe('IdeasPageElement', () => {
     button.click();
     const evt = await eventPromise;
     expect(evt.detail.error).toBeTruthy();
+    expect(evt.detail.blueprint).toBeNull();
+    expect(evt.detail.dag).toBeNull();
     await nextTick();
     const error = el.shadowRoot!.querySelector('.error') as HTMLDivElement;
     expect(error.style.display).toBe('block');
