@@ -8,16 +8,19 @@ import type { Blueprint } from '../ideas/generateBlueprint';
 export class FlowCanvasElement extends HTMLElement {
   private container: HTMLElement;
   private _blueprint: Blueprint | null = null;
+  private _theme = 'light';
+  private _readonly = false;
 
   constructor() {
     super();
     const shadow = this.attachShadow({ mode: 'open' });
     this.container = document.createElement('pre');
     shadow.append(this.container);
+    this.updateTheme();
   }
 
   static get observedAttributes(): string[] {
-    return ['blueprint'];
+    return ['blueprint', 'theme', 'readonly'];
   }
 
   get blueprint(): Blueprint | null {
@@ -29,18 +32,44 @@ export class FlowCanvasElement extends HTMLElement {
     this.render();
   }
 
-  attributeChangedCallback(_name: string, _old: string, value: string): void {
-    try {
-      const parsed = JSON.parse(value);
-      // Type guard to ensure it's a valid Blueprint
-      if (parsed && typeof parsed === 'object' && 'requirement' in parsed && 'steps' in parsed) {
-        this.blueprint = parsed as Blueprint;
-      } else {
+  get theme(): string {
+    return this._theme;
+  }
+
+  set theme(value: string) {
+    this._theme = value;
+    this.updateTheme();
+  }
+
+  get readonly(): boolean {
+    return this._readonly;
+  }
+
+  set readonly(value: boolean) {
+    this._readonly = value;
+    if (value) {
+      this.setAttribute('readonly', '');
+    } else {
+      this.removeAttribute('readonly');
+    }
+  }
+
+  attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
+    if (name === 'blueprint') {
+      try {
+        this.blueprint = value ? JSON.parse(value) : null;
+      } catch {
         this.blueprint = null;
       }
-    } catch {
-      this.blueprint = null;
+    } else if (name === 'theme') {
+      this.theme = value ?? 'light';
+    } else if (name === 'readonly') {
+      this.readonly = value !== null && value !== 'false';
     }
+  }
+
+  private updateTheme(): void {
+    this.container.setAttribute('data-theme', this._theme);
   }
 
   private render(): void {
@@ -54,6 +83,6 @@ export class FlowCanvasElement extends HTMLElement {
   }
 }
 
-customElements.define('flow-canvas', FlowCanvasElement);
+customElements.define('workflow-flow', FlowCanvasElement);
 
 export default FlowCanvasElement;

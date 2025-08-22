@@ -1,5 +1,7 @@
 import { loadFlow, saveFlow } from '../shared/storage';
 
+export { FlowCanvasElement } from './FlowCanvas';
+
 export interface FlowData {
   [key: string]: unknown;
 }

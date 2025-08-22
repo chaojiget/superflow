@@ -1,1 +1,1 @@
-export * from './NodePage';
+export { setupNodePage, NodePageElement } from './NodePage';
