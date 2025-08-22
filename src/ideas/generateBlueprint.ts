@@ -1,6 +1,7 @@
 export interface BlueprintStep {
   id: string;
   label: string;
+  type?: string;
   next: string[];
 }
 
@@ -16,8 +17,8 @@ export function generateBlueprint(requirement: string): Blueprint {
   return {
     requirement,
     steps: [
-      { id: 'start', label: '开始', next: ['end'] },
-      { id: 'end', label: '结束', next: [] },
+      { id: 'start', label: '开始', type: 'input', next: ['end'] },
+      { id: 'end', label: '结束', type: 'output', next: [] },
     ],
   };
 }
