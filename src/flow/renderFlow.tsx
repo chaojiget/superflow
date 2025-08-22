@@ -9,7 +9,9 @@ import ReactFlow, {
   addEdge,
   Connection,
   Edge,
-  Node
+  Node,
+  MarkerType,
+  BackgroundVariant
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
@@ -41,7 +43,7 @@ function FlowComponent({
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
 
-  const handlePaneContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+  const handlePaneContextMenu = (event: MouseEvent) => {
     event.preventDefault();
     const nodeType = window.prompt('请选择节点类型');
     if (!nodeType) return;
@@ -102,7 +104,7 @@ function FlowComponent({
           nodeStrokeWidth={3}
           maskColor="rgba(0, 0, 0, 0.2)"
         />
-        <Background variant="dots" gap={12} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
       </ReactFlow>
     </div>
   );
@@ -118,12 +120,11 @@ export function renderFlow(
 
   // 转换为ReactFlow格式的节点和边
   const convertToReactFlowFormat = () => {
-    const reactFlowNodes: Node[] = nodes.map(node => ({
-      ...node,
-      data: { 
-        label: node.data?.label || node.id,
-        ...node.data 
-      },
+    const reactFlowNodes: Node[] = nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: { ...node.data, label: node.data?.label ?? node.id },
       style: {
         background: '#fff',
         border: '2px solid #333',
@@ -133,20 +134,21 @@ export function renderFlow(
         color: '#333',
         minWidth: 100,
         textAlign: 'center',
-        ...node.style
-      }
+      },
     }));
 
-    const reactFlowEdges: Edge[] = edges.map(edge => ({
-      ...edge,
+    const reactFlowEdges: Edge[] = edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
       type: 'smoothstep',
       style: { stroke: '#333', strokeWidth: 2 },
       markerEnd: {
-        type: 'arrowclosed',
+        type: MarkerType.ArrowClosed,
         width: 20,
         height: 20,
         color: '#333',
-      }
+      },
     }));
 
     return { nodes: reactFlowNodes, edges: reactFlowEdges };
@@ -164,11 +166,11 @@ export function renderFlow(
         initialNodes={reactFlowNodes}
         initialEdges={reactFlowEdges}
         onNodesChange={(updatedNodes) => {
-          nodes = updatedNodes.map(node => ({
+          nodes = updatedNodes.map((node) => ({
             id: node.id,
+            type: node.type,
             position: node.position,
-            data: node.data,
-            style: node.style
+            data: node.data as { label: string },
           }));
           emit();
         }}
