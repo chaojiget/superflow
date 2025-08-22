@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Superflow 嵌入示例</title>
+  </head>
+  <body>
+    <flow-canvas id="canvas"></flow-canvas>
+    <node-page id="page"></node-page>
+    <script type="module">
+      import '../dist/flow/FlowCanvas.js';
+      import '../dist/nodes/NodePage.js';
+
+      const canvas = document.getElementById('canvas');
+      canvas.blueprint = { start: { next: 'end' }, end: {} };
+
+      const page = document.getElementById('page');
+      page.addEventListener('flow-import', (e) => {
+        console.log('imported', e.detail);
+      });
+    </script>
+  </body>
+</html>
