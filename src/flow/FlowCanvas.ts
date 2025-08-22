@@ -19,7 +19,7 @@ export class FlowCanvasElement extends HTMLElement {
     const shadow = this.attachShadow({ mode: 'open' });
     this.container = document.createElement('div');
     this.container.style.width = '100%';
-    this.container.style.height = '400px';
+    this.container.style.height = '100%';
     shadow.append(this.container);
     this.updateTheme();
   }
