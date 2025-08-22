@@ -1,0 +1,54 @@
+# Auto-assign configuration for PRs
+
+# Default reviewers for all PRs
+reviewers:
+  - chaojiget
+
+# Assignees (who will be assigned to work on the PR)
+assignees:
+  - chaojiget
+
+# Skip adding reviewers/assignees if PR is in draft
+skipDraft: true
+
+# Number of reviewers to assign (random from the list)
+numberOfReviewers: 1
+
+# Number of assignees to assign
+numberOfAssignees: 0
+
+# Use review groups for specific file patterns
+reviewGroups:
+  # Core functionality requires extra review
+  core:
+    - src/flow/**/*
+    - src/nodes/**/*
+    - src/planner/**/*
+    reviewers:
+      - chaojiget
+    numberOfReviewers: 1
+
+  # CI/CD changes need careful review
+  ci:
+    - .github/workflows/**/*
+    - .github/dependabot.yml
+    reviewers:
+      - chaojiget
+    numberOfReviewers: 1
+
+  # Tests can be auto-approved if small
+  tests:
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    reviewers:
+      - chaojiget
+    numberOfReviewers: 0
+
+# Skip keywords in PR title/body that indicate auto-merge
+skipKeywords:
+  - "[auto-merge]"
+  - "dependabot"
+  - "deps:"
+  - "chore(deps):"

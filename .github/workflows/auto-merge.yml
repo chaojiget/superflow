@@ -1,59 +1,132 @@
 name: Auto Merge
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
-    branches: ['main']
+  pull_request:
+    types: [labeled, unlabeled, synchronize, opened, ready_for_review, reopened]
+    branches: [main, develop]
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
 
 permissions:
-  contents: read
-  pull-requests: read
+  contents: write
+  pull-requests: write
+  checks: read
 
 jobs:
-  verify:
-    runs-on: ubuntu-latest
-    # 只跑检查，不要写权限
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      - name: Checkout PR head
-        uses: actions/checkout@v4
-        with:
-          # 检出 PR 的代码
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - run: npm ci
-      - run: npm run test
-      - run: npm run lint
-      - run: npm run format -- --check
-      - run: npx grunt
-
   auto-merge:
-    needs: verify
+    name: Auto Merge PR
     runs-on: ubuntu-latest
-    if: |
-      needs.verify.result == 'success' &&
-      (
-        github.event.pull_request.user.login == 'dependabot[bot]' ||
-        github.event.pull_request.user.login == 'codex' ||
-        github.event.pull_request.user.login == 'codex[bot]' ||
-        contains(github.event.pull_request.labels.*.name, 'auto-merge') ||
-        contains(github.event.pull_request.title, '[auto-merge]')
-      )
-    permissions:
-      contents: write
-      pull-requests: write
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event_name == 'pull_request_review' ||
+      (github.event_name == 'check_suite' && github.event.check_suite.conclusion == 'success')
+    
     steps:
+      - name: Check PR conditions
+        id: check-conditions
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request?.number || 
+                           context.payload.check_suite?.pull_requests[0]?.number;
+            
+            if (!prNumber) {
+              console.log('No PR number found');
+              return { shouldMerge: false };
+            }
+            
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+            
+            // Check if PR is ready
+            if (pr.draft || pr.state !== 'open') {
+              console.log('PR is draft or not open');
+              return { shouldMerge: false };
+            }
+            
+            // Check auto-merge conditions
+            const hasAutoMergeLabel = pr.labels.some(label => 
+              ['auto-merge', 'ready-to-merge', 'dependencies'].includes(label.name)
+            );
+            const isDependabot = pr.user.login === 'dependabot[bot]';
+            const hasAutoMergeTitle = pr.title.includes('[auto-merge]');
+            
+            if (!hasAutoMergeLabel && !isDependabot && !hasAutoMergeTitle) {
+              console.log('No auto-merge conditions met');
+              return { shouldMerge: false };
+            }
+            
+            // Check required reviews
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner,
+              repo,
+              pull_number: prNumber
+            });
+            
+            const approvals = reviews.filter(review => review.state === 'APPROVED').length;
+            const hasRequiredApprovals = isDependabot ? approvals >= 0 : approvals >= 1;
+            
+            if (!hasRequiredApprovals) {
+              console.log('Not enough approvals');
+              return { shouldMerge: false };
+            }
+            
+            // Check CI status
+            const { data: checks } = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: pr.head.sha
+            });
+            
+            const requiredChecks = ['Test & Build', 'Security Audit', 'Format Check'];
+            const passedChecks = checks.check_runs.filter(check => 
+              requiredChecks.includes(check.name) && check.conclusion === 'success'
+            ).length;
+            
+            if (passedChecks < requiredChecks.length) {
+              console.log('Not all required checks passed');
+              return { shouldMerge: false };
+            }
+            
+            return { shouldMerge: true, prNumber };
+
       - name: Enable auto-merge
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_URL: ${{ github.event.pull_request.html_url }}
+        if: fromJSON(steps.check-conditions.outputs.result).shouldMerge
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { prNumber } = ${{ steps.check-conditions.outputs.result }};
+            
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              merge_method: 'squash',
+              commit_title: `Auto-merge PR #${prNumber}`,
+              commit_message: 'Automatically merged by CI'
+            });
+            
+            // Delete branch if it's not protected
+            try {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+              
+              if (pr.head.repo.full_name === context.repo.full_name) {
+                await github.rest.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `heads/${pr.head.ref}`
+                });
+              }
+            } catch (error) {
+              console.log('Could not delete branch:', error.message);
+            }
