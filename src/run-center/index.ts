@@ -76,7 +76,7 @@ export function RunRecordList(root: HTMLElement): void {
     list.innerHTML = '';
     records.forEach((r) => {
       const li = document.createElement('li');
-      li.textContent = `${r.status} | ${r.duration}ms | ${r.input} -> ${r.output}`;
+      li.textContent = `v${r.version} | ${r.status} | ${r.duration}ms | ${r.input} -> ${r.output}`;
       list.append(li);
     });
   }

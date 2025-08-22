@@ -75,7 +75,7 @@ describe('run-center', () => {
       status: 'error',
       duration: 20,
       createdAt: now,
-      version: 1,
+      version: 2,
     });
 
     const root = document.createElement('div');
