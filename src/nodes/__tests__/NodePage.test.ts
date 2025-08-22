@@ -187,4 +187,24 @@ describe.each([
     expect(globalThis.localStorage.getItem('node:version')).toBe('2');
     expect(errorSpy).toHaveBeenCalled();
   });
+
+  it('解析失败时返回旧版本并记录错误', async () => {
+    globalThis.localStorage.setItem('node:version', '2');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new Error('bad json');
+        },
+      })
+    );
+
+    const version = await fn(editor);
+    expect(version).toBe(2);
+    expect(globalThis.localStorage.getItem('node:version')).toBe('2');
+    expect(errorSpy).toHaveBeenCalled();
+  });
 });
