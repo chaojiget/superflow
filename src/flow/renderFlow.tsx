@@ -13,7 +13,7 @@ import ReactFlow, {
   NodeChange,
   EdgeChange,
   MarkerType,
-  BackgroundVariant
+  BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
@@ -29,12 +29,12 @@ export interface FlowInstance {
 }
 
 // React组件来渲染流程图
-function FlowComponent({ 
-  initialNodes, 
-  initialEdges, 
-  onNodesChange, 
-  onEdgesChange, 
-  onConnect 
+function FlowComponent({
+  initialNodes,
+  initialEdges,
+  onNodesChange,
+  onEdgesChange,
+  onConnect,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -49,7 +49,9 @@ function FlowComponent({
     event.preventDefault();
     const nodeType = window.prompt('请选择节点类型');
     if (!nodeType) return;
-    const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const rect = (
+      event.currentTarget as HTMLDivElement
+    ).getBoundingClientRect();
     const position = {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
@@ -99,7 +101,7 @@ function FlowComponent({
         attributionPosition="bottom-left"
       >
         <Controls />
-        <MiniMap 
+        <MiniMap
           style={{
             height: 120,
             width: 200,
@@ -160,7 +162,8 @@ export function renderFlow(
     return { nodes: reactFlowNodes, edges: reactFlowEdges };
   };
 
-  let { nodes: reactFlowNodes, edges: reactFlowEdges } = convertToReactFlowFormat();
+  let { nodes: reactFlowNodes, edges: reactFlowEdges } =
+    convertToReactFlowFormat();
 
   const emit = () => {
     onChange?.({ nodes, edges });
@@ -181,17 +184,21 @@ export function renderFlow(
           emit();
         }}
         onEdgesChange={(updatedEdges) => {
-          edges = updatedEdges.map(edge => ({
+          edges = updatedEdges.map((edge) => ({
             id: edge.id,
             source: edge.source,
-            target: edge.target
+            target: edge.target,
           }));
           emit();
         }}
         onConnect={(connection) => {
           if (connection.source && connection.target) {
             const id = `${connection.source}-${connection.target}-${Date.now()}`;
-            const newEdge = { id, source: connection.source, target: connection.target };
+            const newEdge = {
+              id,
+              source: connection.source,
+              target: connection.target,
+            };
             edges = [...edges, newEdge];
             const converted = convertToReactFlowFormat();
             reactFlowEdges = converted.edges;

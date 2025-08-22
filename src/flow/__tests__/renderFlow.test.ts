@@ -49,11 +49,11 @@ describe('renderFlow', () => {
     expect(changes.length).toBeGreaterThan(1);
   });
 
-    it('支持右键添加节点并同步至外部 Dag', async () => {
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-      const changes: Dag[] = [];
-      const flow = renderFlow(blueprint, container, (dag) => changes.push(dag));
+  it('支持右键添加节点并同步至外部 Dag', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const changes: Dag[] = [];
+    const flow = renderFlow(blueprint, container, (dag) => changes.push(dag));
 
     await vi.waitFor(() => {
       expect(container.querySelector('.react-flow__pane')).not.toBeNull();
@@ -69,9 +69,9 @@ describe('renderFlow', () => {
     await vi.waitFor(() => {
       expect(flow.nodes.some((n: DagNode) => n.type === 'task')).toBe(true);
     });
-    expect(
-      changes.at(-1)?.nodes.some((n: DagNode) => n.type === 'task')
-    ).toBe(true);
+    expect(changes.at(-1)?.nodes.some((n: DagNode) => n.type === 'task')).toBe(
+      true
+    );
 
     promptSpy.mockRestore();
   });
