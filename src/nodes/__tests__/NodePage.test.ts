@@ -79,9 +79,16 @@ describe('NodePageElement run events', () => {
   let revokeObjectURL: ReturnType<typeof vi.fn>;
   let originalCreate: typeof URL.createObjectURL;
   let originalRevoke: typeof URL.revokeObjectURL;
-  let originalWorker: any;
-  let workerInstance: any;
-  let originalConsole: Record<string, any>;
+  let originalWorker: typeof Worker | undefined;
+  let workerInstance: {
+    onmessage: (ev: { data: unknown }) => void;
+    postMessage: (data: unknown) => void;
+    terminate: () => void;
+  };
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let infoSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     createObjectURL = vi.fn(() => 'blob:url');
@@ -102,27 +109,20 @@ describe('NodePageElement run events', () => {
         };
         return workerInstance;
       });
-
-    originalConsole = {
-      log: console.log,
-      info: console.info,
-      warn: console.warn,
-      error: console.error,
-    };
-    console.log = vi.fn();
-    console.info = vi.fn();
-    console.warn = vi.fn();
-    console.error = vi.fn();
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
     global.URL.createObjectURL = originalCreate;
     global.URL.revokeObjectURL = originalRevoke;
     global.Worker = originalWorker;
-    console.log = originalConsole.log;
-    console.info = originalConsole.info;
-    console.warn = originalConsole.warn;
-    console.error = originalConsole.error;
+    logSpy.mockRestore();
+    infoSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
   });
 
   it('运行成功时触发 run-success 和 run-log', () => {
@@ -183,7 +183,12 @@ describe('NodePageElement run events', () => {
 });
 
 describe('setupNodePage', () => {
-  let editor: any;
+  let editor: {
+    value: string;
+    setValue(v: string): void;
+    getValue(): string;
+    on(): void;
+  };
 
   beforeEach(() => {
     editor = {
@@ -196,7 +201,7 @@ describe('setupNodePage', () => {
       },
       on() {},
     };
-    (global as any).CodeMirror = {
+    (globalThis as unknown as Record<string, unknown>).CodeMirror = {
       fromTextArea: () => editor,
     };
     globalThis.localStorage.clear();
