@@ -10,11 +10,13 @@ export default [
       '*.config.js',
       '*.config.ts',
       '.github',
+      '**/*.ts',
+      '**/*.tsx',
     ],
   },
   js.configs.recommended,
   {
-    files: ['**/*.{js,ts,tsx}'],
+    files: ['**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

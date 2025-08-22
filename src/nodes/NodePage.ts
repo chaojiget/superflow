@@ -3,37 +3,81 @@ import { logRun } from '../run-center';
 
 declare const CodeMirror: any;
 
-export interface NodePageOptions {
-  exportButton: HTMLButtonElement;
-  importInput: HTMLInputElement;
-  codeArea: HTMLTextAreaElement;
-  runButton: HTMLButtonElement;
-  logPanel: HTMLElement;
-}
+/**
+ * 简单节点管理页面的 Web Component。
+ * 暴露 `flow-export` 与 `flow-import` 两个事件。
+ */
+export class NodePageElement extends HTMLElement {
+  private exportButton: HTMLButtonElement;
+  private importInput: HTMLInputElement;
+  private codeArea: HTMLTextAreaElement;
+  private runButton: HTMLButtonElement;
+  private logPanel: HTMLDivElement;
+  private editor: any;
+  private version = 0;
 
-export function setupNodePage(options: NodePageOptions): void {
-  const { exportButton, importInput, codeArea, runButton, logPanel } = options;
+  constructor() {
+    super();
+    const shadow = this.attachShadow({ mode: 'open' });
 
-  const editor = CodeMirror.fromTextArea(codeArea, {
-    mode: 'javascript',
-    lineNumbers: true,
-  });
+    this.exportButton = document.createElement('button');
+    this.exportButton.textContent = '导出流程';
 
-  const stored = globalThis.localStorage.getItem('node:code');
-  if (stored) {
-    editor.setValue(stored);
+    this.importInput = document.createElement('input');
+    this.importInput.type = 'file';
+
+    this.codeArea = document.createElement('textarea');
+
+    this.runButton = document.createElement('button');
+    this.runButton.textContent = '运行';
+
+    this.logPanel = document.createElement('div');
+
+    shadow.append(
+      this.exportButton,
+      this.importInput,
+      this.codeArea,
+      this.runButton,
+      this.logPanel
+    );
   }
 
-  editor.on('change', () => {
-    globalThis.localStorage.setItem('node:code', editor.getValue());
-  });
+  connectedCallback(): void {
+    this.exportButton.addEventListener('click', this.handleExport);
+    this.importInput.addEventListener('change', this.handleImport);
+    this.runButton.addEventListener('click', this.handleRun);
 
-  let version = Number(globalThis.localStorage.getItem('node:version') ?? '0');
+    this.editor = CodeMirror.fromTextArea(this.codeArea, {
+      mode: 'javascript',
+      lineNumbers: true,
+    });
 
-  runButton.addEventListener('click', () => {
-    logPanel.textContent = '';
-    version += 1;
-    globalThis.localStorage.setItem('node:version', String(version));
+    const stored = globalThis.localStorage.getItem('node:code');
+    if (stored) {
+      this.editor.setValue(stored);
+    }
+
+    this.editor.on('change', () => {
+      globalThis.localStorage.setItem('node:code', this.editor.getValue());
+    });
+
+    this.version = Number(
+      globalThis.localStorage.getItem('node:version') ?? '0'
+    );
+  }
+
+  disconnectedCallback(): void {
+    this.exportButton.removeEventListener('click', this.handleExport);
+    this.importInput.removeEventListener('change', this.handleImport);
+    this.runButton.removeEventListener('click', this.handleRun);
+  }
+
+  private handleRun = (): void => {
+    this.logPanel.textContent = '';
+    this.version += 1;
+    globalThis.localStorage.setItem('node:version', String(this.version));
+
+    const start = Date.now();
 
     const workerSrc = `
       self.onmessage = async (e) => {
@@ -63,31 +107,44 @@ export function setupNodePage(options: NodePageOptions): void {
       if (type === 'log') {
         const div = document.createElement('div');
         div.textContent = `[${e.data.level}] ${e.data.data.join(' ')}`;
-        logPanel.appendChild(div);
+        this.logPanel.appendChild(div);
       } else if (type === 'result') {
         const div = document.createElement('div');
         div.textContent = `[result] ${JSON.stringify(e.data.output)}`;
-        logPanel.appendChild(div);
+        this.logPanel.appendChild(div);
+        const duration = Date.now() - start;
         logRun({
           id: Date.now().toString(),
           input: '',
           output: JSON.stringify(e.data.output),
+          status: 'success',
+          duration,
           createdAt: Date.now(),
-          version,
+          version: this.version,
         });
         worker.terminate();
       } else if (type === 'error') {
         const div = document.createElement('div');
         div.textContent = `[error] ${e.data.error}`;
-        logPanel.appendChild(div);
+        this.logPanel.appendChild(div);
+        const duration = Date.now() - start;
+        logRun({
+          id: Date.now().toString(),
+          input: '',
+          output: String(e.data.error),
+          status: 'error',
+          duration,
+          createdAt: Date.now(),
+          version: this.version,
+        });
         worker.terminate();
       }
     };
 
-    worker.postMessage({ code: editor.getValue(), input: undefined });
-  });
+    worker.postMessage({ code: this.editor.getValue(), input: undefined });
+  };
 
-  exportButton.addEventListener('click', () => {
+  private handleExport = (): void => {
     const data = exportFlow();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -96,13 +153,20 @@ export function setupNodePage(options: NodePageOptions): void {
     a.download = 'flow.json';
     a.click();
     URL.revokeObjectURL(url);
-  });
+    this.dispatchEvent(new CustomEvent('flow-export', { detail: data }));
+  };
 
-  importInput.addEventListener('change', async () => {
-    const file = importInput.files?.[0];
+  private handleImport = async (): Promise<void> => {
+    const file = this.importInput.files?.[0];
     if (file) {
       const text = await file.text();
-      importFlow(text);
+      const flow = importFlow(text);
+      this.dispatchEvent(new CustomEvent('flow-import', { detail: flow }));
     }
-  });
+  };
 }
+
+customElements.define('node-page', NodePageElement);
+
+export default NodePageElement;
+
