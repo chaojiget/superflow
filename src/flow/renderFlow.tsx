@@ -9,6 +9,10 @@ import ReactFlow, {
   Connection,
   Edge,
   Node,
+  NodeChange,
+  EdgeChange,
+  applyNodeChanges,
+  applyEdgeChanges,
   BackgroundVariant,
   MarkerType,
 } from 'reactflow';
@@ -44,14 +48,16 @@ function FlowComponent({
   const [nodes, , onNodesChangeInternal] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
 
-  const handleNodesChange = (changes: any) => {
+  const handleNodesChange = (changes: NodeChange[]) => {
+    const updated = applyNodeChanges(changes, nodes);
     onNodesChangeInternal(changes);
-    onNodesChange(nodes);
+    onNodesChange(updated);
   };
 
-  const handleEdgesChange = (changes: any) => {
+  const handleEdgesChange = (changes: EdgeChange[]) => {
+    const updated = applyEdgeChanges(changes, edges);
     onEdgesChangeInternal(changes);
-    onEdgesChange(edges);
+    onEdgesChange(updated);
   };
 
   const handleConnect = (connection: Connection) => {
