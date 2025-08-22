@@ -1,4 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../flow/renderFlow', () => ({
+  renderFlow: vi.fn(( _bp: unknown, _container: HTMLElement, onChange?: (dag: { nodes: any[]; edges: any[] }) => void) => {
+    onChange?.({ nodes: [], edges: [] });
+    return {
+      nodes: [],
+      edges: [],
+      dragNode: () => {},
+      connect: () => '',
+      deleteNode: () => {},
+      deleteEdge: () => {},
+    };
+  }),
+}));
+
 import IdeasPageElement from '../IdeasPage';
 import * as blueprint from '../generateBlueprint';
 
@@ -28,7 +43,7 @@ describe('IdeasPageElement', () => {
     expect(evt.detail.blueprint.requirement).toBe('测试需求');
     expect(evt.detail.error).toBeNull();
     await nextTick();
-    const canvas = el.shadowRoot!.querySelector('flow-canvas') as any;
+    const canvas = el.shadowRoot!.querySelector('workflow-flow') as any;
     expect(canvas.blueprint.requirement).toBe('测试需求');
     document.body.removeChild(el);
   });
@@ -57,7 +72,7 @@ describe('IdeasPageElement', () => {
     await nextTick();
     const error = el.shadowRoot!.querySelector('.error') as HTMLDivElement;
     expect(error.style.display).toBe('block');
-    const canvas = el.shadowRoot!.querySelector('flow-canvas') as HTMLElement;
+    const canvas = el.shadowRoot!.querySelector('workflow-flow') as HTMLElement;
     expect(canvas.style.display).toBe('none');
     document.body.removeChild(el);
     (blueprint.generateBlueprint as any).mockRestore();
@@ -90,7 +105,7 @@ describe('IdeasPageElement', () => {
     await nextTick();
     const error = el.shadowRoot!.querySelector('.error') as HTMLDivElement;
     expect(error.style.display).toBe('block');
-    const canvas = el.shadowRoot!.querySelector('flow-canvas') as HTMLElement;
+    const canvas = el.shadowRoot!.querySelector('workflow-flow') as HTMLElement;
     expect(canvas.style.display).toBe('none');
     document.body.removeChild(el);
     (blueprint.generateBlueprint as any).mockRestore();

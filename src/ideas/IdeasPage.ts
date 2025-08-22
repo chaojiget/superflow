@@ -19,7 +19,7 @@ export class IdeasPageElement extends HTMLElement {
     this.textarea = document.createElement('textarea');
     this.button = document.createElement('button');
     this.button.textContent = '生成流程';
-    this.canvas = document.createElement('flow-canvas') as FlowCanvasElement;
+    this.canvas = document.createElement('workflow-flow') as FlowCanvasElement;
     this.canvas.style.display = 'none';
 
     this.errorMsg = document.createElement('div');
@@ -55,6 +55,7 @@ export class IdeasPageElement extends HTMLElement {
       );
     } catch (error) {
       this.canvas.style.display = 'none';
+      this.canvas.blueprint = null;
       this.errorMsg.textContent = '生成蓝图失败';
       this.errorMsg.style.display = 'block';
       this.dispatchEvent(
