@@ -1,8 +1,8 @@
 // @ts-check
 import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
+/** @type {import('eslint').Linter.FlatConfig[]} */
+export default [
   {
     ignores: [
       'dist',
@@ -15,7 +15,6 @@ export default tseslint.config(
     ],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
   {
     files: ['**/*.js', '**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -39,4 +38,4 @@ export default tseslint.config(
       },
     },
   },
-);
+];
