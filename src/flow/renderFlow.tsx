@@ -57,6 +57,19 @@ function FlowComponent({
     onEdgesChange(newEdge);
   };
 
+  const handleNodeDoubleClick = (_event: any, node: Node) => {
+    const newLabel = prompt('请输入新的标题', node.data.label);
+    if (newLabel && newLabel !== node.data.label) {
+      setNodes((nds) => {
+        const updated = nds.map((n) =>
+          n.id === node.id ? { ...n, data: { ...n.data, label: newLabel } } : n
+        );
+        onNodesChange(updated);
+        return updated;
+      });
+    }
+  };
+
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
@@ -65,6 +78,7 @@ function FlowComponent({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        onNodeDoubleClick={handleNodeDoubleClick}
         fitView
         attributionPosition="bottom-left"
       >
