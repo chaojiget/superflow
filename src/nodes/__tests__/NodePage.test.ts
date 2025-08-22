@@ -7,6 +7,10 @@ vi.mock('../../shared/storage', () => ({
   importFlow: vi.fn(() => ({ imported: true })),
 }));
 
+vi.mock('../../run-center', () => ({
+  logRun: vi.fn(),
+}));
+
 describe('NodePageElement', () => {
   let createObjectURL: ReturnType<typeof vi.fn>;
   let revokeObjectURL: ReturnType<typeof vi.fn>;
@@ -31,6 +35,8 @@ describe('NodePageElement', () => {
     global.URL.createObjectURL = originalCreate;
     global.URL.revokeObjectURL = originalRevoke;
     clickSpy.mockRestore();
+    document.body.innerHTML = '';
+    globalThis.localStorage.clear();
   });
 
   it('dispatches flow-export event', () => {
@@ -70,8 +76,127 @@ describe('NodePageElement', () => {
   });
 });
 
+describe('NodePageElement run events', () => {
+  let createObjectURL: ReturnType<typeof vi.fn>;
+  let revokeObjectURL: ReturnType<typeof vi.fn>;
+  let originalCreate: typeof URL.createObjectURL;
+  let originalRevoke: typeof URL.revokeObjectURL;
+  let originalWorker: typeof Worker | undefined;
+  let workerInstance!: {
+    onmessage: (ev: { data: unknown }) => void;
+    postMessage: (data: unknown) => void;
+    terminate: () => void;
+  };
+  let logSpy: ReturnType<typeof vi.spyOn>;
+  let infoSpy: ReturnType<typeof vi.spyOn>;
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    createObjectURL = vi.fn(() => 'blob:url');
+    revokeObjectURL = vi.fn();
+    originalCreate = URL.createObjectURL;
+    originalRevoke = URL.revokeObjectURL;
+    global.URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    global.URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
+
+    originalWorker = global.Worker;
+    global.Worker = vi.fn().mockImplementation(() => {
+      workerInstance = {
+        onmessage: vi.fn(),
+        postMessage: vi.fn(),
+        terminate: vi.fn(),
+      };
+      return workerInstance as unknown as Worker;
+    }) as unknown as typeof Worker;
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    globalThis.localStorage.clear();
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    global.URL.createObjectURL = originalCreate;
+    global.URL.revokeObjectURL = originalRevoke;
+    global.Worker = originalWorker as typeof Worker;
+    logSpy.mockRestore();
+    infoSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+    document.body.innerHTML = '';
+    globalThis.localStorage.clear();
+  });
+
+  it('运行成功时触发 run-success 和 run-log', () => {
+    const el = new NodePageElement();
+    document.body.appendChild(el);
+    const success = vi.fn();
+    const log = vi.fn();
+    el.addEventListener('run-success', success);
+    el.addEventListener('run-log', log);
+
+    const runButton = el.shadowRoot?.querySelectorAll(
+      'button'
+    )[1] as HTMLButtonElement;
+    runButton.click();
+
+    workerInstance.onmessage({
+      data: { type: 'log', level: 'log', data: ['hello'] },
+    });
+    workerInstance.onmessage({ data: { type: 'result', output: 123 } });
+
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { level: 'log', data: ['hello'] } })
+    );
+    expect(success).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: 123 })
+    );
+
+    const logPanel = el.shadowRoot?.querySelector('div') as HTMLDivElement;
+    expect(logPanel.textContent).toContain('[log] hello');
+    expect(logPanel.textContent).toContain('[result] 123');
+  });
+
+  it('运行出错时触发 run-error 和 run-log', () => {
+    const el = new NodePageElement();
+    document.body.appendChild(el);
+    const error = vi.fn();
+    const log = vi.fn();
+    el.addEventListener('run-error', error);
+    el.addEventListener('run-log', log);
+
+    const runButton = el.shadowRoot?.querySelectorAll(
+      'button'
+    )[1] as HTMLButtonElement;
+    runButton.click();
+
+    workerInstance.onmessage({
+      data: { type: 'log', level: 'log', data: ['hi'] },
+    });
+    workerInstance.onmessage({ data: { type: 'error', error: 'boom' } });
+
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { level: 'log', data: ['hi'] } })
+    );
+    expect(error).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: 'boom' })
+    );
+
+    const logPanel = el.shadowRoot?.querySelector('div') as HTMLDivElement;
+    expect(logPanel.textContent).toContain('[log] hi');
+    expect(logPanel.textContent).toContain('[error] boom');
+  });
+});
+
 describe('setupNodePage', () => {
-  let editor: any;
+  let editor: {
+    value: string;
+    setValue(v: string): void;
+    getValue(): string;
+    on(): void;
+  };
 
   beforeEach(() => {
     editor = {
@@ -84,7 +209,7 @@ describe('setupNodePage', () => {
       },
       on() {},
     };
-    (global as any).CodeMirror = {
+    (globalThis as unknown as Record<string, unknown>).CodeMirror = {
       fromTextArea: () => editor,
     };
     globalThis.localStorage.clear();
