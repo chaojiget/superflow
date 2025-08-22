@@ -80,7 +80,7 @@ describe('NodePageElement run events', () => {
   let originalCreate: typeof URL.createObjectURL;
   let originalRevoke: typeof URL.revokeObjectURL;
   let originalWorker: typeof Worker | undefined;
-  let workerInstance: {
+  let workerInstance!: {
     onmessage: (ev: { data: unknown }) => void;
     postMessage: (data: unknown) => void;
     terminate: () => void;
@@ -107,8 +107,8 @@ describe('NodePageElement run events', () => {
           postMessage: vi.fn(),
           terminate: vi.fn(),
         };
-        return workerInstance;
-      });
+        return workerInstance as unknown as Worker;
+      }) as unknown as typeof Worker;
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -118,7 +118,7 @@ describe('NodePageElement run events', () => {
   afterEach(() => {
     global.URL.createObjectURL = originalCreate;
     global.URL.revokeObjectURL = originalRevoke;
-    global.Worker = originalWorker;
+    global.Worker = originalWorker as typeof Worker;
     logSpy.mockRestore();
     infoSpy.mockRestore();
     warnSpy.mockRestore();
