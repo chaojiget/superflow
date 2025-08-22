@@ -104,7 +104,7 @@ export function setupNodePage(options: NodePageOptions): void {
     const file = importInput.files?.[0];
     if (file) {
       const text = await file.text();
-      const flow = importFlow(text);
+      importFlow(text);
     }
     importInput.value = '';
   });
