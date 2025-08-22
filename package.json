@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
+    "test": "npm run typecheck && vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
