@@ -1,3 +1,4 @@
+import '../shared/env';
 import { afterEach } from 'vitest';
 
 // Basic setup for vitest tests
