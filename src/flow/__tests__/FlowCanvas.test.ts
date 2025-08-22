@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../renderFlow', () => ({
-  renderFlow: vi.fn((_bp, _container, onChange) => {
+  renderFlow: vi.fn(
+    (
+      _bp: unknown,
+      _container: HTMLElement,
+      onChange?: (dag: { nodes: any[]; edges: any[] }) => void
+    ) => {
     let flow = {
       nodes: [
         { id: 'n1', data: { label: '' }, position: { x: 0, y: 0 } },
