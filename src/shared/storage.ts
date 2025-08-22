@@ -23,9 +23,13 @@ export function importFlow(
   json: string,
   storage: Storage = globalThis.localStorage
 ): unknown {
-  const flow = JSON.parse(json);
-  saveFlow(flow, storage);
-  return flow;
+  try {
+    const flow = JSON.parse(json);
+    saveFlow(flow, storage);
+    return flow;
+  } catch {
+    return null;
+  }
 }
 
 export default { saveFlow, loadFlow, exportFlow, importFlow };
