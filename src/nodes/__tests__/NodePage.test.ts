@@ -1,5 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { NodePageElement, setupNodePage } from '../NodePage';
+import {
+  NodePageElement,
+  setupNodePage,
+  generateNodeCode,
+  repairNodeCode,
+} from '../NodePage';
 import { importFlow } from '../../shared/storage';
 
 vi.mock('../../shared/storage', () => ({
@@ -70,8 +75,15 @@ describe('NodePageElement', () => {
   });
 });
 
+interface EditorMock {
+  value: string;
+  setValue(v: string): void;
+  getValue(): string;
+  on?(): void;
+}
+
 describe('setupNodePage', () => {
-  let editor: any;
+  let editor: EditorMock;
 
   beforeEach(() => {
     editor = {
@@ -84,7 +96,10 @@ describe('setupNodePage', () => {
       },
       on() {},
     };
-    (global as any).CodeMirror = {
+    interface GlobalWithCM {
+      CodeMirror: { fromTextArea: () => EditorMock };
+    }
+    (globalThis as unknown as GlobalWithCM).CodeMirror = {
       fromTextArea: () => editor,
     };
     globalThis.localStorage.clear();
@@ -130,5 +145,81 @@ describe('setupNodePage', () => {
     expect(editor.getValue()).toBe('code1');
     expect(globalThis.localStorage.getItem('node:code')).toBe('code1');
     expect(globalThis.localStorage.getItem('node:version')).toBe('1');
+  });
+});
+
+describe.each([
+  ['generateNodeCode', generateNodeCode],
+  ['repairNodeCode', repairNodeCode],
+])('%s', (_name, fn) => {
+  let editor: EditorMock;
+  beforeEach(() => {
+    editor = {
+      value: '',
+      setValue(v: string) {
+        this.value = v;
+      },
+      getValue() {
+        return this.value;
+      },
+    };
+    globalThis.localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('成功时保存新版本', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 'new' }),
+    }));
+
+    const version = await fn(editor);
+    expect(version).toBe(1);
+    expect(globalThis.localStorage.getItem('node:version')).toBe('1');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('new');
+    expect(globalThis.localStorage.getItem('node:code:v1')).toBe('new');
+  });
+
+  it('失败时返回旧版本并记录错误', async () => {
+    globalThis.localStorage.setItem('node:version', '2');
+    globalThis.localStorage.setItem('node:code', 'old');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    }));
+
+    const version = await fn(editor);
+    expect(version).toBe(2);
+    expect(globalThis.localStorage.getItem('node:version')).toBe('2');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('old');
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
+  it('解析失败时返回旧版本并记录错误', async () => {
+    globalThis.localStorage.setItem('node:version', '2');
+    globalThis.localStorage.setItem('node:code', 'old');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => {
+          throw new Error('bad json');
+        },
+      })
+    );
+
+    const version = await fn(editor);
+    expect(version).toBe(2);
+    expect(globalThis.localStorage.getItem('node:version')).toBe('2');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('old');
+    expect(errorSpy).toHaveBeenCalled();
   });
 });
