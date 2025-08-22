@@ -12,6 +12,7 @@ describe('run-center', () => {
       input: 'input data',
       output: 'output data',
       createdAt: Date.now(),
+      version: 1,
     };
 
     logRun(record);
