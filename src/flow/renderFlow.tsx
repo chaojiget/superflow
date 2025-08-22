@@ -1,7 +1,8 @@
 import { createRoot, Root } from 'react-dom/client';
-import ReactFlow, { 
-  Controls, 
-  Background, 
+import type { MouseEvent } from 'react';
+import ReactFlow, {
+  Controls,
+  Background,
   MiniMap,
   useNodesState,
   useEdgesState,
@@ -40,6 +41,26 @@ function FlowComponent({
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
 
+  const handlePaneContextMenu = (event: MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const nodeType = window.prompt('请选择节点类型');
+    if (!nodeType) return;
+    const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
+    const position = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+    const id = `node-${Date.now()}`;
+    const newNode: Node = {
+      id,
+      position,
+      data: { label: nodeType },
+    };
+    const updated = [...nodes, newNode];
+    setNodes(updated);
+    onNodesChange(updated);
+  };
+
   const handleNodesChange = (changes: any) => {
     onNodesChangeInternal(changes);
     onNodesChange(nodes);
@@ -65,6 +86,7 @@ function FlowComponent({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        onPaneContextMenu={handlePaneContextMenu}
         fitView
         attributionPosition="bottom-left"
       >
