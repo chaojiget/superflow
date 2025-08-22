@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { NodePageElement } from '../NodePage';
+import { NodePageElement, setupNodePage } from '../NodePage';
 import { exportFlow, importFlow } from '../../shared/storage';
 
 vi.mock('../../shared/storage', () => ({
@@ -65,5 +65,64 @@ describe('NodePageElement', () => {
     input.dispatchEvent(new Event('change'));
     await new Promise((r) => setTimeout(r, 0));
     expect(importFlow).not.toHaveBeenCalled();
+  });
+});
+
+describe('setupNodePage', () => {
+  let editor: any;
+
+  beforeEach(() => {
+    editor = {
+      value: '',
+      setValue(v: string) {
+        this.value = v;
+      },
+      getValue() {
+        return this.value;
+      },
+      on() {},
+    };
+    (global as any).CodeMirror = {
+      fromTextArea: () => editor,
+    };
+    globalThis.localStorage.clear();
+  });
+
+  it('回滚到历史版本', () => {
+    globalThis.localStorage.setItem('node:version', '2');
+    globalThis.localStorage.setItem('node:code', 'code2');
+    globalThis.localStorage.setItem(
+      'node:versions',
+      JSON.stringify([
+        { id: 1, code: 'code1' },
+        { id: 2, code: 'code2' },
+      ])
+    );
+
+    const exportButton = document.createElement('button');
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    const codeArea = document.createElement('textarea');
+    const runButton = document.createElement('button');
+    const logPanel = document.createElement('div');
+    const versionList = document.createElement('ul');
+
+    setupNodePage({
+      exportButton,
+      importInput,
+      codeArea,
+      runButton,
+      logPanel,
+      versionList,
+    });
+
+    const rollbackBtn = versionList.querySelector(
+      'li:nth-child(1) button:nth-of-type(2)'
+    ) as HTMLButtonElement;
+    rollbackBtn.click();
+
+    expect(editor.getValue()).toBe('code1');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('code1');
+    expect(globalThis.localStorage.getItem('node:version')).toBe('1');
   });
 });

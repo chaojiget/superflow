@@ -9,10 +9,23 @@ export interface NodePageOptions {
   codeArea: HTMLTextAreaElement;
   runButton: HTMLButtonElement;
   logPanel: HTMLElement;
+  versionList: HTMLUListElement;
+}
+
+interface CodeVersion {
+  id: number;
+  code: string;
 }
 
 export function setupNodePage(options: NodePageOptions): void {
-  const { exportButton, importInput, codeArea, runButton, logPanel } = options;
+  const {
+    exportButton,
+    importInput,
+    codeArea,
+    runButton,
+    logPanel,
+    versionList,
+  } = options;
 
   const editor = CodeMirror.fromTextArea(codeArea, {
     mode: 'javascript',
@@ -29,11 +42,65 @@ export function setupNodePage(options: NodePageOptions): void {
   });
 
   let version = Number(globalThis.localStorage.getItem('node:version') ?? '0');
+  const versions: CodeVersion[] = (() => {
+    try {
+      const raw = globalThis.localStorage.getItem('node:versions');
+      return raw ? (JSON.parse(raw) as CodeVersion[]) : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  function saveVersions(): void {
+    try {
+      globalThis.localStorage.setItem('node:versions', JSON.stringify(versions));
+    } catch {
+      // ignore
+    }
+  }
+
+  function renderVersions(): void {
+    versionList.innerHTML = '';
+    versions.forEach((v) => {
+      const li = document.createElement('li');
+      li.textContent = `v${v.id}`;
+      const viewBtn = document.createElement('button');
+      viewBtn.textContent = '查看';
+      viewBtn.addEventListener('click', () => {
+        editor.setValue(v.code);
+      });
+      const rollbackBtn = document.createElement('button');
+      rollbackBtn.textContent = '回滚';
+      rollbackBtn.addEventListener('click', () => {
+        editor.setValue(v.code);
+        version = v.id;
+        globalThis.localStorage.setItem('node:code', v.code);
+        globalThis.localStorage.setItem('node:version', String(version));
+      });
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '删除';
+      deleteBtn.addEventListener('click', () => {
+        const idx = versions.findIndex((x) => x.id === v.id);
+        if (idx >= 0) {
+          versions.splice(idx, 1);
+          saveVersions();
+          renderVersions();
+        }
+      });
+      li.append(viewBtn, rollbackBtn, deleteBtn);
+      versionList.append(li);
+    });
+  }
+
+  renderVersions();
 
   runButton.addEventListener('click', () => {
     logPanel.textContent = '';
     version += 1;
     globalThis.localStorage.setItem('node:version', String(version));
+    versions.push({ id: version, code: editor.getValue() });
+    saveVersions();
+    renderVersions();
 
     const workerSrc = `
       self.onmessage = async (e) => {
