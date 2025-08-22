@@ -36,7 +36,7 @@ function FlowComponent({
   onNodesChange,
   onEdgesChange,
   onConnect,
-  readonly
+  readonly,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -83,7 +83,7 @@ function FlowComponent({
         attributionPosition="bottom-left"
       >
         <Controls />
-        <MiniMap 
+        <MiniMap
           style={{
             height: 120,
             width: 200,
@@ -145,7 +145,8 @@ export function renderFlow(
     return { nodes: reactFlowNodes, edges: reactFlowEdges };
   };
 
-  let { nodes: reactFlowNodes, edges: reactFlowEdges } = convertToReactFlowFormat();
+  let { nodes: reactFlowNodes, edges: reactFlowEdges } =
+    convertToReactFlowFormat();
 
   const emit = () => {
     onChange?.({ nodes, edges });
@@ -166,17 +167,21 @@ export function renderFlow(
           emit();
         }}
         onEdgesChange={(updatedEdges) => {
-          edges = updatedEdges.map(edge => ({
+          edges = updatedEdges.map((edge) => ({
             id: edge.id,
             source: edge.source,
-            target: edge.target
+            target: edge.target,
           }));
           emit();
         }}
         onConnect={(connection) => {
           if (connection.source && connection.target) {
             const id = `${connection.source}-${connection.target}-${Date.now()}`;
-            const newEdge = { id, source: connection.source, target: connection.target };
+            const newEdge = {
+              id,
+              source: connection.source,
+              target: connection.target,
+            };
             edges = [...edges, newEdge];
             const converted = convertToReactFlowFormat();
             reactFlowEdges = converted.edges;
