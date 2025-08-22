@@ -1,4 +1,4 @@
-import ReactFlow from 'reactflow';
+import ReactFlow from './reactflow';
 import { blueprintToDag } from '../planner/blueprintToDag';
 
 /**

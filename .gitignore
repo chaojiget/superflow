@@ -65,3 +65,4 @@ temp/
 
 # Yarn Integrity file
 .yarn-integrity
+node_modules/vite/types/importGlob.d.ts
