@@ -25,10 +25,21 @@ const blueprint: Blueprint = {
 };
 
 describe('renderFlow', () => {
-  it('返回包含节点和边的 ReactFlow 对象', () => {
+  it('支持节点拖拽、连线和删除', () => {
     const flow = renderFlow(blueprint);
-    expect(flow.type).toBe('ReactFlow');
-    expect(flow.nodes).toBeDefined();
-    expect(flow.edges).toBeDefined();
+
+    const nodeId = flow.nodes[0].id;
+    flow.dragNode(nodeId, { x: 50, y: 60 });
+    expect(flow.nodes[0].position).toEqual({ x: 50, y: 60 });
+
+    const edgeCount = flow.edges.length;
+    const newEdgeId = flow.connect(nodeId, 'temp');
+    expect(flow.edges.length).toBe(edgeCount + 1);
+
+    flow.deleteEdge(newEdgeId);
+    expect(flow.edges.find((e) => e.id === newEdgeId)).toBeUndefined();
+
+    flow.deleteNode(nodeId);
+    expect(flow.nodes.find((n) => n.id === nodeId)).toBeUndefined();
   });
 });
