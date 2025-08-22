@@ -22,7 +22,7 @@ jobs:
 
       - name: Run all checks
         run: |
-          echo "运行测试..."
+          echo "运行测试并检查覆盖率..."
           npm run test
 
           echo "运行代码检查..."

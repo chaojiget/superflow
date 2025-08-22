@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node node_modules/vitest/vitest.mjs run --coverage",
+    "test:watch": "node node_modules/vitest/vitest.mjs --coverage",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
