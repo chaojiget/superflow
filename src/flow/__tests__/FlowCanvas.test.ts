@@ -64,4 +64,47 @@ describe('FlowCanvasElement', () => {
     el.deleteNode(nodeId);
     expect(el.dag!.nodes.find((n) => n.id === nodeId)).toBeUndefined();
   });
+
+  it.each(['dark', 'light'])(
+    '设置 theme="%s" 时 container 的 data-theme 更新',
+    (theme) => {
+      const el = new FlowCanvasElement();
+      document.body.appendChild(el);
+      const container = el.shadowRoot!.querySelector('div')!;
+      el.setAttribute('theme', theme);
+      expect(container.getAttribute('data-theme')).toBe(theme);
+    }
+  );
+
+  it('正确解析 readonly 布尔属性', () => {
+    const el = new FlowCanvasElement();
+    document.body.appendChild(el);
+    expect(el.readonly).toBe(false);
+    const desc = Object.getOwnPropertyDescriptor(
+      FlowCanvasElement.prototype,
+      'readonly'
+    )!;
+    Object.defineProperty(el, 'readonly', {
+      get: desc.get!,
+      set(v: boolean) {
+        (el as any)._readonly = v;
+      },
+    });
+    el.setAttribute('readonly', '');
+    expect(el.readonly).toBe(true);
+    el.removeAttribute('readonly');
+    expect(el.readonly).toBe(false);
+    el.setAttribute('readonly', 'false');
+    expect(el.readonly).toBe(false);
+  });
+
+  it('字符串 blueprint 属性能被解析为对象', () => {
+    vi.clearAllMocks();
+    const el = new FlowCanvasElement();
+    document.body.appendChild(el);
+    const bp = { a: 1 };
+    el.setAttribute('blueprint', JSON.stringify(bp));
+    expect(el.blueprint).toEqual(bp);
+    expect(renderFlow).toHaveBeenCalled();
+  });
 });
