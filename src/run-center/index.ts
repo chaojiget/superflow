@@ -3,6 +3,7 @@ export interface RunRecord {
   input: string;
   output: string;
   createdAt: number;
+  version: number;
 }
 
 const runQueue: RunRecord[] = [];
@@ -19,7 +20,3 @@ export function clearRunRecords(): void {
   runQueue.length = 0;
 }
 
-export function RunRecordList() {
-  // TODO: 实现记录列表组件
-  return getRunRecords();
-}
