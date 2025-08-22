@@ -18,9 +18,29 @@
 </script>
 ```
 
+## Web Component
+
+除函数方式外，还可以直接使用自定义元素 `<workflow-node>`：
+
+```html
+<workflow-node id="page"></workflow-node>
+<script type="module">
+  import 'superflow/nodes/NodePage.js';
+
+  const page = document.getElementById('page');
+  page.addEventListener('flow-import', (e) => {
+    console.log('imported', e.detail);
+  });
+</script>
+```
+
+该组件会触发 `flow-export` 与 `flow-import` 两个事件。
+
 ## 属性
 
 - `code`：初始代码内容。
+
+## API 说明
 
 ## 事件
 
