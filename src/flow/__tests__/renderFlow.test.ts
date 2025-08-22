@@ -26,7 +26,10 @@ const blueprint: Blueprint = {
 
 describe('renderFlow', () => {
   it('支持节点拖拽、连线和删除', () => {
-    const flow = renderFlow(blueprint);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const changes: unknown[] = [];
+    const flow = renderFlow(blueprint, container, (dag) => changes.push(dag));
 
     const nodeId = flow.nodes[0].id;
     flow.dragNode(nodeId, { x: 50, y: 60 });
@@ -41,5 +44,7 @@ describe('renderFlow', () => {
 
     flow.deleteNode(nodeId);
     expect(flow.nodes.find((n) => n.id === nodeId)).toBeUndefined();
+
+    expect(changes.length).toBeGreaterThan(1);
   });
 });
