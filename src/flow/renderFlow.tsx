@@ -24,18 +24,20 @@ export interface FlowInstance {
 }
 
 // React组件来渲染流程图
-function FlowComponent({ 
-  initialNodes, 
-  initialEdges, 
-  onNodesChange, 
-  onEdgesChange, 
-  onConnect 
+function FlowComponent({
+  initialNodes,
+  initialEdges,
+  onNodesChange,
+  onEdgesChange,
+  onConnect,
+  readonly
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
   onConnect: (connection: Connection) => void;
+  readonly: boolean;
 }) {
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
@@ -65,6 +67,10 @@ function FlowComponent({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        nodesDraggable={!readonly}
+        nodesConnectable={!readonly}
+        elementsSelectable={!readonly}
+        connectOnClick={!readonly}
         fitView
         attributionPosition="bottom-left"
       >
@@ -89,7 +95,8 @@ function FlowComponent({
 export function renderFlow(
   blueprint: Parameters<typeof blueprintToDag>[0],
   container: HTMLElement,
-  onChange?: (dag: Dag) => void
+  onChange?: (dag: Dag) => void,
+  readonly = false
 ): FlowInstance {
   let { nodes, edges } = blueprintToDag(blueprint);
   const root: Root = createRoot(container);
@@ -168,6 +175,7 @@ export function renderFlow(
             emit();
           }
         }}
+        readonly={readonly}
       />
     );
   };
