@@ -50,6 +50,7 @@ export class NodePageElement extends HTMLElement {
       const flow = importFlow(text);
       this.dispatchEvent(new CustomEvent('flow-import', { detail: flow }));
     }
+    this.importInput.value = '';
   };
 }
 

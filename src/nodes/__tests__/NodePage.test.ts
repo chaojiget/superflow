@@ -1,20 +1,36 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { NodePageElement } from '../NodePage';
+import { exportFlow, importFlow } from '../../shared/storage';
 
 vi.mock('../../shared/storage', () => ({
   exportFlow: vi.fn(() => 'mock-flow'),
   importFlow: vi.fn(() => ({ imported: true })),
 }));
 
-// Stub URL methods used in component
-const createObjectURL = vi.fn(() => 'blob:url');
-const revokeObjectURL = vi.fn();
-global.URL.createObjectURL = createObjectURL as any;
-global.URL.revokeObjectURL = revokeObjectURL as any;
-(HTMLAnchorElement.prototype.click as any) = vi.fn();
-
-import { NodePageElement } from '../NodePage';
-
 describe('NodePageElement', () => {
+  let createObjectURL: any;
+  let revokeObjectURL: any;
+  let originalCreate: any;
+  let originalRevoke: any;
+  let clickSpy: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    createObjectURL = vi.fn(() => 'blob:url');
+    revokeObjectURL = vi.fn();
+    originalCreate = URL.createObjectURL;
+    originalRevoke = URL.revokeObjectURL;
+    global.URL.createObjectURL = createObjectURL as any;
+    global.URL.revokeObjectURL = revokeObjectURL as any;
+    clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    global.URL.createObjectURL = originalCreate;
+    global.URL.revokeObjectURL = originalRevoke;
+    clickSpy.mockRestore();
+  });
+
   it('dispatches flow-export event', () => {
     const el = new NodePageElement();
     document.body.appendChild(el);
@@ -26,7 +42,7 @@ describe('NodePageElement', () => {
     );
   });
 
-  it('dispatches flow-import event', async () => {
+  it('dispatches flow-import event and clears input', async () => {
     const el = new NodePageElement();
     document.body.appendChild(el);
     const handler = vi.fn();
@@ -39,5 +55,15 @@ describe('NodePageElement', () => {
     expect(handler).toHaveBeenCalledWith(
       expect.objectContaining({ detail: { imported: true } })
     );
+    expect(input.value).toBe('');
+  });
+
+  it('不选择文件时不调用 importFlow', async () => {
+    const el = new NodePageElement();
+    document.body.appendChild(el);
+    const input = el.shadowRoot?.querySelector('input') as HTMLInputElement;
+    input.dispatchEvent(new Event('change'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(importFlow).not.toHaveBeenCalled();
   });
 });
