@@ -7,6 +7,10 @@ vi.mock('../../shared/storage', () => ({
   importFlow: vi.fn(() => ({ imported: true })),
 }));
 
+vi.mock('../../run-center', () => ({
+  logRun: vi.fn(),
+}));
+
 describe('NodePageElement', () => {
   let createObjectURL: ReturnType<typeof vi.fn>;
   let revokeObjectURL: ReturnType<typeof vi.fn>;
@@ -67,6 +71,114 @@ describe('NodePageElement', () => {
     input.dispatchEvent(new Event('change'));
     await new Promise((r) => setTimeout(r, 0));
     expect(importFlow).not.toHaveBeenCalled();
+  });
+});
+
+describe('NodePageElement run events', () => {
+  let createObjectURL: ReturnType<typeof vi.fn>;
+  let revokeObjectURL: ReturnType<typeof vi.fn>;
+  let originalCreate: typeof URL.createObjectURL;
+  let originalRevoke: typeof URL.revokeObjectURL;
+  let originalWorker: any;
+  let workerInstance: any;
+  let originalConsole: Record<string, any>;
+
+  beforeEach(() => {
+    createObjectURL = vi.fn(() => 'blob:url');
+    revokeObjectURL = vi.fn();
+    originalCreate = URL.createObjectURL;
+    originalRevoke = URL.revokeObjectURL;
+    global.URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    global.URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
+
+    originalWorker = global.Worker;
+    global.Worker = vi
+      .fn()
+      .mockImplementation(() => {
+        workerInstance = {
+          onmessage: vi.fn(),
+          postMessage: vi.fn(),
+          terminate: vi.fn(),
+        };
+        return workerInstance;
+      });
+
+    originalConsole = {
+      log: console.log,
+      info: console.info,
+      warn: console.warn,
+      error: console.error,
+    };
+    console.log = vi.fn();
+    console.info = vi.fn();
+    console.warn = vi.fn();
+    console.error = vi.fn();
+  });
+
+  afterEach(() => {
+    global.URL.createObjectURL = originalCreate;
+    global.URL.revokeObjectURL = originalRevoke;
+    global.Worker = originalWorker;
+    console.log = originalConsole.log;
+    console.info = originalConsole.info;
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
+  });
+
+  it('运行成功时触发 run-success 和 run-log', () => {
+    const el = new NodePageElement();
+    document.body.appendChild(el);
+    const success = vi.fn();
+    const log = vi.fn();
+    el.addEventListener('run-success', success);
+    el.addEventListener('run-log', log);
+
+    const runButton = el.shadowRoot?.querySelectorAll('button')[1] as HTMLButtonElement;
+    runButton.click();
+
+    workerInstance.onmessage({
+      data: { type: 'log', level: 'log', data: ['hello'] },
+    });
+    workerInstance.onmessage({ data: { type: 'result', output: 123 } });
+
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { level: 'log', data: ['hello'] } })
+    );
+    expect(success).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: 123 })
+    );
+
+    const logPanel = el.shadowRoot?.querySelector('div') as HTMLDivElement;
+    expect(logPanel.textContent).toContain('[log] hello');
+    expect(logPanel.textContent).toContain('[result] 123');
+  });
+
+  it('运行出错时触发 run-error 和 run-log', () => {
+    const el = new NodePageElement();
+    document.body.appendChild(el);
+    const error = vi.fn();
+    const log = vi.fn();
+    el.addEventListener('run-error', error);
+    el.addEventListener('run-log', log);
+
+    const runButton = el.shadowRoot?.querySelectorAll('button')[1] as HTMLButtonElement;
+    runButton.click();
+
+    workerInstance.onmessage({
+      data: { type: 'log', level: 'log', data: ['hi'] },
+    });
+    workerInstance.onmessage({ data: { type: 'error', error: 'boom' } });
+
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: { level: 'log', data: ['hi'] } })
+    );
+    expect(error).toHaveBeenCalledWith(
+      expect.objectContaining({ detail: 'boom' })
+    );
+
+    const logPanel = el.shadowRoot?.querySelector('div') as HTMLDivElement;
+    expect(logPanel.textContent).toContain('[log] hi');
+    expect(logPanel.textContent).toContain('[error] boom');
   });
 });
 
