@@ -8,6 +8,10 @@ import ReactFlow, {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
+  MarkerType,
+  BackgroundVariant,
   Connection,
   Edge,
   Node
@@ -42,13 +46,13 @@ function FlowComponent({
   const [nodes, setNodes] = useNodesState(initialNodes);
   const [edges, setEdges] = useEdgesState(initialEdges);
 
-  const handleNodesChange = (changes: any) => {
+  const handleNodesChange = (changes: NodeChange[]) => {
     const updatedNodes = applyNodeChanges(changes, nodes);
     setNodes(updatedNodes);
     onNodesChange(updatedNodes);
   };
 
-  const handleEdgesChange = (changes: any) => {
+  const handleEdgesChange = (changes: EdgeChange[]) => {
     const updatedEdges = applyEdgeChanges(changes, edges);
     setEdges(updatedEdges);
     onEdgesChange(updatedEdges);
@@ -84,7 +88,7 @@ function FlowComponent({
           nodeStrokeWidth={3}
           maskColor="rgba(0, 0, 0, 0.2)"
         />
-        <Background variant="dots" gap={12} size={1} />
+        <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
       </ReactFlow>
     </div>
   );
@@ -102,9 +106,9 @@ export function renderFlow(
   const convertToReactFlowFormat = () => {
     const reactFlowNodes: Node[] = nodes.map(node => ({
       ...node,
-      data: { 
+      data: {
+        ...node.data,
         label: node.data?.label || node.id,
-        ...node.data 
       },
       style: {
         background: '#fff',
@@ -115,7 +119,6 @@ export function renderFlow(
         color: '#333',
         minWidth: 100,
         textAlign: 'center',
-        ...node.style
       }
     }));
 
@@ -124,7 +127,7 @@ export function renderFlow(
       type: 'smoothstep',
       style: { stroke: '#333', strokeWidth: 2 },
       markerEnd: {
-        type: 'arrowclosed',
+        type: MarkerType.ArrowClosed,
         width: 20,
         height: 20,
         color: '#333',
@@ -149,8 +152,7 @@ export function renderFlow(
           nodes = updatedNodes.map(node => ({
             id: node.id,
             position: node.position,
-            data: node.data,
-            style: node.style
+            data: node.data
           }));
           emit();
         }}
