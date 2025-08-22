@@ -34,3 +34,24 @@ superflow/
 2. 进行开发，确保使用 Prettier 格式化代码。
 3. 提交前运行 `npm test` 确认通过。
 4. 提交 PR 并描述变更背景、实现与测试情况。
+
+## 使用示例
+
+```ts
+import { FlowCanvasElement } from './src/flow/FlowCanvas';
+
+const blueprint = {
+  requirement: '',
+  steps: [],
+};
+
+const canvas = new FlowCanvasElement();
+canvas.blueprint = blueprint;
+canvas.addEventListener('dag-change', (e) => {
+  console.log('最新 DAG:', e.detail);
+});
+document.body.appendChild(canvas);
+
+// 也可以通过方法控制节点与连线
+canvas.connect('start', 'end');
+```

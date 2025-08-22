@@ -1,4 +1,5 @@
-import { renderFlow } from './renderFlow';
+import type { Dag } from '../planner/blueprintToDag';
+import { renderFlow, type FlowInstance } from './renderFlow';
 import type { Blueprint } from '../ideas/generateBlueprint';
 
 /**
@@ -10,11 +11,15 @@ export class FlowCanvasElement extends HTMLElement {
   private _blueprint: Blueprint | null = null;
   private _theme = 'light';
   private _readonly = false;
+  private flow: FlowInstance | null = null;
+  private _dag: Dag | null = null;
 
   constructor() {
     super();
     const shadow = this.attachShadow({ mode: 'open' });
-    this.container = document.createElement('pre');
+    this.container = document.createElement('div');
+    this.container.style.width = '100%';
+    this.container.style.height = '400px';
     shadow.append(this.container);
     this.updateTheme();
   }
@@ -54,6 +59,26 @@ export class FlowCanvasElement extends HTMLElement {
     }
   }
 
+  get dag(): Dag | null {
+    return this._dag;
+  }
+
+  dragNode(id: string, position: { x: number; y: number }): void {
+    this.flow?.dragNode(id, position);
+  }
+
+  connect(source: string, target: string): string | undefined {
+    return this.flow?.connect(source, target);
+  }
+
+  deleteNode(id: string): void {
+    this.flow?.deleteNode(id);
+  }
+
+  deleteEdge(id: string): void {
+    this.flow?.deleteEdge(id);
+  }
+
   attributeChangedCallback(name: string, _old: string | null, value: string | null): void {
     if (name === 'blueprint') {
       try {
@@ -73,13 +98,16 @@ export class FlowCanvasElement extends HTMLElement {
   }
 
   private render(): void {
+    this.container.innerHTML = '';
     if (!this._blueprint) {
-      this.container.textContent = '';
+      this._dag = null;
       return;
     }
-    const flow = renderFlow(this._blueprint);
-    this.container.textContent = JSON.stringify(flow, null, 2);
-    this.dispatchEvent(new CustomEvent('flow-render', { detail: flow }));
+    this.flow = renderFlow(this._blueprint as any, this.container, (dag) => {
+      this._dag = dag;
+      this.dispatchEvent(new CustomEvent('dag-change', { detail: dag }));
+    });
+    this.dispatchEvent(new CustomEvent('flow-render', { detail: this._dag }));
   }
 }
 
