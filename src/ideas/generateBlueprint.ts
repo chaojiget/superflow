@@ -13,7 +13,7 @@ export interface Blueprint {
 }
 
 /**
- * 根据文本需求生成蓝图。当前实现返回固定示例。
+ * 调用大模型接口，根据文本需求生成包含多个步骤的蓝图。
  */
 export async function generateBlueprint(requirement: string): Promise<Blueprint> {
   const apiKey = process.env.OPENAI_API_KEY;
