@@ -14,7 +14,7 @@ import ReactFlow, {
   BackgroundVariant,
   Connection,
   Edge,
-  Node
+  Node,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
@@ -30,12 +30,12 @@ export interface FlowInstance {
 }
 
 // React组件来渲染流程图
-function FlowComponent({ 
-  initialNodes, 
-  initialEdges, 
-  onNodesChange, 
-  onEdgesChange, 
-  onConnect 
+function FlowComponent({
+  initialNodes,
+  initialEdges,
+  onNodesChange,
+  onEdgesChange,
+  onConnect,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -77,7 +77,7 @@ function FlowComponent({
         attributionPosition="bottom-left"
       >
         <Controls />
-        <MiniMap 
+        <MiniMap
           style={{
             height: 120,
             width: 200,
@@ -104,7 +104,7 @@ export function renderFlow(
 
   // 转换为ReactFlow格式的节点和边
   const convertToReactFlowFormat = () => {
-    const reactFlowNodes: Node[] = nodes.map(node => ({
+    const reactFlowNodes: Node[] = nodes.map((node) => ({
       ...node,
       data: {
         ...node.data,
@@ -119,10 +119,10 @@ export function renderFlow(
         color: '#333',
         minWidth: 100,
         textAlign: 'center',
-      }
+      },
     }));
 
-    const reactFlowEdges: Edge[] = edges.map(edge => ({
+    const reactFlowEdges: Edge[] = edges.map((edge) => ({
       ...edge,
       type: 'smoothstep',
       style: { stroke: '#333', strokeWidth: 2 },
@@ -131,13 +131,14 @@ export function renderFlow(
         width: 20,
         height: 20,
         color: '#333',
-      }
+      },
     }));
 
     return { nodes: reactFlowNodes, edges: reactFlowEdges };
   };
 
-  let { nodes: reactFlowNodes, edges: reactFlowEdges } = convertToReactFlowFormat();
+  let { nodes: reactFlowNodes, edges: reactFlowEdges } =
+    convertToReactFlowFormat();
 
   const emit = () => {
     onChange?.({ nodes, edges });
@@ -149,25 +150,29 @@ export function renderFlow(
         initialNodes={reactFlowNodes}
         initialEdges={reactFlowEdges}
         onNodesChange={(updatedNodes) => {
-          nodes = updatedNodes.map(node => ({
+          nodes = updatedNodes.map((node) => ({
             id: node.id,
             position: node.position,
-            data: node.data
+            data: node.data,
           }));
           emit();
         }}
         onEdgesChange={(updatedEdges) => {
-          edges = updatedEdges.map(edge => ({
+          edges = updatedEdges.map((edge) => ({
             id: edge.id,
             source: edge.source,
-            target: edge.target
+            target: edge.target,
           }));
           emit();
         }}
         onConnect={(connection) => {
           if (connection.source && connection.target) {
             const id = `${connection.source}-${connection.target}-${Date.now()}`;
-            const newEdge = { id, source: connection.source, target: connection.target };
+            const newEdge = {
+              id,
+              source: connection.source,
+              target: connection.target,
+            };
             edges = [...edges, newEdge];
             const converted = convertToReactFlowFormat();
             reactFlowEdges = converted.edges;
