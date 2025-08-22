@@ -34,7 +34,7 @@ function FlowComponent({
   onEdgesChange,
   onConnect,
   onDeleteNode,
-  onDeleteEdge
+  onDeleteEdge,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -64,20 +64,14 @@ function FlowComponent({
     onEdgesChange(newEdge);
   };
 
-  const handleNodeContextMenu = (
-    event: MouseEvent,
-    node: Node
-  ) => {
+  const handleNodeContextMenu = (event: MouseEvent, node: Node) => {
     event.preventDefault();
     if (window.confirm('确认删除该节点？')) {
       onDeleteNode(node.id);
     }
   };
 
-  const handleEdgeContextMenu = (
-    event: MouseEvent,
-    edge: Edge
-  ) => {
+  const handleEdgeContextMenu = (event: MouseEvent, edge: Edge) => {
     event.preventDefault();
     if (window.confirm('确认删除该连线？')) {
       onDeleteEdge(edge.id);
@@ -98,7 +92,7 @@ function FlowComponent({
         attributionPosition="bottom-left"
       >
         <Controls />
-        <MiniMap 
+        <MiniMap
           style={{
             height: 120,
             width: 200,
@@ -125,7 +119,7 @@ export function renderFlow(
 
   // 转换为ReactFlow格式的节点和边
   const convertToReactFlowFormat = () => {
-    const reactFlowNodes: Node[] = nodes.map(node => ({
+    const reactFlowNodes: Node[] = nodes.map((node) => ({
       id: node.id,
       type: node.type,
       position: node.position,
@@ -142,7 +136,7 @@ export function renderFlow(
       },
     }));
 
-    const reactFlowEdges: Edge[] = edges.map(edge => ({
+    const reactFlowEdges: Edge[] = edges.map((edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
@@ -159,7 +153,8 @@ export function renderFlow(
     return { nodes: reactFlowNodes, edges: reactFlowEdges };
   };
 
-  let { nodes: reactFlowNodes, edges: reactFlowEdges } = convertToReactFlowFormat();
+  let { nodes: reactFlowNodes, edges: reactFlowEdges } =
+    convertToReactFlowFormat();
 
   const emit = () => {
     onChange?.({ nodes, edges });
@@ -189,7 +184,7 @@ export function renderFlow(
         initialNodes={reactFlowNodes}
         initialEdges={reactFlowEdges}
         onNodesChange={(updatedNodes) => {
-          nodes = updatedNodes.map(node => ({
+          nodes = updatedNodes.map((node) => ({
             id: node.id,
             position: node.position,
             data: node.data as { label: string },
@@ -197,17 +192,21 @@ export function renderFlow(
           emit();
         }}
         onEdgesChange={(updatedEdges) => {
-          edges = updatedEdges.map(edge => ({
+          edges = updatedEdges.map((edge) => ({
             id: edge.id,
             source: edge.source,
-            target: edge.target
+            target: edge.target,
           }));
           emit();
         }}
         onConnect={(connection) => {
           if (connection.source && connection.target) {
             const id = `${connection.source}-${connection.target}-${Date.now()}`;
-            const newEdge = { id, source: connection.source, target: connection.target };
+            const newEdge = {
+              id,
+              source: connection.source,
+              target: connection.target,
+            };
             edges = [...edges, newEdge];
             const converted = convertToReactFlowFormat();
             reactFlowEdges = converted.edges;
