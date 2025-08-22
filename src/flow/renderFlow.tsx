@@ -1,7 +1,7 @@
 import { createRoot, Root } from 'react-dom/client';
-import ReactFlow, { 
-  Controls, 
-  Background, 
+import ReactFlow, {
+  Controls,
+  Background,
   MiniMap,
   useNodesState,
   useEdgesState,
@@ -13,6 +13,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
 import { blueprintToDag } from '../planner/blueprintToDag';
+import type { MouseEvent } from 'react';
 
 export interface FlowInstance {
   nodes: DagNode[];
@@ -24,18 +25,22 @@ export interface FlowInstance {
 }
 
 // React组件来渲染流程图
-function FlowComponent({ 
-  initialNodes, 
-  initialEdges, 
-  onNodesChange, 
-  onEdgesChange, 
-  onConnect 
+function FlowComponent({
+  initialNodes,
+  initialEdges,
+  onNodesChange,
+  onEdgesChange,
+  onConnect,
+  onDeleteNode,
+  onDeleteEdge
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
   onNodesChange: (nodes: Node[]) => void;
   onEdgesChange: (edges: Edge[]) => void;
   onConnect: (connection: Connection) => void;
+  onDeleteNode: (id: string) => void;
+  onDeleteEdge: (id: string) => void;
 }) {
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
@@ -57,6 +62,26 @@ function FlowComponent({
     onEdgesChange(newEdge);
   };
 
+  const handleNodeContextMenu = (
+    event: MouseEvent,
+    node: Node
+  ) => {
+    event.preventDefault();
+    if (window.confirm('确认删除该节点？')) {
+      onDeleteNode(node.id);
+    }
+  };
+
+  const handleEdgeContextMenu = (
+    event: MouseEvent,
+    edge: Edge
+  ) => {
+    event.preventDefault();
+    if (window.confirm('确认删除该连线？')) {
+      onDeleteEdge(edge.id);
+    }
+  };
+
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
@@ -65,6 +90,8 @@ function FlowComponent({
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
         onConnect={handleConnect}
+        onNodeContextMenu={handleNodeContextMenu}
+        onEdgeContextMenu={handleEdgeContextMenu}
         fitView
         attributionPosition="bottom-left"
       >
@@ -136,7 +163,25 @@ export function renderFlow(
     onChange?.({ nodes, edges });
   };
 
-  const render = () => {
+  function deleteNode(id: string) {
+    nodes = nodes.filter((n) => n.id !== id);
+    edges = edges.filter((e) => e.source !== id && e.target !== id);
+    const converted = convertToReactFlowFormat();
+    reactFlowNodes = converted.nodes;
+    reactFlowEdges = converted.edges;
+    render();
+    emit();
+  }
+
+  function deleteEdge(id: string) {
+    edges = edges.filter((e) => e.id !== id);
+    const converted = convertToReactFlowFormat();
+    reactFlowEdges = converted.edges;
+    render();
+    emit();
+  }
+
+  function render() {
     root.render(
       <FlowComponent
         initialNodes={reactFlowNodes}
@@ -168,9 +213,11 @@ export function renderFlow(
             emit();
           }
         }}
+        onDeleteNode={deleteNode}
+        onDeleteEdge={deleteEdge}
       />
     );
-  };
+  }
 
   const instance: FlowInstance = {
     get nodes() {
@@ -199,22 +246,8 @@ export function renderFlow(
       emit();
       return id;
     },
-    deleteNode(id) {
-      nodes = nodes.filter((n) => n.id !== id);
-      edges = edges.filter((e) => e.source !== id && e.target !== id);
-      const converted = convertToReactFlowFormat();
-      reactFlowNodes = converted.nodes;
-      reactFlowEdges = converted.edges;
-      render();
-      emit();
-    },
-    deleteEdge(id) {
-      edges = edges.filter((e) => e.id !== id);
-      const converted = convertToReactFlowFormat();
-      reactFlowEdges = converted.edges;
-      render();
-      emit();
-    },
+    deleteNode,
+    deleteEdge,
   };
 
   render();
