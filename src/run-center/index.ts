@@ -29,8 +29,18 @@ function saveRuns(): void {
   }
 }
 
-export function logRun(record: RunRecord): void {
-  runQueue.push(record);
+export function logRun(record: Partial<RunRecord>): void {
+  const safeRecord: RunRecord = {
+    id: record.id ?? Date.now().toString(),
+    input: record.input ?? '',
+    output: record.output ?? '',
+    status: record.status ?? 'success',
+    duration: record.duration ?? 0,
+    createdAt: record.createdAt ?? Date.now(),
+    version: record.version ?? 1,
+  };
+
+  runQueue.push(safeRecord);
   saveRuns();
 }
 
