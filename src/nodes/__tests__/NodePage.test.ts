@@ -101,16 +101,14 @@ describe('NodePageElement run events', () => {
     global.URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
 
     originalWorker = global.Worker;
-    global.Worker = vi
-      .fn()
-      .mockImplementation(() => {
-        workerInstance = {
-          onmessage: vi.fn(),
-          postMessage: vi.fn(),
-          terminate: vi.fn(),
-        };
-        return workerInstance as unknown as Worker;
-      }) as unknown as typeof Worker;
+    global.Worker = vi.fn().mockImplementation(() => {
+      workerInstance = {
+        onmessage: vi.fn(),
+        postMessage: vi.fn(),
+        terminate: vi.fn(),
+      };
+      return workerInstance as unknown as Worker;
+    }) as unknown as typeof Worker;
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -139,7 +137,9 @@ describe('NodePageElement run events', () => {
     el.addEventListener('run-success', success);
     el.addEventListener('run-log', log);
 
-    const runButton = el.shadowRoot?.querySelectorAll('button')[1] as HTMLButtonElement;
+    const runButton = el.shadowRoot?.querySelectorAll(
+      'button'
+    )[1] as HTMLButtonElement;
     runButton.click();
 
     workerInstance.onmessage({
@@ -167,7 +167,9 @@ describe('NodePageElement run events', () => {
     el.addEventListener('run-error', error);
     el.addEventListener('run-log', log);
 
-    const runButton = el.shadowRoot?.querySelectorAll('button')[1] as HTMLButtonElement;
+    const runButton = el.shadowRoot?.querySelectorAll(
+      'button'
+    )[1] as HTMLButtonElement;
     runButton.click();
 
     workerInstance.onmessage({
