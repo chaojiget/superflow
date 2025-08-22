@@ -54,13 +54,15 @@ export class IdeasPageElement extends HTMLElement {
         })
       );
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
       this.canvas.style.display = 'none';
       this.canvas.blueprint = null;
-      this.errorMsg.textContent = '生成蓝图失败';
+      this.errorMsg.textContent = `生成蓝图失败：${message}`;
       this.errorMsg.style.display = 'block';
       this.dispatchEvent(
         new CustomEvent('blueprint-generated', {
-          detail: { blueprint: null, dag: null, error },
+          detail: { blueprint: null, dag: null, error: message },
         })
       );
     }

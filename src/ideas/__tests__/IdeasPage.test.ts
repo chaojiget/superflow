@@ -66,11 +66,12 @@ describe('IdeasPageElement', () => {
     );
     button.click();
     const evt = await eventPromise;
-    expect(evt.detail.error).toBeTruthy();
+    expect(evt.detail.error).toBe('err');
     expect(evt.detail.blueprint).toBeNull();
     expect(evt.detail.dag).toBeNull();
     await nextTick();
     const error = el.shadowRoot!.querySelector('.error') as HTMLDivElement;
+    expect(error.textContent).toBe('生成蓝图失败：err');
     expect(error.style.display).toBe('block');
     const canvas = el.shadowRoot!.querySelector('workflow-flow') as HTMLElement;
     expect(canvas.style.display).toBe('none');
@@ -99,11 +100,12 @@ describe('IdeasPageElement', () => {
     );
     button.click();
     const evt = await eventPromise;
-    expect(evt.detail.error).toBeTruthy();
+    expect(evt.detail.error).toBe('empty');
     expect(evt.detail.blueprint).toBeNull();
     expect(evt.detail.dag).toBeNull();
     await nextTick();
     const error = el.shadowRoot!.querySelector('.error') as HTMLDivElement;
+    expect(error.textContent).toBe('生成蓝图失败：empty');
     expect(error.style.display).toBe('block');
     const canvas = el.shadowRoot!.querySelector('workflow-flow') as HTMLElement;
     expect(canvas.style.display).toBe('none');
