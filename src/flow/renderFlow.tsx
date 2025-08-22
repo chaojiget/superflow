@@ -1,5 +1,5 @@
 import { createRoot, Root } from 'react-dom/client';
-import type { MouseEvent } from 'react';
+import { useEffect, type MouseEvent } from 'react';
 import ReactFlow, {
   Controls,
   Background,
@@ -10,6 +10,8 @@ import ReactFlow, {
   Connection,
   Edge,
   Node,
+  NodeChange,
+  EdgeChange,
   MarkerType,
   BackgroundVariant
 } from 'reactflow';
@@ -55,30 +57,34 @@ function FlowComponent({
     const id = `node-${Date.now()}`;
     const newNode: Node = {
       id,
+      type: nodeType,
       position,
       data: { label: nodeType },
     };
-    const updated = [...nodes, newNode];
-    setNodes(updated);
-    onNodesChange(updated);
+    setNodes((nds) => [...nds, newNode]);
   };
 
-  const handleNodesChange = (changes: any) => {
+  const handleNodesChange = (changes: NodeChange[]) => {
     onNodesChangeInternal(changes);
-    onNodesChange(nodes);
   };
 
-  const handleEdgesChange = (changes: any) => {
+  const handleEdgesChange = (changes: EdgeChange[]) => {
     onEdgesChangeInternal(changes);
-    onEdgesChange(edges);
   };
 
   const handleConnect = (connection: Connection) => {
     const newEdge = addEdge(connection, edges);
     setEdges(newEdge);
     onConnect(connection);
-    onEdgesChange(newEdge);
   };
+
+  useEffect(() => {
+    onNodesChange(nodes);
+  }, [nodes, onNodesChange]);
+
+  useEffect(() => {
+    onEdgesChange(edges);
+  }, [edges, onEdgesChange]);
 
   return (
     <div style={{ width: '100%', height: '100%' }}>
