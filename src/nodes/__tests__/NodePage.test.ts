@@ -170,11 +170,13 @@ describe.each([
     const version = await fn(editor);
     expect(version).toBe(1);
     expect(globalThis.localStorage.getItem('node:version')).toBe('1');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('new');
     expect(globalThis.localStorage.getItem('node:code:v1')).toBe('new');
   });
 
   it('失败时返回旧版本并记录错误', async () => {
     globalThis.localStorage.setItem('node:version', '2');
+    globalThis.localStorage.setItem('node:code', 'old');
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
@@ -185,11 +187,13 @@ describe.each([
     const version = await fn(editor);
     expect(version).toBe(2);
     expect(globalThis.localStorage.getItem('node:version')).toBe('2');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('old');
     expect(errorSpy).toHaveBeenCalled();
   });
 
   it('解析失败时返回旧版本并记录错误', async () => {
     globalThis.localStorage.setItem('node:version', '2');
+    globalThis.localStorage.setItem('node:code', 'old');
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     vi.stubGlobal(
@@ -205,6 +209,7 @@ describe.each([
     const version = await fn(editor);
     expect(version).toBe(2);
     expect(globalThis.localStorage.getItem('node:version')).toBe('2');
+    expect(globalThis.localStorage.getItem('node:code')).toBe('old');
     expect(errorSpy).toHaveBeenCalled();
   });
 });

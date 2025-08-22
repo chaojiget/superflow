@@ -34,6 +34,7 @@ function saveVersion(code: string): number {
   const newVersion =
     Number(globalThis.localStorage.getItem('node:version') ?? '0') + 1;
   globalThis.localStorage.setItem('node:version', String(newVersion));
+  globalThis.localStorage.setItem('node:code', code);
   globalThis.localStorage.setItem(`node:code:v${newVersion}`, code);
   return newVersion;
 }
