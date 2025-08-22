@@ -43,6 +43,7 @@ describe('run-center', () => {
       status: 'success',
       duration: 100,
       createdAt: Date.now(),
+      version: 1,
     };
 
     logRun(record);

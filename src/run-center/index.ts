@@ -5,6 +5,7 @@ export interface RunRecord {
   status: 'success' | 'error';
   duration: number; // ms
   createdAt: number;
+  version: number;
 }
 
 const STORAGE_KEY = 'superflow:runs';
