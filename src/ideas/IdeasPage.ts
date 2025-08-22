@@ -54,8 +54,7 @@ export class IdeasPageElement extends HTMLElement {
         })
       );
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
       this.canvas.style.display = 'none';
       this.canvas.blueprint = null;
       this.errorMsg.textContent = `生成蓝图失败：${message}`;

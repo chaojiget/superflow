@@ -1,17 +1,23 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../../flow/renderFlow', () => ({
-  renderFlow: vi.fn(( _bp: unknown, _container: HTMLElement, onChange?: (dag: { nodes: any[]; edges: any[] }) => void) => {
-    onChange?.({ nodes: [], edges: [] });
-    return {
-      nodes: [],
-      edges: [],
-      dragNode: () => {},
-      connect: () => '',
-      deleteNode: () => {},
-      deleteEdge: () => {},
-    };
-  }),
+  renderFlow: vi.fn(
+    (
+      _bp: unknown,
+      _container: HTMLElement,
+      onChange?: (dag: { nodes: any[]; edges: any[] }) => void
+    ) => {
+      onChange?.({ nodes: [], edges: [] });
+      return {
+        nodes: [],
+        edges: [],
+        dragNode: () => {},
+        connect: () => '',
+        deleteNode: () => {},
+        deleteEdge: () => {},
+      };
+    }
+  ),
 }));
 
 import IdeasPageElement from '../IdeasPage';
@@ -49,7 +55,9 @@ describe('IdeasPageElement', () => {
   });
 
   it('generateBlueprint 抛错时提示错误且不渲染流程', async () => {
-    vi.spyOn(blueprint, 'generateBlueprint').mockRejectedValue(new Error('err'));
+    vi.spyOn(blueprint, 'generateBlueprint').mockRejectedValue(
+      new Error('err')
+    );
     const el = new IdeasPageElement();
     document.body.appendChild(el);
     const textarea = el.shadowRoot!.querySelector('textarea')!;
