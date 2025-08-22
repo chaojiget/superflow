@@ -172,10 +172,13 @@ describe.each([
   });
 
   it('成功时保存新版本', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ code: 'new' }),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ code: 'new' }),
+      })
+    );
 
     const version = await fn(editor);
     expect(version).toBe(1);
@@ -189,10 +192,13 @@ describe.each([
     globalThis.localStorage.setItem('node:code', 'old');
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 500,
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+      })
+    );
 
     const version = await fn(editor);
     expect(version).toBe(2);
