@@ -33,16 +33,16 @@ describe('blueprintToDag', () => {
   });
 
   it('支持节点类型、自动布局及多入口/出口', () => {
-    const blueprint = {
+    const blueprint: Blueprint = {
       requirement: '',
       steps: [
-        { id: 'in1', label: '输入1', type: 'input', next: ['core'] },
-        { id: 'in2', label: '输入2', type: 'input', next: ['core'] },
-        { id: 'core', label: '处理', type: 'process', next: ['out1', 'out2'] },
-        { id: 'out1', label: '输出1', type: 'output', next: [] },
-        { id: 'out2', label: '输出2', type: 'output', next: [] },
+        { id: 'in1', label: '输入1', type: 'input', description: '', inputs: [], outputs: [], next: ['core'] },
+        { id: 'in2', label: '输入2', type: 'input', description: '', inputs: [], outputs: [], next: ['core'] },
+        { id: 'core', label: '处理', type: 'process', description: '', inputs: [], outputs: [], next: ['out1', 'out2'] },
+        { id: 'out1', label: '输出1', type: 'output', description: '', inputs: [], outputs: [], next: [] },
+        { id: 'out2', label: '输出2', type: 'output', description: '', inputs: [], outputs: [], next: [] },
       ],
-    } as const;
+    };
     const { nodes, edges } = blueprintToDag(blueprint);
     const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
     expect(nodeMap.in1.type).toBe('input');
@@ -54,13 +54,13 @@ describe('blueprintToDag', () => {
   });
 
   it('检测环路并抛出错误', () => {
-    const blueprint = {
+    const blueprint: Blueprint = {
       requirement: '',
       steps: [
-        { id: 'a', label: 'A', type: 'task', next: ['b'] },
-        { id: 'b', label: 'B', type: 'task', next: ['a'] },
+        { id: 'a', label: 'A', type: 'task', description: '', inputs: [], outputs: [], next: ['b'] },
+        { id: 'b', label: 'B', type: 'task', description: '', inputs: [], outputs: [], next: ['a'] },
       ],
-    } as const;
+    };
     expect(() => blueprintToDag(blueprint)).toThrow();
   });
 });

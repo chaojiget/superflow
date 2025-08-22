@@ -11,14 +11,13 @@ export default tseslint.config(
       '*.config.js',
       '*.config.ts',
       '.github',
-      '**/*.ts',
-      '**/*.tsx',
+      'Gruntfile.cjs',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['**/*.js'],
+    files: ['**/*.js', '**/*.ts', '**/*.tsx'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

@@ -2,7 +2,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { logRun, getRunRecords, clearRunRecords, RunRecordList, type RunRecord } from './index';
 
-declare const global: { localStorage: Storage };
 
 describe('run-center', () => {
   let store: Record<string, string>;
@@ -67,6 +66,7 @@ describe('run-center', () => {
       status: 'success',
       duration: 10,
       createdAt: now,
+      version: 1,
     });
     logRun({
       id: '2',
@@ -75,6 +75,7 @@ describe('run-center', () => {
       status: 'error',
       duration: 20,
       createdAt: now,
+      version: 1,
     });
 
     const root = document.createElement('div');

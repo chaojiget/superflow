@@ -1,7 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { saveFlow, loadFlow, exportFlow, importFlow } from '../storage';
 
-declare const global: { localStorage: Storage };
 
 describe('storage', () => {
   let store: Record<string, string>;

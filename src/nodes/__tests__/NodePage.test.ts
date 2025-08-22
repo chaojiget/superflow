@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { NodePageElement } from '../NodePage';
-import { exportFlow, importFlow } from '../../shared/storage';
+import { importFlow } from '../../shared/storage';
 
 vi.mock('../../shared/storage', () => ({
   exportFlow: vi.fn(() => 'mock-flow'),
