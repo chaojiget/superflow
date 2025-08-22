@@ -75,8 +75,15 @@ describe('NodePageElement', () => {
   });
 });
 
+interface EditorMock {
+  value: string;
+  setValue(v: string): void;
+  getValue(): string;
+  on?(): void;
+}
+
 describe('setupNodePage', () => {
-  let editor: any;
+  let editor: EditorMock;
 
   beforeEach(() => {
     editor = {
@@ -89,7 +96,10 @@ describe('setupNodePage', () => {
       },
       on() {},
     };
-    (global as any).CodeMirror = {
+    interface GlobalWithCM {
+      CodeMirror: { fromTextArea: () => EditorMock };
+    }
+    (globalThis as unknown as GlobalWithCM).CodeMirror = {
       fromTextArea: () => editor,
     };
     globalThis.localStorage.clear();
@@ -142,7 +152,7 @@ describe.each([
   ['generateNodeCode', generateNodeCode],
   ['repairNodeCode', repairNodeCode],
 ])('%s', (_name, fn) => {
-  let editor: any;
+  let editor: EditorMock;
   beforeEach(() => {
     editor = {
       value: '',

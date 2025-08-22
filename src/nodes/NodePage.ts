@@ -212,7 +212,12 @@ export function setupNodePage(options: NodePageOptions): void {
   });
 }
 
-export async function generateNodeCode(editor: any): Promise<number> {
+interface Editor {
+  setValue(value: string): void;
+  getValue(): string;
+}
+
+export async function generateNodeCode(editor: Editor): Promise<number> {
   const currentVersion = Number(
     globalThis.localStorage.getItem('node:version') ?? '0'
   );
@@ -223,25 +228,28 @@ export async function generateNodeCode(editor: any): Promise<number> {
       body: JSON.stringify({ code: editor.getValue() }),
     });
     if (!res.ok) {
+      // eslint-disable-next-line no-console
       console.error('生成节点代码失败', res.statusText);
       return currentVersion;
     }
-    let data: any;
+    let data: { code?: string };
     try {
-      data = await res.json();
+      data = (await res.json()) as { code?: string };
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('生成节点代码响应解析失败', err);
       return currentVersion;
     }
     editor.setValue(data.code ?? '');
     return saveVersion(editor.getValue());
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('生成节点代码失败', err);
     return currentVersion;
   }
 }
 
-export async function repairNodeCode(editor: any): Promise<number> {
+export async function repairNodeCode(editor: Editor): Promise<number> {
   const currentVersion = Number(
     globalThis.localStorage.getItem('node:version') ?? '0'
   );
@@ -252,19 +260,22 @@ export async function repairNodeCode(editor: any): Promise<number> {
       body: JSON.stringify({ code: editor.getValue() }),
     });
     if (!res.ok) {
+      // eslint-disable-next-line no-console
       console.error('修复节点代码失败', res.statusText);
       return currentVersion;
     }
-    let data: any;
+    let data: { code?: string };
     try {
-      data = await res.json();
+      data = (await res.json()) as { code?: string };
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error('修复节点代码响应解析失败', err);
       return currentVersion;
     }
     editor.setValue(data.code ?? '');
     return saveVersion(editor.getValue());
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('修复节点代码失败', err);
     return currentVersion;
   }
