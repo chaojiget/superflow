@@ -26,7 +26,13 @@ describe('generateBlueprint', () => {
       'fetch',
       vi.fn(async () => ({
         json: async () => ({
-          choices: [{ message: { content: JSON.stringify(mockSteps) } }],
+          choices: [
+            {
+              message: {
+                content: ['```json', JSON.stringify(mockSteps), '```'].join('\n'),
+              },
+            },
+          ],
         }),
       })),
     );

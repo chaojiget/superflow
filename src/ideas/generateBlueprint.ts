@@ -40,7 +40,12 @@ export async function generateBlueprint(requirement: string): Promise<Blueprint>
   const data = await response.json();
   let steps: BlueprintStep[] = [];
   try {
-    const content = data.choices?.[0]?.message?.content ?? '[]';
+    let content = data.choices?.[0]?.message?.content ?? '[]';
+    // 大模型可能会将 JSON 包裹在代码块中，需去掉包裹再解析
+    content = content.trim();
+    if (content.startsWith('```')) {
+      content = content.replace(/^```[a-zA-Z]*\n?/, '').replace(/```$/m, '');
+    }
     steps = JSON.parse(content);
   } catch {
     steps = [];
