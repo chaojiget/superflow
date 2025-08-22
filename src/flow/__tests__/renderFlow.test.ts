@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderFlow } from '../renderFlow';
 import type { Blueprint } from '../../ideas/generateBlueprint';
+import type { Dag, DagNode } from '../../planner/blueprintToDag';
 
 const blueprint: Blueprint = {
   requirement: '',
@@ -28,7 +29,7 @@ describe('renderFlow', () => {
   it('支持节点拖拽、连线和删除', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    const changes: unknown[] = [];
+    const changes: Dag[] = [];
     const flow = renderFlow(blueprint, container, (dag) => changes.push(dag));
 
     const nodeId = flow.nodes[0].id;
@@ -46,5 +47,32 @@ describe('renderFlow', () => {
     expect(flow.nodes.find((n) => n.id === nodeId)).toBeUndefined();
 
     expect(changes.length).toBeGreaterThan(1);
+  });
+
+    it('支持右键添加节点并同步至外部 Dag', async () => {
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      const changes: Dag[] = [];
+      const flow = renderFlow(blueprint, container, (dag) => changes.push(dag));
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('.react-flow__pane')).not.toBeNull();
+    });
+
+    const pane = container.querySelector('.react-flow__pane') as HTMLDivElement;
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('task');
+
+    pane.dispatchEvent(
+      new MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 })
+    );
+
+    await vi.waitFor(() => {
+      expect(flow.nodes.some((n: DagNode) => n.type === 'task')).toBe(true);
+    });
+    expect(
+      changes.at(-1)?.nodes.some((n: DagNode) => n.type === 'task')
+    ).toBe(true);
+
+    promptSpy.mockRestore();
   });
 });
