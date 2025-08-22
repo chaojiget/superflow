@@ -10,7 +10,11 @@ import ReactFlow, {
   Connection,
   Edge,
   Node,
-  MarkerType
+  MarkerType,
+  NodeChange,
+  EdgeChange,
+  applyNodeChanges,
+  applyEdgeChanges
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
@@ -39,17 +43,23 @@ function FlowComponent({
   onEdgesChange: (edges: Edge[]) => void;
   onConnect: (connection: Connection) => void;
 }) {
-  const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
+  const [nodes, setNodes] = useNodesState(initialNodes);
+  const [edges, setEdges] = useEdgesState(initialEdges);
 
-  const handleNodesChange = (changes: any) => {
-    onNodesChangeInternal(changes);
-    onNodesChange(nodes);
+  const handleNodesChange = (changes: NodeChange[]) => {
+    setNodes(nds => {
+      const updated = applyNodeChanges(changes, nds);
+      onNodesChange(updated);
+      return updated;
+    });
   };
 
-  const handleEdgesChange = (changes: any) => {
-    onEdgesChangeInternal(changes);
-    onEdgesChange(edges);
+  const handleEdgesChange = (changes: EdgeChange[]) => {
+    setEdges(eds => {
+      const updated = applyEdgeChanges(changes, eds);
+      onEdgesChange(updated);
+      return updated;
+    });
   };
 
   const handleConnect = (connection: Connection) => {
@@ -59,7 +69,7 @@ function FlowComponent({
     onEdgesChange(newEdge);
   };
 
-  const handleNodeDoubleClick = (_event: any, node: Node) => {
+  const handleNodeDoubleClick = (_event: React.MouseEvent, node: Node) => {
     const newLabel = prompt('请输入新的标题', node.data.label);
     if (newLabel && newLabel !== node.data.label) {
       setNodes((nds) => {
