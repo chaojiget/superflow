@@ -198,9 +198,9 @@ describe('setupNodePage', () => {
 });
 
 describe.each([
-  ['generateNodeCode', generateNodeCode],
-  ['repairNodeCode', repairNodeCode],
-])('%s', (_name, fn) => {
+  ['generateNodeCode', generateNodeCode, '生成节点代码'],
+  ['repairNodeCode', repairNodeCode, '修复节点代码'],
+])('%s', (_name, fn, label) => {
   let editor: EditorMock;
   beforeEach(() => {
     editor = {
@@ -239,6 +239,7 @@ describe.each([
   it('失败时返回旧版本并记录错误', async () => {
     globalThis.localStorage.setItem('node:version', '2');
     globalThis.localStorage.setItem('node:code', 'old');
+    editor.value = 'old';
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     vi.stubGlobal(
@@ -253,12 +254,15 @@ describe.each([
     expect(version).toBe(2);
     expect(globalThis.localStorage.getItem('node:version')).toBe('2');
     expect(globalThis.localStorage.getItem('node:code')).toBe('old');
+    expect(editor.getValue()).toBe('old');
     expect(errorSpy).toHaveBeenCalled();
+    expect(errorSpy.mock.calls[0][0]).toBe(`${label}失败`);
   });
 
   it('解析失败时返回旧版本并记录错误', async () => {
     globalThis.localStorage.setItem('node:version', '2');
     globalThis.localStorage.setItem('node:code', 'old');
+    editor.value = 'old';
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     vi.stubGlobal(
@@ -275,6 +279,8 @@ describe.each([
     expect(version).toBe(2);
     expect(globalThis.localStorage.getItem('node:version')).toBe('2');
     expect(globalThis.localStorage.getItem('node:code')).toBe('old');
+    expect(editor.getValue()).toBe('old');
     expect(errorSpy).toHaveBeenCalled();
+    expect(errorSpy.mock.calls[0][0]).toBe(`${label}响应解析失败`);
   });
 });
