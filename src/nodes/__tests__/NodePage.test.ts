@@ -35,6 +35,8 @@ describe('NodePageElement', () => {
     global.URL.createObjectURL = originalCreate;
     global.URL.revokeObjectURL = originalRevoke;
     clickSpy.mockRestore();
+    document.body.innerHTML = '';
+    globalThis.localStorage.clear();
   });
 
   it('dispatches flow-export event', () => {
@@ -113,6 +115,8 @@ describe('NodePageElement run events', () => {
     infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    globalThis.localStorage.clear();
+    document.body.innerHTML = '';
   });
 
   afterEach(() => {
@@ -123,6 +127,8 @@ describe('NodePageElement run events', () => {
     infoSpy.mockRestore();
     warnSpy.mockRestore();
     errorSpy.mockRestore();
+    document.body.innerHTML = '';
+    globalThis.localStorage.clear();
   });
 
   it('运行成功时触发 run-success 和 run-log', () => {
