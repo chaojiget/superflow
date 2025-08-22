@@ -21,5 +21,6 @@ export function setupNodePage(
       const text = await file.text();
       importFlow(text);
     }
+    importInput.value = '';
   });
 }

@@ -15,6 +15,7 @@ setupNodePage(exportButton, importInput);
 
 - 点击导出按钮会下载当前流程的 `flow.json` 文件。
 - 在文件选择框中选择 `flow.json` 会导入流程数据。
+- 导入后输入框会自动清空，方便再次选择同一文件。
 
 ## API 说明
 

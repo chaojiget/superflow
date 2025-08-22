@@ -66,6 +66,27 @@ describe('setupNodePage', () => {
     expect(importFlow).toHaveBeenCalledWith(fileContent);
   });
 
+  it('导入完成后应清空输入框', async () => {
+    const file = {
+      text: () => Promise.resolve('{}'),
+    } as unknown as File;
+    const fileList = {
+      0: file,
+      length: 1,
+      item: () => file,
+      [Symbol.iterator]: function* () {
+        yield file;
+      },
+    } as unknown as FileList;
+    Object.defineProperty(importInput, 'files', { value: fileList });
+
+    setupNodePage(exportButton, importInput);
+    importInput.dispatchEvent(new Event('change'));
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(importInput.value).toBe('');
+  });
+
   it('未选择文件时不调用 importFlow', async () => {
     setupNodePage(exportButton, importInput);
     importInput.dispatchEvent(new Event('change'));
