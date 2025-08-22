@@ -4,10 +4,11 @@
 
 ## 提交流程
 
-1. 从 `main` 分支创建功能分支，例如：`git checkout -b feature/your-feature`。
-2. 开发过程中请保持提交粒度清晰，完成一个独立功能或修复后再提交。
-3. 提交前运行 `npm run lint` 与 `npm test` 确保没有格式与测试问题。
-4. 推送分支并提交 Pull Request 以便代码审查。
+1. 克隆仓库后先运行 `npm install`，以安装依赖并配置 Husky 钩子。
+2. 从 `main` 分支创建功能分支，例如：`git checkout -b feature/your-feature`。
+3. 开发过程中请保持提交粒度清晰，完成一个独立功能或修复后再提交。
+4. 提交前运行 `npm run lint` 与 `npm test` 确保没有格式与测试问题。
+5. 推送分支并提交 Pull Request 以便代码审查。
 
 ## 分支策略
 
