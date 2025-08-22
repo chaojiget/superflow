@@ -52,4 +52,11 @@ describe('storage', () => {
     importFlow(json);
     expect(loadFlow()).toEqual({ b: 2 });
   });
+
+  it('returns null and does not write on invalid JSON', () => {
+    const result = importFlow('invalid');
+    expect(result).toBeNull();
+    expect(mockStorage.setItem).not.toHaveBeenCalled();
+    expect(mockStorage.length).toBe(0);
+  });
 });
