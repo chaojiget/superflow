@@ -27,4 +27,16 @@ export default tseslint.config(
       'no-console': 'warn',
     },
   },
+  {
+    files: ['Gruntfile.cjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+      },
+    },
+  },
 );

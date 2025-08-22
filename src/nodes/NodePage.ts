@@ -17,10 +17,29 @@ export interface NodePageOptions {
   codeArea: HTMLTextAreaElement;
   runButton: HTMLButtonElement;
   logPanel: HTMLElement;
+  generateButton: HTMLButtonElement;
+  repairButton: HTMLButtonElement;
+}
+
+function saveVersion(code: string): number {
+  const newVersion = Number(
+    globalThis.localStorage.getItem('node:version') ?? '0'
+  ) + 1;
+  globalThis.localStorage.setItem('node:version', String(newVersion));
+  globalThis.localStorage.setItem(`node:code:v${newVersion}`, code);
+  return newVersion;
 }
 
 export function setupNodePage(options: NodePageOptions): void {
-  const { exportButton, importInput, codeArea, runButton, logPanel } = options;
+  const {
+    exportButton,
+    importInput,
+    codeArea,
+    runButton,
+    logPanel,
+    generateButton,
+    repairButton,
+  } = options;
 
   const editor = CodeMirror.fromTextArea(codeArea, {
     mode: 'javascript',
@@ -97,6 +116,14 @@ export function setupNodePage(options: NodePageOptions): void {
     worker.postMessage({ code: editor.getValue(), input: undefined });
   });
 
+  generateButton.addEventListener('click', async () => {
+    version = await generateNodeCode(editor);
+  });
+
+  repairButton.addEventListener('click', async () => {
+    version = await repairNodeCode(editor);
+  });
+
   exportButton.addEventListener('click', () => {
     const data = exportFlow();
     const blob = new Blob([data], { type: 'application/json' });
@@ -116,6 +143,38 @@ export function setupNodePage(options: NodePageOptions): void {
     }
     importInput.value = '';
   });
+}
+
+export async function generateNodeCode(editor: any): Promise<number> {
+  try {
+    const res = await fetch('/api/node/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: editor.getValue() }),
+    });
+    const data = await res.json();
+    editor.setValue(data.code ?? '');
+    return saveVersion(editor.getValue());
+  } catch (err) {
+    console.error('生成节点代码失败', err);
+    return Number(globalThis.localStorage.getItem('node:version') ?? '0');
+  }
+}
+
+export async function repairNodeCode(editor: any): Promise<number> {
+  try {
+    const res = await fetch('/api/node/repair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: editor.getValue() }),
+    });
+    const data = await res.json();
+    editor.setValue(data.code ?? '');
+    return saveVersion(editor.getValue());
+  } catch (err) {
+    console.error('修复节点代码失败', err);
+    return Number(globalThis.localStorage.getItem('node:version') ?? '0');
+  }
 }
 
 /**
