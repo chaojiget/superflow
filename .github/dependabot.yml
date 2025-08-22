@@ -5,57 +5,21 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "04:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "chaojiget"
-    assignees:
-      - "chaojiget"
+    open-pull-requests-limit: 5
     commit-message:
       prefix: "chore"
-      prefix-development: "chore"
       include: "scope"
     labels:
       - "dependencies"
-      - "auto-merge"
-    # Auto-approve minor and patch updates
-    auto-merge:
-      enabled: true
-    # Group dependencies
-    groups:
-      dev-dependencies:
-        patterns:
-          - "@types/*"
-          - "@typescript-eslint/*"
-          - "eslint*"
-          - "prettier*"
-          - "vitest*"
-          - "jest*"
-      production-dependencies:
-        patterns:
-          - "*"
-        exclude-patterns:
-          - "@types/*"
-          - "@typescript-eslint/*"
-          - "eslint*"
-          - "prettier*"
-          - "vitest*"
-          - "jest*"
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "04:00"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "chaojiget"
+    open-pull-requests-limit: 3
     commit-message:
       prefix: "ci"
       include: "scope"
     labels:
       - "github-actions"
-      - "auto-merge"
