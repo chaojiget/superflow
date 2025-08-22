@@ -59,10 +59,10 @@ function FlowComponent({
   };
 
   const handleConnect = (connection: Connection) => {
-    const newEdge = addEdge(connection, edges);
-    setEdges(newEdge);
+    const updatedEdges = addEdge(connection, edges);
+    setEdges(updatedEdges);
+    onEdgesChange(updatedEdges);
     onConnect(connection);
-    onEdgesChange(newEdge);
   };
 
   return (
