@@ -47,6 +47,6 @@ export class FlowCanvasElement extends HTMLElement {
   }
 }
 
-customElements.define('flow-canvas', FlowCanvasElement);
+customElements.define('workflow-flow', FlowCanvasElement);
 
 export default FlowCanvasElement;

@@ -164,6 +164,6 @@ export class NodePageElement extends HTMLElement {
   };
 }
 
-customElements.define('node-page', NodePageElement);
+customElements.define('workflow-node', NodePageElement);
 
 export default NodePageElement;
