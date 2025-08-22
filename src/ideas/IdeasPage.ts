@@ -10,6 +10,7 @@ export class IdeasPageElement extends HTMLElement {
   private textarea: HTMLTextAreaElement;
   private button: HTMLButtonElement;
   private canvas: FlowCanvasElement;
+  private errorMsg: HTMLDivElement;
 
   constructor() {
     super();
@@ -21,7 +22,12 @@ export class IdeasPageElement extends HTMLElement {
     this.canvas = document.createElement('flow-canvas') as FlowCanvasElement;
     this.canvas.style.display = 'none';
 
-    shadow.append(this.textarea, this.button, this.canvas);
+    this.errorMsg = document.createElement('div');
+    this.errorMsg.className = 'error';
+    this.errorMsg.style.display = 'none';
+    this.errorMsg.style.color = 'red';
+
+    shadow.append(this.textarea, this.button, this.errorMsg, this.canvas);
   }
 
   connectedCallback(): void {
@@ -33,17 +39,30 @@ export class IdeasPageElement extends HTMLElement {
   }
 
   private handleGenerate = async (): Promise<void> => {
+    this.errorMsg.style.display = 'none';
     const requirement = this.textarea.value.trim();
     if (!requirement) return;
-    const blueprint: Blueprint = await generateBlueprint(requirement);
-    const dag = blueprintToDag(blueprint);
-    this.canvas.blueprint = blueprint;
-    this.canvas.style.display = 'block';
-    this.dispatchEvent(
-      new CustomEvent('blueprint-generated', {
-        detail: { blueprint, dag },
-      })
-    );
+    try {
+      const blueprint: Blueprint = await generateBlueprint(requirement);
+      if (!blueprint.steps.length) throw new Error('empty');
+      const dag = blueprintToDag(blueprint);
+      this.canvas.blueprint = blueprint;
+      this.canvas.style.display = 'block';
+      this.dispatchEvent(
+        new CustomEvent('blueprint-generated', {
+          detail: { blueprint, dag, error: null },
+        })
+      );
+    } catch (error) {
+      this.canvas.style.display = 'none';
+      this.errorMsg.textContent = '生成蓝图失败';
+      this.errorMsg.style.display = 'block';
+      this.dispatchEvent(
+        new CustomEvent('blueprint-generated', {
+          detail: { error },
+        })
+      );
+    }
   };
 }
 
