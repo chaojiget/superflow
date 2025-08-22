@@ -14,10 +14,10 @@ export interface ReactFlowInstance {
   type: 'ReactFlow';
   nodes: Node[];
   edges: Edge[];
-  dragNode: (id: string, position: { x: number; y: number }) => void;
-  connect: (source: string, target: string) => string;
-  deleteNode: (id: string) => void;
-  deleteEdge: (id: string) => void;
+  dragNode: (nodeId: string, newPosition: { x: number; y: number }) => void;
+  connect: (sourceId: string, targetId: string) => string;
+  deleteNode: (nodeId: string) => void;
+  deleteEdge: (edgeId: string) => void;
   style: { width: string; height: string };
 }
 
@@ -31,23 +31,23 @@ export default function ReactFlow({ nodes, edges }: ReactFlowProps): ReactFlowIn
     type: 'ReactFlow',
     nodes: nodes.map((n) => ({ ...n })),
     edges: edges.map((e) => ({ ...e })),
-    dragNode(id, position) {
-      const node = instance.nodes.find((n) => n.id === id);
+    dragNode(nodeId, newPosition) {
+      const node = instance.nodes.find((n) => n.id === nodeId);
       if (node) {
-        node.position = position;
+        node.position = newPosition;
       }
     },
-    connect(source, target) {
-      const id = `${source}-${target}-${Date.now()}`;
-      instance.edges.push({ id, source, target });
-      return id;
+    connect(sourceId, targetId) {
+      const edgeId = `${sourceId}-${targetId}-${Date.now()}`;
+      instance.edges.push({ id: edgeId, source: sourceId, target: targetId });
+      return edgeId;
     },
-    deleteNode(id) {
-      instance.nodes = instance.nodes.filter((n) => n.id !== id);
-      instance.edges = instance.edges.filter((e) => e.source !== id && e.target !== id);
+    deleteNode(nodeId) {
+      instance.nodes = instance.nodes.filter((n) => n.id !== nodeId);
+      instance.edges = instance.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
     },
-    deleteEdge(id) {
-      instance.edges = instance.edges.filter((e) => e.id !== id);
+    deleteEdge(edgeId) {
+      instance.edges = instance.edges.filter((e) => e.id !== edgeId);
     },
     style: { width: '100%', height: '100%' },
   };

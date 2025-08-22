@@ -8,11 +8,11 @@ vi.mock('../../shared/storage', () => ({
 }));
 
 describe('NodePageElement', () => {
-  let createObjectURL: any;
-  let revokeObjectURL: any;
-  let originalCreate: any;
-  let originalRevoke: any;
-  let clickSpy: any;
+  let createObjectURL: ReturnType<typeof vi.fn>;
+  let revokeObjectURL: ReturnType<typeof vi.fn>;
+  let originalCreate: typeof URL.createObjectURL;
+  let originalRevoke: typeof URL.revokeObjectURL;
+  let clickSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -20,8 +20,8 @@ describe('NodePageElement', () => {
     revokeObjectURL = vi.fn();
     originalCreate = URL.createObjectURL;
     originalRevoke = URL.revokeObjectURL;
-    global.URL.createObjectURL = createObjectURL as any;
-    global.URL.revokeObjectURL = revokeObjectURL as any;
+    global.URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
+    global.URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
     clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   });
 

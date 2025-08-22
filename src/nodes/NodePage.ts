@@ -1,7 +1,15 @@
 import { exportFlow, importFlow } from '../shared/storage';
 import { logRun } from '../run-center';
 
-declare const CodeMirror: any;
+interface CodeMirrorInstance {
+  fromTextArea(element: HTMLTextAreaElement, options: Record<string, unknown>): {
+    setValue: (value: string) => void;
+    getValue: () => string;
+    on: (event: string, callback: () => void) => void;
+  };
+}
+
+declare const CodeMirror: CodeMirrorInstance;
 
 export interface NodePageOptions {
   exportButton: HTMLButtonElement;

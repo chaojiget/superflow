@@ -51,7 +51,7 @@ export async function generateBlueprint(requirement: string): Promise<Blueprint>
     `每个步骤需包含 id、label、description、inputs、outputs、next 字段。\n需求: ${requirement}`;
 
   try {
-    const response = await (globalThis as any).fetch(
+    const response = await fetch(
       'https://api.openai.com/v1/chat/completions',
       {
         method: 'POST',
