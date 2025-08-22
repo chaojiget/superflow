@@ -1,0 +1,96 @@
+# .github/workflows/bulk-open-prs.yml
+name: Bulk Open PRs to main
+
+on:
+  workflow_dispatch:
+    inputs:
+      pattern:
+        description: '仅处理匹配该正则的分支（留空则处理全部非 main/master 分支）'
+        required: false
+        default: ''
+      dry_run:
+        description: '仅打印将要处理的分支，不实际创建 PR'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List candidate branches
+        id: brs
+        run: |
+          git fetch --all --prune
+          mapfile -t BRS < <(git for-each-ref --format='%(refname:short)' refs/remotes/origin \
+            | sed 's#^origin/##' | grep -vE '^(main|master)$' | sort -u)
+          printf "%s\n" "${BRS[@]}" > branches.txt
+          echo "count=$(wc -l < branches.txt)" >> $GITHUB_OUTPUT
+      - name: Create PRs to main (with conflict pre-check)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PATTERN="${{ inputs.pattern }}"
+
+          while read -r br; do
+            echo "::group::Processing $br"
+
+            # 按正则过滤（若传入）
+            if [[ -n "$PATTERN" ]] && ! echo "$br" | grep -Eq -- "$PATTERN"; then
+              echo "Skip $br (not match: $PATTERN)"
+              echo "::endgroup::"; continue
+            fi
+
+            # 兜底：确认远端引用确实存在（防止 origin/origin 之类）
+            if ! git rev-parse -q --verify "origin/$br" >/dev/null; then
+              echo "Skip $br (no remote ref origin/$br)"
+              echo "::endgroup::"; continue
+            fi
+
+            # 已有 PR 则跳过
+            exist=$(gh pr list --base main --head "$br" --json number -q '.[0].number' || true)
+            if [[ -n "$exist" ]]; then
+              echo "PR already exists: #$exist"
+              echo "::endgroup::"; continue
+            fi
+
+            # 预检冲突
+            git checkout -q main
+            git reset --hard -q origin/main
+            git checkout -q -B "_tmp_$br" "origin/$br"
+            if ! git merge -q --no-commit --no-ff origin/main; then
+              echo "⚠️  conflict with main, skip creating PR for $br"
+              git merge --abort || true
+              echo "::endgroup::"; continue
+            fi
+            git reset -q --hard HEAD
+
+            # 干跑选项
+            if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+              echo "DRY RUN: would create PR for $br"
+              echo "::endgroup::"; continue
+            fi
+
+            title="[auto-merge][ready] Bulk merge $br -> main"
+            body="Auto-created to merge historical branch \`$br\` into \`main\`."
+            url=$(gh pr create --base main --head "$br" --title "$title" --body "$body" --json url -q .url || true)
+            if [[ -n "$url" ]]; then
+              gh pr edit "$url" --add-label "auto-merge" --add-label "ready-to-merge" || true
+              echo "Opened $url"
+            else
+              echo "Failed to create PR for $br"
+            fi
+
+            echo "::endgroup::"
+            sleep 1
+          done < branches.txt
+
