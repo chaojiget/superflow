@@ -5,7 +5,7 @@
 `setupNodePage` 用于在节点页面中启用流程导入与导出功能：
 
 ```ts
-import { setupNodePage } from '../src/nodes/NodePage';
+import { setupNodePage } from 'superflow/nodes/NodePage';
 
 const exportButton = document.getElementById('export-btn') as HTMLButtonElement;
 const importInput = document.getElementById('import-input') as HTMLInputElement;
