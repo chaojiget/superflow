@@ -1,11 +1,13 @@
 import { createRoot, Root } from 'react-dom/client';
-import ReactFlow, { 
-  Controls, 
-  Background, 
+import ReactFlow, {
+  Controls,
+  Background,
   MiniMap,
   useNodesState,
   useEdgesState,
   addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
   Connection,
   Edge,
   Node
@@ -37,17 +39,19 @@ function FlowComponent({
   onEdgesChange: (edges: Edge[]) => void;
   onConnect: (connection: Connection) => void;
 }) {
-  const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
+  const [nodes, setNodes] = useNodesState(initialNodes);
+  const [edges, setEdges] = useEdgesState(initialEdges);
 
   const handleNodesChange = (changes: any) => {
-    onNodesChangeInternal(changes);
-    onNodesChange(nodes);
+    const updatedNodes = applyNodeChanges(changes, nodes);
+    setNodes(updatedNodes);
+    onNodesChange(updatedNodes);
   };
 
   const handleEdgesChange = (changes: any) => {
-    onEdgesChangeInternal(changes);
-    onEdgesChange(edges);
+    const updatedEdges = applyEdgeChanges(changes, edges);
+    setEdges(updatedEdges);
+    onEdgesChange(updatedEdges);
   };
 
   const handleConnect = (connection: Connection) => {
