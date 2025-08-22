@@ -1,10 +1,31 @@
 import { describe, it, expect } from 'vitest';
 import { blueprintToDag } from '../blueprintToDag';
-import { generateBlueprint } from '../../ideas/generateBlueprint';
+import type { Blueprint } from '../../ideas/generateBlueprint';
+
+const blueprint: Blueprint = {
+  requirement: '',
+  steps: [
+    {
+      id: 'start',
+      label: '开始',
+      description: '',
+      inputs: [],
+      outputs: [],
+      next: ['end'],
+    },
+    {
+      id: 'end',
+      label: '结束',
+      description: '',
+      inputs: [],
+      outputs: [],
+      next: [],
+    },
+  ],
+};
 
 describe('blueprintToDag', () => {
   it('将蓝图转换为节点和边', () => {
-    const blueprint = generateBlueprint('');
     const { nodes, edges } = blueprintToDag(blueprint);
     expect(nodes).toHaveLength(2);
     expect(edges).toHaveLength(1);
