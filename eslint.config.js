@@ -10,6 +10,8 @@ export default [
       '*.config.js',
       '*.config.ts',
       '.github',
+      '**/*.ts',
+      '**/*.tsx',
     ],
   },
   js.configs.recommended,
