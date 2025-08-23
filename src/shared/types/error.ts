@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { TraceId } from './base';
 
 export const ErrorCodeSchema = z.enum([
   'VALIDATION_ERROR',
@@ -14,45 +13,56 @@ export const ErrorCodeSchema = z.enum([
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 
-export interface SuperflowError {
-  code: ErrorCode;
+export interface AppError {
+  name: string;
   message: string;
+  stack?: string;
+  code: ErrorCode;
   cause?: unknown;
-  traceId?: TraceId;
-  timestamp: number;
 }
 
-export class SuperflowErrorImpl extends Error implements SuperflowError {
-  public readonly code: ErrorCode;
-  public readonly cause?: unknown;
-  public readonly traceId?: TraceId;
-  public readonly timestamp: number;
+export function createError(
+  code: ErrorCode,
+  message: string,
+  cause?: unknown,
+  name = 'SuperflowError'
+): AppError {
+  return {
+    name,
+    message,
+    code,
+    stack: undefined,
+    cause,
+  };
+}
 
-  constructor(
-    code: ErrorCode,
-    message: string,
-    options?: {
-      cause?: unknown;
-      traceId?: TraceId;
-    }
-  ) {
-    super(message);
-    this.name = 'SuperflowError';
-    this.code = code;
-    this.cause = options?.cause;
-    this.traceId = options?.traceId;
-    this.timestamp = Date.now();
+export function serializeError(err: unknown): AppError {
+  if (err && typeof err === 'object') {
+    const e = err as any;
+    const parsedCode = ErrorCodeSchema.safeParse(e.code);
+    return {
+      name: typeof e.name === 'string' ? e.name : 'Error',
+      message: typeof e.message === 'string' ? e.message : String(err),
+      stack: typeof e.stack === 'string' ? e.stack : undefined,
+      code: parsedCode.success ? parsedCode.data : 'UNKNOWN_ERROR',
+      cause: e.cause,
+    };
   }
+  return {
+    name: 'Error',
+    message: String(err),
+    code: 'UNKNOWN_ERROR',
+  };
 }
 
-export type Result<T, E = SuperflowError> = 
+export type Result<T, E = AppError> =
   | { success: true; data: T }
   | { success: false; error: E };
 
 export const createResult = {
   success: <T>(data: T): Result<T> => ({ success: true, data }),
-  error: <E = SuperflowError>(error: E): Result<never, E> => ({ 
-    success: false, 
-    error 
+  error: <E = AppError>(error: E): Result<never, E> => ({
+    success: false,
+    error,
   }),
 };
