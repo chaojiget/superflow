@@ -1,7 +1,9 @@
 import { createRoot, Root } from 'react-dom/client';
+import { useEffect } from 'react';
 import ReactFlow, {
   Controls,
   Background,
+  BackgroundVariant,
   MiniMap,
   useNodesState,
   useEdgesState,
@@ -9,8 +11,11 @@ import ReactFlow, {
   Connection,
   Edge,
   Node,
-  BackgroundVariant,
   MarkerType,
+  NodeChange,
+  EdgeChange,
+  applyNodeChanges,
+  applyEdgeChanges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
@@ -44,17 +49,44 @@ function FlowComponent({
   onDeleteNode: (id: string) => void;
   onDeleteEdge: (id: string) => void;
 }) {
-  const [nodes, , onNodesChangeInternal] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges);
+  const [nodes, setNodes] = useNodesState(initialNodes);
+  const [edges, setEdges] = useEdgesState(initialEdges);
 
-  const handleNodesChange = (changes: any) => {
-    onNodesChangeInternal(changes);
-    onNodesChange(nodes);
+  const handlePaneContextMenu = (event: MouseEvent) => {
+    event.preventDefault();
+    const nodeType = window.prompt('请选择节点类型');
+    if (!nodeType) return;
+    const rect = (
+      event.currentTarget as HTMLDivElement
+    ).getBoundingClientRect();
+    const position = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+    const id = `node-${Date.now()}`;
+    const newNode: Node = {
+      id,
+      type: nodeType,
+      position,
+      data: { label: nodeType },
+    };
+    setNodes((nds) => [...nds, newNode]);
   };
 
-  const handleEdgesChange = (changes: any) => {
-    onEdgesChangeInternal(changes);
-    onEdgesChange(edges);
+  const handleNodesChange = (changes: NodeChange[]) => {
+    setNodes((nds) => {
+      const updated = applyNodeChanges(changes, nds);
+      onNodesChange(updated);
+      return updated;
+    });
+  };
+
+  const handleEdgesChange = (changes: EdgeChange[]) => {
+    setEdges((eds) => {
+      const updated = applyEdgeChanges(changes, eds);
+      onEdgesChange(updated);
+      return updated;
+    });
   };
 
   const handleConnect = (connection: Connection) => {
@@ -78,6 +110,27 @@ function FlowComponent({
     }
   };
 
+  const handleNodeDoubleClick = (_event: React.MouseEvent, node: Node) => {
+    const newLabel = prompt('请输入新的标题', node.data.label);
+    if (newLabel && newLabel !== node.data.label) {
+      setNodes((nds) => {
+        const updated = nds.map((n) =>
+          n.id === node.id ? { ...n, data: { ...n.data, label: newLabel } } : n
+        );
+        onNodesChange(updated);
+        return updated;
+      });
+    }
+  };
+
+  useEffect(() => {
+    onNodesChange(nodes);
+  }, [nodes, onNodesChange]);
+
+  useEffect(() => {
+    onEdgesChange(edges);
+  }, [edges, onEdgesChange]);
+
   return (
     <div style={{ width: '100%', height: '100%' }}>
       <ReactFlow
@@ -88,6 +141,8 @@ function FlowComponent({
         onConnect={handleConnect}
         onNodeContextMenu={handleNodeContextMenu}
         onEdgeContextMenu={handleEdgeContextMenu}
+        onNodeDoubleClick={handleNodeDoubleClick}
+        onPaneContextMenu={handlePaneContextMenu}
         fitView
         attributionPosition="bottom-left"
       >
@@ -123,7 +178,7 @@ export function renderFlow(
       id: node.id,
       type: node.type,
       position: node.position,
-      data: { label: node.data?.label || node.id },
+      data: { ...node.data, label: node.data?.label || node.id },
       style: {
         background: '#fff',
         border: '2px solid #333',
@@ -186,8 +241,9 @@ export function renderFlow(
         onNodesChange={(updatedNodes) => {
           nodes = updatedNodes.map((node) => ({
             id: node.id,
+            type: node.type,
             position: node.position,
-            data: node.data as { label: string },
+            data: node.data,
           }));
           emit();
         }}
