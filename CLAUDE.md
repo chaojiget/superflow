@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 > 本文件用于指导 **Claude Code（claude.ai/code）** 在本仓库中的工作方式，确保生成与修改代码可预测、可回滚、可验证。
 
 ---
@@ -19,16 +21,57 @@
 
 **Superflow** 是一个集成 **想法 → 蓝图 → 流程 → 运行/调试/修复** 的开放平台，通过 AI 拆解需求与生成节点代码，支持日志捕捉、版本管理与动态集成外部系统。
 
+### 核心技术栈
+
+**前端框架**：
+
+* `React 18` + `TypeScript` - 主要 UI 框架，严格类型检查
+* `Vite` - 构建工具，快速热重载和 ESM 支持
+* `React Flow 11` - 流程图编辑器，支持自定义节点和交互
+
+**存储与状态**：
+
+* `Dexie 3` (IndexedDB) - 本地存储，支持离线和数据导出
+* `Zod 3` - 运行时类型验证和 schema 定义
+* `ULID` - 分布式友好的全局唯一标识符
+
+**并发与隔离**：
+
+* `Web Workers` + `Comlink 4` - 用户代码沙箱执行环境
+* `AbortController` - 超时控制和任务取消机制
+
+**开发工具**：
+
+* `Vitest` - 测试框架，支持单元/集成/E2E 测试
+* `ESLint` + `Prettier` - 代码质量和格式化
+* `@testing-library/react` - React 组件测试
+* `Playwright` - 端到端测试自动化
+
 ### 目录结构与职责
 
-* **`ideas/`**：从「需求/想法」转为结构化蓝图（schema、约束、验证）。
-* **`planner/`**：将蓝图规划为可执行 DAG（拓扑、依赖、重试策略）。
-* **`flow/`**：基于 **React Flow** 的流程画布与运行时（可视化、交互、布局、快捷键）。
-* **`nodes/`**：节点定义（元数据/IO/校验）、节点逻辑、**独立调试页面**。
-* **`run-center/`**：运行中心与可观测性（日志、trace、metrics、运行记录）。
-* **`shared/`**：通用工具、类型定义、跨端常量、存储访问封装。
+```text
+src/
+├── ideas/          # 想法转蓝图模块
+├── planner/        # 蓝图转DAG规划模块  
+├── flow/           # React Flow 流程画布
+├── nodes/          # 节点定义与调试
+├── run-center/     # 运行中心与可观测性
+├── shared/         # 共享类型与工具
+│   ├── types/      # TypeScript 类型定义
+│   └── ...
+├── utils/          # 通用工具函数
+└── test/           # 测试配置与辅助工具
+```
 
-> **约束**：跨模块调用通过 `shared/` 的公共类型与方法；禁止从 feature 模块彼此直接 import 内部实现。
+**模块职责**：
+* **`ideas/`**：从「需求/想法」转为结构化蓝图（schema、约束、验证）
+* **`planner/`**：将蓝图规划为可执行 DAG（拓扑、依赖、重试策略）  
+* **`flow/`**：基于 **React Flow** 的流程画布与运行时（可视化、交互、布局、快捷键）
+* **`nodes/`**：节点定义（元数据/IO/校验）、节点逻辑、**独立调试页面**
+* **`run-center/`**：运行中心与可观测性（日志、trace、metrics、运行记录）
+* **`shared/`**：通用工具、类型定义、跨端常量、存储访问封装
+
+> **关键约束**：跨模块调用必须通过 `shared/` 的公共类型与方法；严禁从 feature 模块彼此直接 import 内部实现。
 
 ---
 
@@ -51,11 +94,20 @@ npm run lint:fix            # ESLint 自动修复
 npm run type-check          # tsc --noEmit（类型检查）
 npm run format              # Prettier 格式化
 npm run format:check        # 格式检查
+
+# 专项测试
+npm run test:integration    # 集成测试
+npm run test:e2e            # 端到端测试
+npm run test:module         # 单模块测试（用法：npm run test:module -- src/shared）
 ```
 
 **CI 基线（必须全部通过）**：
 
-1. Node.js 多版本矩阵（18.x / 20.x / 22.x）； 2) TypeScript 类型检查； 3) ESLint； 4) Prettier； 5) Vitest； 6) Build 校验。
+1. **质量检查** (`quality` job)：TypeScript 类型检查 + ESLint + Prettier 格式检查
+2. **多版本测试** (`test` job)：Node.js 18.x/20.x/22.x 矩阵测试 + 覆盖率报告
+3. **模块化测试** (`module-tests` job)：按模块分别测试（ideas/planner/flow/nodes/run-center/shared）
+4. **集成测试** (`integration` job)：跨模块交互测试 + 构建校验  
+5. **E2E 测试** (`e2e` job)：端到端用户场景测试（仅 PR 触发）
 
 ---
 
@@ -79,10 +131,19 @@ npm run format:check        # 格式检查
 * **异步约定**：所有 I/O 使用 `AbortSignal`；支持超时与取消。
 * **日志**：统一 `logger.info|warn|error({ event, data, traceId })`；禁止输出敏感信息。
 * **UI**：React 组件保持纯函数；副作用集中到 hooks（`useEffect`、自定义 hooks）。
-* **测试**：
+* **测试架构**：
+  * **单元测试**：`*.test.ts` - 测试单个函数/类，覆盖核心分支逻辑
+  * **集成测试**：`*.integration.test.ts` - 测试模块间交互，30s 超时
+  * **E2E 测试**：`*.e2e.test.ts` - 用户完整流程测试，使用 Playwright
+  * **组件测试**：使用 `@testing-library/react` 以用户行为为准，而非实现细节
+  * **Worker 测试**：使用 mock 通道进行契约测试，验证消息协议正确性
 
-  * 单元测试覆盖核心分支；组件使用测试库（`@testing-library/react`）以行为为准。
-  * Worker 与主线程交互使用 mock 通道进行契约测试。
+**测试约定**：
+
+* 每个模块必须有 `__tests__/module.test.ts` 验证模块基础功能
+* 复杂业务逻辑优先写单元测试，后写集成测试验证端到端流程
+* Mock 外部依赖（网络、文件系统、Worker），但保留核心业务逻辑
+* 测试覆盖率要求：核心模块 ≥ 80%，其他模块 ≥ 70%
 
 ---
 
@@ -104,7 +165,7 @@ export async function handler(input: unknown, ctx: {
 ```
 
 * **序列化约束**：`input` 与返回值必须可结构化克隆；不得传递函数/DOM/循环引用。
-* **资源限制**：执行时间上限（默认 10s，可配置），消息体 ≤ 1MB。
+* **资源限制**：执行时间上限（默认 15s，可配置），消息体 ≤ 1MB。
 * **错误协议**：抛出错误须含 `name`、`message`、可选 `stack`；主线程展示用户友好信息并保留技术细节于日志。
 
 ---
@@ -282,7 +343,86 @@ export interface VersionRecord { id: string; nodeId: string; createdAt: number; 
 
 ---
 
-## 15. 维护者须知
+## 15. 路径别名与导入约定
+
+项目配置了 TypeScript 路径别名，便于模块导入：
+
+```typescript
+// tsconfig.json 中的路径映射
+"paths": {
+  "@/*": ["src/*"],
+  "@/shared/*": ["src/shared/*"], 
+  "@/ideas/*": ["src/ideas/*"],
+  "@/planner/*": ["src/planner/*"],
+  "@/flow/*": ["src/flow/*"],
+  "@/nodes/*": ["src/nodes/*"],
+  "@/run-center/*": ["src/run-center/*"],
+  "@/utils/*": ["src/utils/*"]
+}
+```
+
+**导入规范**：
+
+* 优先使用路径别名（`@/shared/types`）而非相对路径（`../shared/types`）
+* 跨模块导入只能通过 `@/shared/*`，禁止直接导入其他模块内部文件
+* 测试文件可以导入同模块的内部实现进行白盒测试
+
+## 16. 快速开发工作流
+
+**新开发者上手**：
+```bash
+# 1. 快速配置开发环境（自动检查依赖、配置 Git、VS Code 等）
+./scripts/quick-start.sh
+
+# 2. 设置 GitHub 协作环境（创建里程碑、标签、项目看板）
+./scripts/setup-project.sh  # 需要 GitHub CLI
+```
+
+**日常开发**：
+```bash
+# 开发某个模块时，先运行该模块的测试
+npm run test -- src/shared  # 测试 shared 模块
+npm run test:watch -- src/flow  # 监视模式开发 flow 模块
+
+# 完整质量检查（推荐在 commit 前运行）
+npm run type-check && npm run lint && npm run format:check && npm run test
+
+# 单独测试某个功能
+npm run test -- --grep "WorkerClient"
+npm run test:integration -- --grep "flow execution"
+```
+
+**关键文件快速定位**：
+
+* 类型定义：`src/shared/types/` 下按领域分类
+* API 契约：`docs/API_CONTRACTS.md`
+* 测试辅助：`src/test/helpers/` 和 `src/test/setup.ts`
+* 团队协作：`TEAM_WORKFLOW.md` 和任务模板 `scripts/issues/`
+
+## 17. 团队协作与任务管理
+
+项目使用 GitHub Issues + Projects 进行任务管理：
+
+**核心里程碑**：
+
+* `M1-Core-Runtime`: 核心运行时系统（类型、Worker、存储）
+* `M2-UI-Framework`: 基础 UI 框架（组件库、状态管理、路由）
+* `M3-Flow-Canvas`: 流程画布与节点系统
+* `M4-AI-Integration`: AI 集成（蓝图生成、智能修复）
+* `M5-Run-Center`: 运行中心（调度器、监控、日志）
+* `M6-Integration`: 集成组件（Web Components、SDK）
+* `M7-Production`: 生产准备（性能优化、部署配置）
+
+**标签体系**：
+
+* `type/*`: 任务类型（feature/bug/refactor/docs/test/perf）
+* `priority/*`: 优先级（critical/high/medium/low）
+* `module/*`: 所属模块（shared/flow/nodes/ideas/planner/run-center）
+* `effort/*`: 预估工作量（xs/s/m/l/xl/xxl）
+* `status/*`: 任务状态（planning/ready/blocked）
+
+## 18. 维护者须知
 
 * 本文件是「单一事实来源（SSoT）」；如有冲突，以此为准。
 * 修改本文件需在 PR 中标注 `area:guides` 与 `requires-doc-review` 标签，并抄送代码所有者。
+* API 契约变更需要同步更新 `docs/API_CONTRACTS.md`。
