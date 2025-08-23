@@ -1,14 +1,17 @@
-name: CI
+name: 🚀 Superflow CI/CD Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main, develop ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  NODE_VERSION: 20
 
 jobs:
   # 代码质量检查（单次运行，使用最新LTS）
