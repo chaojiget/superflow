@@ -29,7 +29,7 @@ export interface FlowInstance {
   deleteEdge: (id: string) => void;
 }
 
-// React组件来渲染流程图
+// React 组件来渲染流程图
 function FlowComponent({
   initialNodes,
   initialEdges,
