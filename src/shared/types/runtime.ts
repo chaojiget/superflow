@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { BaseEntity, TraceId } from './base';
+import { TraceId, UlidSchema, TimestampSchema } from './base';
+import { ErrorCodeSchema } from './error';
 
 export const RunStatusSchema = z.enum([
   'pending',
@@ -14,27 +15,71 @@ export type RunStatus = z.infer<typeof RunStatusSchema>;
 export const LogLevelSchema = z.enum(['debug', 'info', 'warn', 'error']);
 export type LogLevel = z.infer<typeof LogLevelSchema>;
 
-export interface RunRecord extends BaseEntity {
-  flowId: string;
-  startedAt: number;
-  finishedAt?: number;
-  status: RunStatus;
-  traceId: TraceId;
-  result?: unknown;
-  error?: string;
-}
+export const ExecRequestSchema = z.object({
+  kind: z.literal('EXEC'),
+  runId: UlidSchema,
+  nodeId: z.string(),
+  flowId: z.string(),
+  code: z.string(),
+  language: z.enum(['js', 'ts']),
+  input: z.unknown(),
+  controls: z
+    .object({
+      timeoutMs: z.number().int().positive().optional(),
+      retries: z.number().int().nonnegative().optional(),
+    })
+    .optional(),
+  env: z.record(z.string()).optional(),
+  capabilities: z.array(z.string()).optional(),
+});
 
-export interface LogRecord extends BaseEntity {
-  runId: string;
-  nodeId?: string;
-  timestamp: number;
-  level: LogLevel;
-  event: string;
-  data?: unknown;
-  traceId: TraceId;
-}
+export type ExecRequest = z.infer<typeof ExecRequestSchema>;
 
-export interface WorkerContext {
+const StartedEventSchema = z.object({
+  kind: z.literal('STARTED'),
+  runId: UlidSchema,
+  ts: TimestampSchema,
+});
+
+const LogEventSchema = z.object({
+  kind: z.literal('LOG'),
+  runId: UlidSchema,
+  ts: TimestampSchema,
+  level: LogLevelSchema,
+  event: z.string(),
+  data: z.unknown().optional(),
+});
+
+const ResultEventSchema = z.object({
+  kind: z.literal('RESULT'),
+  runId: UlidSchema,
+  ts: TimestampSchema,
+  durationMs: z.number().int().nonnegative(),
+  output: z.unknown(),
+});
+
+const ErrorEventSchema = z.object({
+  kind: z.literal('ERROR'),
+  runId: UlidSchema,
+  ts: TimestampSchema,
+  error: z.object({
+    name: z.string(),
+    message: z.string(),
+    stack: z.string().optional(),
+    code: ErrorCodeSchema,
+  }),
+});
+
+export const ExecEventSchema = z.discriminatedUnion('kind', [
+  StartedEventSchema,
+  LogEventSchema,
+  ResultEventSchema,
+  ErrorEventSchema,
+]);
+
+export type ExecEvent = z.infer<typeof ExecEventSchema>;
+
+export interface NodeContext {
   signal: AbortSignal;
   logger: {
     debug: (event: string, data?: unknown) => void;
@@ -53,7 +98,7 @@ export interface WorkerContext {
 
 export type NodeHandler = (
   input: unknown,
-  ctx: WorkerContext
+  ctx: NodeContext
 ) => Promise<unknown>;
 
 export interface WorkerMessage {

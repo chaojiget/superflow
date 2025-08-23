@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { BaseEntity } from './base';
+import { BaseEntity, TraceId } from './base';
+import { RunStatus, LogLevel } from './runtime';
+import type { AppError } from './error';
 
 export const DB_VERSION = 1;
 
@@ -22,6 +24,26 @@ export interface KVRecord extends BaseEntity {
   key: string;
   value: unknown;
   expiresAt?: number;
+}
+
+export interface RunRecord extends BaseEntity {
+  flowId: string;
+  startedAt: number;
+  finishedAt?: number;
+  status: RunStatus;
+  traceId: TraceId;
+  result?: unknown;
+  error?: AppError;
+}
+
+export interface LogRecord extends BaseEntity {
+  runId: string;
+  nodeId?: string;
+  timestamp: number;
+  level: LogLevel;
+  event: string;
+  data?: unknown;
+  traceId: TraceId;
 }
 
 export interface ImportExportSchema {
