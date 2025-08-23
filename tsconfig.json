@@ -1,31 +1,43 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+
+    /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+
+    /* Linting */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
+
+    /* Path mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"],
+      "@/shared/*": ["src/shared/*"],
+      "@/ideas/*": ["src/ideas/*"],
+      "@/planner/*": ["src/planner/*"],
+      "@/flow/*": ["src/flow/*"],
+      "@/nodes/*": ["src/nodes/*"],
+      "@/run-center/*": ["src/run-center/*"],
+      "@/utils/*": ["src/utils/*"]
     },
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true
+
+    /* Additional type checking */
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
-  "exclude": ["node_modules", "dist", "coverage"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

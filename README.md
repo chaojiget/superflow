@@ -1,57 +1,58 @@
 # Superflow
 
-> 让用户能够从想法快速迭代到可运行的代码流程的开放平台。
+> 集成想法、蓝图、流程、运行调试的开放平台
 
-## 愿景
+## 快速开始
 
-Superflow 致力于构建一个集 **想法→蓝图→流程→运行/调试/修复** 于一体的平台。通过 AI 拆解需求、生成节点代码，并支持日志捕捉、版本管理和动态嵌入外部系统，帮助开发者高效搭建可复用的工作流。
+```bash
+# 安装依赖
+npm install
 
-## 目录结构
+# 启动开发服务器
+npm run dev
 
-```text
-superflow/
-├── src/              # TypeScript 源码
-│   ├── ideas/        # 想法到蓝图的处理
-│   ├── planner/      # 蓝图转流程 DAG
-│   ├── flow/         # 流程画布与运行时
-│   ├── nodes/        # 节点定义与逻辑
-│   ├── run-center/   # 运行中心与观测
-│   └── shared/       # 通用工具与类型
-├── public/           # 静态资源
-└── docs/             # 项目文档
+# 运行测试
+npm run test
+
+# 构建项目
+npm run build
 ```
 
-## 开发步骤
+## 项目结构
 
-1. 安装依赖：`npm install`
-2. 代码格式化：`npx prettier --write .`
-3. 运行测试：`npm test`
-4. （可选）构建或运行脚本：`npm run <script>`
-
-## 贡献指南
-
-1. Fork 本仓库并创建特性分支。
-2. 进行开发，确保使用 Prettier 格式化代码。
-3. 提交前运行 `npm test` 确认通过。
-4. 提交 PR 并描述变更背景、实现与测试情况。
-
-## 使用示例
-
-```ts
-import { FlowCanvasElement } from './src/flow/FlowCanvas';
-
-const blueprint = {
-  requirement: '',
-  steps: [],
-};
-
-const canvas = new FlowCanvasElement();
-canvas.blueprint = blueprint;
-canvas.addEventListener('dag-change', (e) => {
-  console.log('最新 DAG:', e.detail);
-});
-document.body.appendChild(canvas);
-
-// 也可以通过方法控制节点与连线
-canvas.connect('start', 'end');
 ```
+src/
+├── ideas/          # 想法转蓝图模块
+├── planner/        # 蓝图转DAG规划模块  
+├── flow/           # React Flow 流程画布
+├── nodes/          # 节点定义与调试
+├── run-center/     # 运行中心与可观测性
+├── shared/         # 共享类型与工具
+└── utils/          # 通用工具函数
+```
+
+## 开发命令
+
+- `npm run dev` - 启动开发服务器
+- `npm run build` - 构建项目
+- `npm run test` - 运行测试
+- `npm run test:watch` - 监视模式运行测试
+- `npm run test:coverage` - 测试覆盖率报告
+- `npm run lint` - 代码检查
+- `npm run lint:fix` - 自动修复代码问题
+- `npm run type-check` - TypeScript 类型检查
+- `npm run format` - 代码格式化
+
+## 技术栈
+
+- **框架**: React 18 + TypeScript
+- **构建工具**: Vite
+- **流程图**: React Flow
+- **状态管理**: 待定
+- **数据存储**: Dexie (IndexedDB)
+- **测试**: Vitest + Testing Library
+- **代码质量**: ESLint + Prettier
+
+## 架构设计
+
+详见 [CLAUDE.md](./CLAUDE.md) 中的完整架构文档。

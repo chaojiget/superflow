@@ -1,25 +1,40 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
-  build: {
-    lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      name: 'Superflow',
-      fileName: 'superflow',
-    },
-    rollupOptions: {
-      external: [],
-      output: {
-        globals: {},
-      },
-    },
-    sourcemap: true,
-    minify: 'terser',
-  },
+  plugins: [react()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
+      '@/shared': resolve(__dirname, 'src/shared'),
+      '@/ideas': resolve(__dirname, 'src/ideas'),
+      '@/planner': resolve(__dirname, 'src/planner'),
+      '@/flow': resolve(__dirname, 'src/flow'),
+      '@/nodes': resolve(__dirname, 'src/nodes'),
+      '@/run-center': resolve(__dirname, 'src/run-center'),
+      '@/utils': resolve(__dirname, 'src/utils'),
     },
+  },
+  server: {
+    port: 3000,
+    open: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          flow: ['reactflow'],
+          db: ['dexie'],
+        },
+      },
+    },
+  },
+  worker: {
+    format: 'es',
+    plugins: [react()],
   },
 });

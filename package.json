@@ -1,48 +1,52 @@
 {
   "name": "superflow",
   "version": "0.1.0",
+  "description": "集成想法、蓝图、流程、运行调试的开放平台",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:ui": "vitest --ui",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "test:watch": "vitest",
-    "lint": "eslint . --config eslint.config.js",
+    "test:ui": "vitest --ui",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.33.0",
-    "@size-limit/preset-big-lib": "^11.0.0",
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
-    "@typescript-eslint/eslint-plugin": "^8.40.0",
-    "@typescript-eslint/parser": "^8.40.0",
-    "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^9.33.0",
-    "grunt": "^1.6.1",
-    "grunt-contrib-copy": "^1.0.0",
-    "jsdom": "^26.1.0",
-    "prettier": "^3.2.5",
-    "size-limit": "^11.0.0",
-    "typescript": "^5.4.5",
-    "vite": "^7.1.3",
-    "vitest": "^3.2.4"
+    "format:check": "prettier --check .",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "reactflow": "^11.11.4"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "reactflow": "^11.11.0",
+    "dexie": "^3.2.4",
+    "zod": "^3.22.4",
+    "ulid": "^2.3.0",
+    "comlink": "^4.4.1"
   },
-  "size-limit": [
-    {
-      "path": "dist/**/*.js",
-      "limit": "100 KB"
-    }
-  ]
+  "devDependencies": {
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.4.0",
+    "@vitest/ui": "^1.4.0",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/user-event": "^14.5.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6",
+    "vitest": "^1.4.0",
+    "jsdom": "^24.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

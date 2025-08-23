@@ -1,80 +1,50 @@
-// @ts-check
 import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import tsParser from '@typescript-eslint/parser';
 
 export default [
   {
-    ignores: [
-      'dist',
-      'node_modules',
-      'coverage',
-      '*.config.js',
-      '*.config.ts',
-      '.github',
-      'Gruntfile.cjs',
-    ],
-  },
-  js.configs.recommended,
-  {
-    files: ['**/*.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        document: 'readonly',
-        window: 'readonly',
-        global: 'readonly',
-        fetch: 'readonly',
-        setTimeout: 'readonly',
-        customElements: 'readonly',
-      },
-    },
-    rules: {
-      'no-unused-vars': 'warn',
-      'no-console': 'warn',
-    },
+    ignores: ['dist', 'coverage', 'node_modules', '.vite']
   },
   {
-    files: ['**/*.ts', '**/*.tsx'],
+    files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      parser: tsparser,
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        document: 'readonly',
-        window: 'readonly',
-        global: 'readonly',
-        fetch: 'readonly',
-        setTimeout: 'readonly',
-        customElements: 'readonly',
-      },
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: {
+          jsx: true
+        }
+      }
     },
     plugins: {
       '@typescript-eslint': tseslint,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
-      'no-console': 'warn',
-      'no-unused-vars': 'off',
-      'no-undef': 'off', // TypeScript handles this
-    },
-  },
-  {
-    files: ['Gruntfile.cjs'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'commonjs',
-      globals: {
-        module: 'readonly',
-        require: 'readonly',
-        __dirname: 'readonly',
-      },
-    },
-  },
+      ...js.configs.recommended.rules,
+      ...tseslint.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true }
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' }
+      ],
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/prefer-const': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'warn'
+    }
+  }
 ];

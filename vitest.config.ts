@@ -1,20 +1,22 @@
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 export default defineConfig({
+  plugins: [react()],
   test: {
+    globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      reportsDirectory: './coverage',
-      include: ['src/**/*.{ts,tsx}'],
+      reporter: ['text', 'json', 'html'],
       exclude: [
-        'src/**/*.test.{ts,tsx}',
-        'src/**/*.spec.{ts,tsx}',
-        'src/test/**/*',
-        'src/**/__tests__/**/*',
-        'src/**/*.d.ts',
+        'node_modules/',
+        'src/test/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/coverage/**',
       ],
       thresholds: {
         global: {
@@ -25,7 +27,17 @@ export default defineConfig({
         },
       },
     },
-    globals: true,
-    testTimeout: 10000,
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+      '@/shared': resolve(__dirname, 'src/shared'),
+      '@/ideas': resolve(__dirname, 'src/ideas'),
+      '@/planner': resolve(__dirname, 'src/planner'),
+      '@/flow': resolve(__dirname, 'src/flow'),
+      '@/nodes': resolve(__dirname, 'src/nodes'),
+      '@/run-center': resolve(__dirname, 'src/run-center'),
+      '@/utils': resolve(__dirname, 'src/utils'),
+    },
   },
 });

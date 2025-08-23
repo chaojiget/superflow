@@ -1,21 +1,21 @@
-// Superflow - 让用户能够从想法快速迭代到可运行的代码流程的开放平台
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './styles/global.css';
 
-// Export main modules
-export * from './flow';
-export * from './nodes';
-export * from './planner';
-export * from './ideas';
-export * from './run-center';
-export * from './shared';
+const App = React.lazy(() => import('./App'));
 
-// Main library interface
-export interface SuperflowConfig {
-  version: string;
-  environment: 'development' | 'production';
-}
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
 
-export const version = '0.1.0';
-
-export default {
-  version,
-};
+root.render(
+  React.createElement(
+    React.StrictMode,
+    null,
+    React.createElement(
+      React.Suspense,
+      { fallback: React.createElement('div', null, '加载中...') },
+      React.createElement(App)
+    )
+  )
+);

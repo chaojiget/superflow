@@ -1,14 +1,66 @@
-import { afterEach } from 'vitest';
+import '@testing-library/jest-dom';
 
-// Polyfill ResizeObserver for jsdom
-global.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+// Mock Web Workers
+global.Worker = class {
+  constructor(url: string | URL) {
+    this.url = url;
+  }
+  
+  url: string | URL;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
+  
+  postMessage(_data: unknown): void {
+    // Mock implementation
+  }
+  
+  terminate(): void {
+    // Mock implementation
+  }
+} as unknown as typeof Worker;
+
+// Mock IndexedDB
+const mockIndexedDB = {
+  open: () => ({
+    result: {
+      transaction: () => ({
+        objectStore: () => ({
+          add: () => ({ onsuccess: null }),
+          get: () => ({ onsuccess: null }),
+          put: () => ({ onsuccess: null }),
+          delete: () => ({ onsuccess: null }),
+        }),
+      }),
+    },
+    onsuccess: null,
+    onerror: null,
+  }),
 };
 
-// Basic setup for vitest tests
-afterEach(() => {
-  // Clean up any side effects after each test
-  // For now, just a basic cleanup
+Object.defineProperty(window, 'indexedDB', {
+  value: mockIndexedDB,
+  writable: true,
+});
+
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  observe() {
+    // Mock implementation
+  }
+  unobserve() {
+    // Mock implementation
+  }
+  disconnect() {
+    // Mock implementation
+  }
+};
+
+// Mock environment variables
+Object.defineProperty(import.meta, 'env', {
+  value: {
+    VITE_APP_TITLE: 'Superflow Test',
+    VITE_DEBUG_MODE: 'true',
+    VITE_LOG_LEVEL: 'debug',
+  },
+  writable: true,
 });
