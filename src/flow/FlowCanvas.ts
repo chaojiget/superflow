@@ -57,6 +57,7 @@ export class FlowCanvasElement extends HTMLElement {
     } else {
       this.removeAttribute('readonly');
     }
+    this.render();
   }
 
   get dag(): Dag | null {
@@ -107,10 +108,15 @@ export class FlowCanvasElement extends HTMLElement {
       this._dag = null;
       return;
     }
-    this.flow = renderFlow(this._blueprint as any, this.container, (dag) => {
-      this._dag = dag;
-      this.dispatchEvent(new CustomEvent('dag-change', { detail: dag }));
-    });
+    this.flow = renderFlow(
+      this._blueprint as any,
+      this.container,
+      (dag) => {
+        this._dag = dag;
+        this.dispatchEvent(new CustomEvent('dag-change', { detail: dag }));
+      },
+      this._readonly
+    );
     this.dispatchEvent(new CustomEvent('flow-render', { detail: this._dag }));
   }
 }

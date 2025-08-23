@@ -31,7 +31,7 @@ export interface FlowInstance {
   deleteEdge: (id: string) => void;
 }
 
-// React组件来渲染流程图
+// React 组件来渲染流程图
 function FlowComponent({
   initialNodes,
   initialEdges,
@@ -40,6 +40,7 @@ function FlowComponent({
   onConnect,
   onDeleteNode,
   onDeleteEdge,
+  readonly,
 }: {
   initialNodes: Node[];
   initialEdges: Edge[];
@@ -48,6 +49,7 @@ function FlowComponent({
   onConnect: (connection: Connection) => void;
   onDeleteNode: (id: string) => void;
   onDeleteEdge: (id: string) => void;
+  readonly: boolean;
 }) {
   const [nodes, setNodes] = useNodesState(initialNodes);
   const [edges, setEdges] = useEdgesState(initialEdges);
@@ -143,6 +145,10 @@ function FlowComponent({
         onEdgeContextMenu={handleEdgeContextMenu}
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneContextMenu={handlePaneContextMenu}
+        nodesDraggable={!readonly}
+        nodesConnectable={!readonly}
+        elementsSelectable={!readonly}
+        connectOnClick={!readonly}
         fitView
         attributionPosition="bottom-left"
       >
@@ -167,7 +173,8 @@ function FlowComponent({
 export function renderFlow(
   blueprint: Parameters<typeof blueprintToDag>[0],
   container: HTMLElement,
-  onChange?: (dag: Dag) => void
+  onChange?: (dag: Dag) => void,
+  readonly = false
 ): FlowInstance {
   let { nodes, edges } = blueprintToDag(blueprint);
   const root: Root = createRoot(container);
@@ -271,6 +278,7 @@ export function renderFlow(
         }}
         onDeleteNode={deleteNode}
         onDeleteEdge={deleteEdge}
+        readonly={readonly}
       />
     );
   }
