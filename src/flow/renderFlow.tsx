@@ -8,14 +8,14 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
+  NodeChange,
+  EdgeChange,
+  MarkerType,
   Connection,
   Edge,
   Node,
-  MarkerType,
-  NodeChange,
-  EdgeChange,
-  applyNodeChanges,
-  applyEdgeChanges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import type { Dag, DagNode, DagEdge } from '../planner/blueprintToDag';
@@ -31,7 +31,7 @@ export interface FlowInstance {
   deleteEdge: (id: string) => void;
 }
 
-// React 组件来渲染流程图
+// React组件来渲染流程图
 function FlowComponent({
   initialNodes,
   initialEdges,
@@ -76,26 +76,22 @@ function FlowComponent({
   };
 
   const handleNodesChange = (changes: NodeChange[]) => {
-    setNodes((nds) => {
-      const updated = applyNodeChanges(changes, nds);
-      onNodesChange(updated);
-      return updated;
-    });
+    const updatedNodes = applyNodeChanges(changes, nodes);
+    setNodes(updatedNodes);
+    onNodesChange(updatedNodes);
   };
 
   const handleEdgesChange = (changes: EdgeChange[]) => {
-    setEdges((eds) => {
-      const updated = applyEdgeChanges(changes, eds);
-      onEdgesChange(updated);
-      return updated;
-    });
+    const updatedEdges = applyEdgeChanges(changes, edges);
+    setEdges(updatedEdges);
+    onEdgesChange(updatedEdges);
   };
 
   const handleConnect = (connection: Connection) => {
-    const newEdge = addEdge(connection, edges);
-    setEdges(newEdge);
+    const updatedEdges = addEdge(connection, edges);
+    setEdges(updatedEdges);
+    onEdgesChange(updatedEdges);
     onConnect(connection);
-    onEdgesChange(newEdge);
   };
 
   const handleNodeContextMenu = (event: MouseEvent, node: Node) => {
@@ -182,10 +178,11 @@ export function renderFlow(
   // 转换为ReactFlow格式的节点和边
   const convertToReactFlowFormat = () => {
     const reactFlowNodes: Node[] = nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      position: node.position,
-      data: { ...node.data, label: node.data?.label || node.id },
+      ...node,
+      data: {
+        ...node.data,
+        label: node.data?.label || node.id,
+      },
       style: {
         background: '#fff',
         border: '2px solid #333',
@@ -199,9 +196,7 @@ export function renderFlow(
     }));
 
     const reactFlowEdges: Edge[] = edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
+      ...edge,
       type: 'smoothstep',
       style: { stroke: '#333', strokeWidth: 2 },
       markerEnd: {
