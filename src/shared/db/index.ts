@@ -1,6 +1,4 @@
 import Dexie, { type Transaction } from 'dexie';
-import { z } from 'zod';
-import { generateId } from '../utils';
 import type { StorageAdapter, StorageTransaction } from '../types/storage';
 
 /**
@@ -355,8 +353,8 @@ export class KVStore {
       value,
       createdAt: now,
       updatedAt: now,
-      namespace: this.namespace,
-      expiresAt: ttlMs ? now + ttlMs : undefined,
+      ...(this.namespace && { namespace: this.namespace }),
+      ...(ttlMs && { expiresAt: now + ttlMs }),
     };
     await this.storage.put('kv', record);
   }

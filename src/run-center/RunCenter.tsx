@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateId } from '@/shared/utils';
-import type { RunRecord, ExecutionSnapshot, RunMetrics } from './types';
+import type { RunRecord, ExecutionSnapshot } from './types';
 
 /**
  * 运行中心属性
@@ -291,10 +291,11 @@ export class RunCenter {
     const run = this.state.runs.get(runId);
     if (run) {
       run.logs.push({
+        id: generateId(),
         timestamp,
         level: entry.level,
         message: entry.event,
-        nodeId: entry.data?.nodeId,
+        nodeId: entry.data?.nodeId as string,
       });
     }
 
@@ -457,7 +458,7 @@ export class RunCenter {
         // 随机失败概率
         if (Math.random() < 0.1) {
           run.progress.failed++;
-          run.metrics.failureCount++;
+        run.metrics.failureCount = (run.metrics.failureCount || 0) + 1;
           run.logs.push({
             id: generateId(),
             timestamp: Date.now(),
@@ -467,7 +468,7 @@ export class RunCenter {
           });
         } else {
           run.progress.completed++;
-          run.metrics.successCount++;
+          run.metrics.successCount = (run.metrics.successCount || 0) + 1;
         }
 
         run.progress.running = 0;
@@ -519,9 +520,9 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
   const [runCenter] = useState(
     () =>
       new RunCenter({
-        onRunStarted,
-        onRunCompleted,
-        onRunFailed,
+        ...(onRunStarted && { onRunStarted }),
+        ...(onRunCompleted && { onRunCompleted }),
+        ...(onRunFailed && { onRunFailed }),
       })
   );
   const [runs, setRuns] = useState<RunRecord[]>([]);
@@ -795,7 +796,7 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
             <div className="run-logs">
               <h3>执行日志</h3>
               <div className="logs-container">
-                {selectedRunData.logs.map((log, index) => (
+                {selectedRunData.logs.map((log: { id?: string; timestamp: number; level: string; message: string; nodeId?: string }, index: number) => (
                   <div key={index} className={`log-entry ${log.level}`}>
                     <span className="timestamp">
                       {new Date(log.timestamp).toLocaleTimeString()}

@@ -472,10 +472,10 @@ export class FlowCanvas {
     // 转换 DAG 节点为 React Flow 节点
     const nodes: Node[] = dag.nodes.map((dagNode, index) => ({
       id: dagNode.id,
-      type: (dagNode as FlowNode).kind || 'default',
+      type: (dagNode as unknown as FlowNode).kind || 'default',
       position: { x: index * 200, y: 0 },
       data: {
-        label: (dagNode as FlowNode).name || dagNode.id,
+        label: (dagNode as unknown as FlowNode).name || dagNode.id,
         ...dagNode,
       },
     }));
@@ -497,19 +497,19 @@ export class FlowCanvas {
    * 加载简化的节点和边到画布（用于测试）
    */
   async loadNodes(
-    nodes: Array<{
+    nodes: Array<FlowNode | {
       id: string;
       type?: string;
       data?: Record<string, unknown>;
-    }> | FlowNode[],
-    edges: Array<{
+    }>,
+    edges: Array<FlowEdge | {
       id: string;
       source: string;
       target: string;
       type?: string;
       animated?: boolean;
       data?: Record<string, unknown>;
-    }> | FlowEdge[]
+    }>
   ): Promise<void> {
     if (this.config.readonly) {
       throw new Error('Canvas is readonly');
@@ -519,21 +519,12 @@ export class FlowCanvas {
 
     // 转换节点为 React Flow 节点（支持简化格式）
     const reactFlowNodes: Node[] = nodes.map((node, index) => {
-      // 检查是否是完整的 FlowNode 还是简化格式
-      const isSimpleNode = !node.position && !node.name && !node.description;
+      // 类型守卫：检查是否是完整的 FlowNode
+      const isFlowNode = (n: typeof node): n is FlowNode => {
+        return 'kind' in n && 'name' in n;
+      };
       
-      if (isSimpleNode) {
-        // 简化格式：{id, type, data}
-        return {
-          id: node.id,
-          type: node.type || 'default',
-          position: { x: index * 200, y: 0 },
-          data: {
-            label: node.id,
-            ...node.data,
-          },
-        };
-      } else {
+      if (isFlowNode(node)) {
         // 完整的 FlowNode 格式
         return {
           id: node.id,
@@ -544,17 +535,47 @@ export class FlowCanvas {
             ...node,
           },
         };
+      } else {
+        // 简化格式：{id, type, data}
+        return {
+          id: node.id,
+          type: (node as { type?: string }).type || 'default',
+          position: { x: index * 200, y: 0 },
+          data: {
+            label: node.id,
+            ...(node as { data?: Record<string, unknown> }).data,
+          },
+        };
       }
     });
 
-    // 转换 FlowEdge 为 React Flow 边
-    const reactFlowEdges: Edge[] = edges.map((flowEdge) => ({
-      id: flowEdge.id,
-      source: flowEdge.source,
-      target: flowEdge.target,
-      type: flowEdge.type || 'default',
-      animated: flowEdge.animated || false,
-    }));
+    // 转换边为 React Flow 边
+    const reactFlowEdges: Edge[] = edges.map((edge) => {
+      // 类型守卫：检查是否是完整的 FlowEdge
+      const isFlowEdge = (e: typeof edge): e is FlowEdge => {
+        return 'sourceHandle' in e || 'targetHandle' in e;
+      };
+
+      if (isFlowEdge(edge)) {
+        return {
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type || 'default',
+          animated: edge.animated || false,
+          sourceHandle: edge.sourceHandle,
+          targetHandle: edge.targetHandle,
+        };
+      } else {
+        return {
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: (edge as { type?: string }).type || 'default',
+          animated: (edge as { animated?: boolean }).animated || false,
+        };
+      }
+    });
 
     this.setNodes(reactFlowNodes);
     this.setEdges(reactFlowEdges);

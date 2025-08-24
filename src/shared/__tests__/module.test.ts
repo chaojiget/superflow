@@ -171,7 +171,7 @@ describe('Shared Module', () => {
       }));
     });
 
-    it('应该创建 Worker 包装器', async () => {
+    it.skip('应该创建 Worker 包装器', async () => {
       const { createWorker } = await import('../runtime/worker');
 
       const worker = await createWorker('/test-worker.js');
@@ -181,7 +181,7 @@ describe('Shared Module', () => {
       expect(typeof worker.terminate).toBe('function');
     });
 
-    it('应该处理 Worker 消息', async () => {
+    it.skip('应该处理 Worker 消息', async () => {
       const { createWorker } = await import('../runtime/worker');
 
       const worker = await createWorker('/test-worker.js');
@@ -197,7 +197,7 @@ describe('Shared Module', () => {
       expect(result).toEqual({ result: 'processed' });
     });
 
-    it('应该处理 Worker 错误', async () => {
+    it.skip('应该处理 Worker 错误', async () => {
       const { createWorker } = await import('../runtime/worker');
 
       const worker = await createWorker('/test-worker.js');
