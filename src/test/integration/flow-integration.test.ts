@@ -7,10 +7,10 @@ describe('流程集成测试', () => {
   beforeEach(async () => {
     // 初始化测试环境
     const { createTestFlow } = await import('../helpers/test-flow');
-    const { RunCenter } = await import('../../run-center');
+    const { RunCenterService } = await import('../../run-center');
 
     testFlow = await createTestFlow();
-    runCenter = new RunCenter();
+    runCenter = new RunCenterService();
   });
 
   afterEach(async () => {
@@ -44,7 +44,7 @@ describe('流程集成测试', () => {
 
     // 4. 执行流程
     const runRecord = await runCenter.createRun(testFlow.id);
-    const result = await canvas.execute(runRecord.id);
+    const result = await canvas.execute(runRecord.id, undefined, runCenter);
 
     expect(result.status).toBe('completed');
     expect(result.outputs).toBeDefined();
@@ -91,7 +91,7 @@ describe('流程集成测试', () => {
     await canvas.loadNodes(nodes, edges);
 
     const runRecord = await runCenter.createRun('data-flow-test');
-    const result = await canvas.execute(runRecord.id);
+    const result = await canvas.execute(runRecord.id, undefined, runCenter);
 
     expect(result.status).toBe('completed');
     expect(result.outputs.output).toBe('HELLO WORLD');
@@ -115,7 +115,7 @@ describe('流程集成测试', () => {
     await canvas.loadNodes(nodes, []);
 
     const runRecord = await runCenter.createRun('error-flow-test');
-    const result = await canvas.execute(runRecord.id);
+    const result = await canvas.execute(runRecord.id, undefined, runCenter);
 
     expect(result.status).toBe('failed');
     expect(result.error).toBeDefined();
@@ -191,12 +191,12 @@ describe('流程集成测试', () => {
 
     // 测试大于10的情况
     const runRecord1 = await runCenter.createRun('condition-flow-test-1');
-    const result1 = await canvas.execute(runRecord1, { input: 15 });
+    const result1 = await canvas.execute(runRecord1.id, { input: 15 }, runCenter);
     expect(result1.outputs['true-branch']).toBe('large');
 
     // 测试小于等于10的情况
     const runRecord2 = await runCenter.createRun('condition-flow-test-2');
-    const result2 = await canvas.execute(runRecord2, { input: 5 });
+    const result2 = await canvas.execute(runRecord2.id, { input: 5 }, runCenter);
     expect(result2.outputs['false-branch']).toBe('small');
   });
 });

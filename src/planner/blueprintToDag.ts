@@ -101,8 +101,8 @@ export function blueprintToDag(
     edges: dagEdges,
     topology,
     dependencies,
-    executionPlan,
-    metrics,
+    executionPlan: executionPlan ?? undefined,
+    metrics: metrics ?? undefined,
     createdAt: Date.now(),
     executionOrder: topology.order,
   };
@@ -414,7 +414,7 @@ function analyzeDependencies(
  */
 function findCriticalPath(nodes: DAGNode[], edges: DAGEdge[]): string[] {
   // 使用最长路径算法找到关键路径
-  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+  // const nodeMap = new Map(nodes.map((node) => [node.id, node]));
   const distances = new Map<string, number>();
   const predecessors = new Map<string, string | null>();
 
@@ -476,15 +476,15 @@ function identifyParallelGroups(
   for (let i = 0; i < topology.levels.length; i++) {
     const levelNodes = topology.levels[i];
 
-    if (levelNodes.length > 1) {
+    if (levelNodes && levelNodes.length > 1) {
       groups.push({
         id: generateId(),
         level: i,
         nodes: levelNodes,
         maxConcurrency: Math.min(levelNodes.length, 10), // 默认最大并发数
-        dependencies: i > 0 ? topology.levels[i - 1] : [],
+        dependencies: i > 0 ? (topology.levels[i - 1] ?? []) : [],
         dependents:
-          i < topology.levels.length - 1 ? topology.levels[i + 1] : [],
+          i < topology.levels.length - 1 ? (topology.levels[i + 1] ?? []) : [],
       });
     }
   }

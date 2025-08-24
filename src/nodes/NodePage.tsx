@@ -624,7 +624,7 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   {debugResult.output && (
                     <div className="output-data">
                       <h4>输出数据:</h4>
-                      <pre>{JSON.stringify(debugResult.output, null, 2) as string}</pre>
+                      <pre>{JSON.stringify(debugResult.output, null, 2)}</pre>
                     </div>
                   )}
 

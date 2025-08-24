@@ -12,6 +12,7 @@ export interface RunRecord {
   status: RunStatus;
   startTime: number;
   endTime?: number;
+  finishedAt?: number;
   input?: unknown;
   output?: unknown;
   error?: string;
@@ -48,6 +49,7 @@ export interface RunProgress {
  * 运行日志
  */
 export interface RunLog {
+  id: string;
   timestamp: number;
   level: 'debug' | 'info' | 'warn' | 'error';
   message: string;
@@ -60,15 +62,19 @@ export interface RunLog {
  * 运行指标
  */
 export interface RunMetrics {
-  executionTime: number; // 执行时间（毫秒）
-  nodeCount: number; // 节点总数
-  successCount: number; // 成功节点数
-  failureCount: number; // 失败节点数
-  avgNodeTime?: number; // 平均节点执行时间
+  duration: number; // 执行时间（毫秒）
+  throughput: number; // 吞吐量
+  errorRate: number; // 错误率
+  avgNodeTime: number; // 平均节点执行时间
+  peakMemory: number; // 峰值内存使用
+  cpuUsage: number; // CPU 使用率
+  executionTime?: number; // 执行时间（毫秒）
+  nodeCount?: number; // 节点总数
+  successCount?: number; // 成功节点数
+  failureCount?: number; // 失败节点数
   maxNodeTime?: number; // 最大节点执行时间
   minNodeTime?: number; // 最小节点执行时间
   memoryUsage?: number; // 内存使用量
-  cpuUsage?: number; // CPU 使用率
 }
 
 /**

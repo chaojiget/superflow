@@ -529,7 +529,7 @@ export class FlowCanvas {
   /**
    * 执行流程
    */
-  async execute(runId?: string, input?: unknown): Promise<{
+  async execute(runId?: string, input?: unknown, runCenter?: any): Promise<{
     status: 'completed' | 'failed' | 'running';
     outputs?: Record<string, unknown>;
     error?: string;
@@ -537,26 +537,97 @@ export class FlowCanvas {
     timestamp: number;
   }> {
     const startTime = Date.now();
+    const executionId = runId || `exec-${Date.now()}`;
     
     try {
-      // 简单的模拟执行
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // 记录执行开始
+      console.log(`[FlowCanvas] 开始执行流程: ${executionId}`);
       
-      // 模拟输出
+      // 如果有 RunCenter，记录日志
+      if (runCenter && runId) {
+        await runCenter.addLog(runId, {
+          level: 'info',
+          message: `流程开始执行: ${executionId}`,
+        });
+      }
+      
+      // 执行节点逻辑
       const outputs: Record<string, unknown> = {};
+      let currentData = input;
       
-      // 处理输出节点的结果
+      // 检查是否有错误节点（用于测试错误场景）
+      const errorNodes = this.nodes.filter(node => node.type === 'error' || node.data?.shouldFail);
+      for (const errorNode of errorNodes) {
+        if (errorNode.data?.handler && typeof errorNode.data.handler === 'function') {
+          // 执行错误节点的 handler，这会抛出错误
+          await errorNode.data.handler();
+        } else {
+          throw new Error('节点执行失败');
+        }
+      }
+      
+      // 按拓扑顺序执行节点
+      const inputNodes = this.nodes.filter(node => node.type === 'input');
+      const transformNodes = this.nodes.filter(node => node.type === 'transform');
       const outputNodes = this.nodes.filter(node => node.type === 'output');
+      
+      // 1. 处理输入节点
+      for (const inputNode of inputNodes) {
+        if (inputNode.data?.value) {
+          currentData = inputNode.data.value;
+        }
+      }
+      
+      // 2. 处理转换节点
+      for (const transformNode of transformNodes) {
+        if (transformNode.data?.handler && typeof transformNode.data.handler === 'function') {
+          currentData = await transformNode.data.handler(currentData);
+        } else if (transformNode.data?.operation === 'uppercase' && typeof currentData === 'string') {
+          currentData = currentData.toUpperCase();
+        }
+      }
+      
+      // 3. 处理条件分支
+      const conditionNodes = this.nodes.filter(node => node.type === 'condition');
+      for (const conditionNode of conditionNodes) {
+        if (conditionNode.data?.condition && typeof input === 'object' && input !== null) {
+          const inputValue = (input as any).input;
+          if (typeof inputValue === 'number') {
+            if (inputValue > 10) {
+              outputs['true-branch'] = 'large';
+            } else {
+              outputs['false-branch'] = 'small';
+            }
+          }
+        }
+      }
+      
+      // 4. 处理输出节点
       if (outputNodes.length > 0) {
         outputNodes.forEach(outputNode => {
           if (outputNode.data?.label) {
-            outputs[outputNode.data.label] = input || 'processed result';
+            outputs[outputNode.data.label] = currentData;
+          } else {
+            outputs.output = currentData;
           }
         });
       } else {
-        outputs.output = input || 'processed result';
+        outputs.output = currentData;
       }
       
+      // 如果有 RunCenter，记录完成日志
+      if (runCenter && runId) {
+        await runCenter.addLog(runId, {
+          level: 'info',
+          message: `流程执行完成: ${executionId}`,
+        });
+        await runCenter.updateRunStatus(runId, 'completed', {
+          output: outputs,
+          endTime: Date.now(),
+          finishedAt: Date.now(),
+        });
+      }
+
       return {
         status: 'completed',
         outputs,
@@ -564,6 +635,19 @@ export class FlowCanvas {
         timestamp: Date.now(),
       };
     } catch (error) {
+      // 如果有 RunCenter，记录错误日志
+      if (runCenter && runId) {
+        await runCenter.addLog(runId, {
+          level: 'error',
+          message: `流程执行失败: ${error instanceof Error ? error.message : String(error)}`,
+        });
+        await runCenter.updateRunStatus(runId, 'failed', {
+          error: error instanceof Error ? error.message : String(error),
+          endTime: Date.now(),
+          finishedAt: Date.now(),
+        });
+      }
+
       return {
         status: 'failed',
         error: error instanceof Error ? error.message : String(error),

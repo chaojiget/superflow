@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NodePage } from '../NodePage';
 
+// 声明 global 对象类型
+declare const global: typeof globalThis;
+
 // Mock Web Worker
 global.Worker = vi.fn().mockImplementation(() => ({
   postMessage: vi.fn(),
