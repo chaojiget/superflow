@@ -18,14 +18,14 @@ export interface SuperflowError {
   code: ErrorCode;
   message: string;
   cause?: unknown;
-  traceId?: TraceId;
+  traceId?: TraceId | undefined;
   timestamp: number;
 }
 
 export class SuperflowErrorImpl extends Error implements SuperflowError {
   public readonly code: ErrorCode;
   public readonly cause?: unknown;
-  public readonly traceId?: TraceId;
+  public readonly traceId?: TraceId | undefined;
   public readonly timestamp: number;
 
   constructor(
@@ -40,7 +40,7 @@ export class SuperflowErrorImpl extends Error implements SuperflowError {
     this.name = 'SuperflowError';
     this.code = code;
     this.cause = options?.cause;
-    this.traceId = options?.traceId ?? undefined;
+    this.traceId = options?.traceId;
     this.timestamp = Date.now();
   }
 }

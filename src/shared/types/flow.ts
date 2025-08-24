@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BaseEntity, UlidSchema } from './base';
+import { BaseEntity } from './base';
 import { FlowNode, FlowEdge } from './node';
 
 export const FlowStatusSchema = z.enum([

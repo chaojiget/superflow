@@ -133,7 +133,7 @@ export class WorkerClient {
       this.pendingMessages.set(messageId, { resolve, reject, controller });
 
       // 设置超时
-      const timeoutPromise = withTimeout(
+      withTimeout(
         new Promise(() => {}), // 永不解决的 Promise
         timeoutMs,
         controller.signal
@@ -157,7 +157,7 @@ export class WorkerClient {
    */
   terminate(): void {
     // 取消所有待处理的消息
-    for (const [id, { reject, controller }] of this.pendingMessages) {
+    for (const [, { reject, controller }] of this.pendingMessages) {
       controller.abort();
       reject(new Error('Worker 已终止'));
     }
@@ -203,7 +203,7 @@ export class WorkerClient {
       const error = new Error(`Worker 错误: ${event.message}`);
 
       // 拒绝所有待处理的消息
-      for (const [id, { reject }] of this.pendingMessages) {
+      for (const [, { reject }] of this.pendingMessages) {
         reject(error);
       }
       this.pendingMessages.clear();
@@ -414,11 +414,4 @@ export function createWorkerHost(): WorkerHost {
   };
 }
 
-// 导出类型
-export type {
-  WorkerMessage,
-  WorkerResponse,
-  WorkerContext,
-  WorkerConfig,
-  UserCodeHandler,
-};
+// 类型已在文件顶部定义，无需重复导出

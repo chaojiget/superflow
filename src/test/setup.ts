@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 
 // Mock Web Workers
-global.Worker = class {
+(globalThis as any).Worker = class {
   constructor(url: string | URL) {
     this.url = url;
   }
@@ -43,7 +43,7 @@ Object.defineProperty(window, 'indexedDB', {
 });
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
+(globalThis as any).ResizeObserver = class ResizeObserver {
   observe() {
     // Mock implementation
   }

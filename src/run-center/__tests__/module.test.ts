@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock IndexedDB
-global.indexedDB = {
+(globalThis as any).indexedDB = {
   open: vi.fn(),
   deleteDatabase: vi.fn(),
   cmp: vi.fn(),
@@ -73,7 +73,7 @@ describe('Run Center Module', () => {
       await runCenter.log(runId, { level: 'error', event: 'error_event' });
 
       const logs = await runCenter.getLogs(runId);
-      const levels = logs.map((log) => log.level);
+      const levels = logs.map((log: any) => log.level);
 
       expect(levels).toContain('info');
       expect(levels).toContain('warn');
@@ -136,7 +136,7 @@ describe('Run Center Module', () => {
   });
 
   describe('实时监控', () => {
-    it('应该支持实时日志流', (done) => {
+    it('应该支持实时日志流', (done: any) => {
       const runId = 'stream-test-run';
 
       runCenter.streamLogs(runId, (log: any) => {
@@ -147,7 +147,7 @@ describe('Run Center Module', () => {
       runCenter.log(runId, { level: 'info', event: 'stream_test' });
     });
 
-    it('应该支持运行状态订阅', async (done) => {
+    it('应该支持运行状态订阅', async (done: any) => {
       const flowId = 'status-test-flow';
       const runRecord = await runCenter.createRun(flowId);
 

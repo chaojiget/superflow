@@ -356,7 +356,7 @@ export class KVStore {
       ...(this.namespace && { namespace: this.namespace }),
       ...(ttlMs && { expiresAt: now + ttlMs }),
     };
-    await this.storage.put('kv', record);
+    await this.storage.put('kv', { ...record, id: record.key });
   }
 
   async delete(key: string): Promise<void> {
@@ -399,13 +399,5 @@ export function createKVStore(
   return new KVStore(storage, namespace);
 }
 
-// 导出数据库相关类型
-export type {
-  RunRecord,
-  LogRecord,
-  VersionRecord,
-  FlowRecord,
-  NodeRecord,
-  KVRecord,
-};
+// 导出数据库类
 export { SuperflowDB };

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UlidSchema, VersionedEntity } from './base';
+import { VersionedEntity } from './base';
 
 export const NodeKindSchema = z.enum([
   'input',

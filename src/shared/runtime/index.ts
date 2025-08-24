@@ -58,7 +58,7 @@ export async function withTimeout<T>(
   try {
     return await Promise.race([
       promise,
-      timeoutPromise.catch((error) => {
+      timeoutPromise.catch(() => {
         if (signal?.aborted) {
           throw new Error('操作已取消');
         }
@@ -189,7 +189,6 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
  */
 export class TaskQueue {
   private tasks: Array<() => Promise<unknown>> = [];
-  private running = false;
   private concurrency: number;
   private activeCount = 0;
 
@@ -281,14 +280,14 @@ export class BatchProcessor<T, R> {
       // 如果达到批处理大小，立即处理
       if (this.items.length >= this.batchSize) {
         this.processBatch()
-          .then((results) => resolve(results[itemIndex]))
+          .then((results) => resolve(results[itemIndex] as R))
           .catch(reject);
       } else {
         // 设置延迟处理
         if (!this.timeoutId) {
           this.timeoutId = setTimeout(() => {
             this.processBatch()
-              .then((results) => resolve(results[itemIndex]))
+              .then((results) => resolve(results[itemIndex] as R))
               .catch(reject);
           }, this.maxWaitMs);
         }
