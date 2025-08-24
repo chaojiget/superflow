@@ -77,7 +77,7 @@ export function createMockServer(): MockServer {
  * 模拟 fetch API
  */
 export function mockFetch(responses: Record<string, any> = {}): void {
-  (globalThis as any).fetch = vi.fn((url: string | URL, options?: RequestInit) => {
+  (globalThis as any).fetch = vi.fn((url: string | URL, options?: any) => {
     const urlString = url.toString();
     const method = options?.method || 'GET';
     const key = `${method} ${urlString}`;
