@@ -34,7 +34,7 @@ describe('Run Center Module', () => {
 
       await runCenter.updateRunStatus(runRecord.id, 'completed');
 
-      const updatedRecord = await runCenter.getRun(runRecord.id);
+      const updatedRecord = runCenter.getRun(runRecord.id);
       expect(updatedRecord.status).toBe('completed');
       expect(updatedRecord.finishedAt).toBeDefined();
     });
@@ -147,16 +147,17 @@ describe('Run Center Module', () => {
       runCenter.log(runId, { level: 'info', event: 'stream_test' });
     });
 
-    it('应该支持运行状态订阅', (done) => {
-      const runId = 'status-test-run';
+    it('应该支持运行状态订阅', async (done) => {
+      const flowId = 'status-test-flow';
+      const runRecord = await runCenter.createRun(flowId);
 
-      runCenter.subscribeToRun(runId, (status: string) => {
+      runCenter.subscribeToRun(runRecord.id, (status: string) => {
         if (status === 'completed') {
           done();
         }
       });
 
-      runCenter.updateRunStatus(runId, 'completed');
+      await runCenter.updateRunStatus(runRecord.id, 'completed');
     });
   });
 });

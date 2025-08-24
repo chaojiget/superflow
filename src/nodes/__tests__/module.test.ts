@@ -29,6 +29,7 @@ describe('Nodes Module', () => {
       const nodeType = {
         id: 'test-node',
         name: '测试节点',
+        description: '用于测试的节点',
         category: 'utility',
         inputs: [],
         outputs: [],
@@ -80,8 +81,9 @@ describe('Nodes Module', () => {
       await page.executeNode('timer-test', {});
 
       const execution = page.getLastExecution('timer-test');
-      expect(execution.duration).toBeGreaterThan(0);
-      expect(execution.startTime).toBeGreaterThanOrEqual(startTime);
+      expect(execution).toBeDefined();
+      expect(execution!.duration).toBeGreaterThan(0);
+      expect(execution!.startTime).toBeGreaterThanOrEqual(startTime);
     });
   });
 });

@@ -13,11 +13,11 @@ describe('Shared Module', () => {
       const { createError } = await import('../types/error');
 
       const error = createError('VALIDATION_ERROR', '验证失败', {
-        field: 'email',
+        cause: { field: 'email' },
       });
       expect(error.code).toBe('VALIDATION_ERROR');
       expect(error.message).toBe('验证失败');
-      expect(error.cause?.field).toBe('email');
+      expect((error.cause as any)?.field).toBe('email');
     });
   });
 

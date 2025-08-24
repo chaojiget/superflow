@@ -7,6 +7,22 @@ import type { FlowNode, FlowEdge, NodeKind } from '@/shared/types';
 import type { AnalysisConfig } from './generateBlueprint';
 
 /**
+ * 想法输入
+ */
+export interface IdeaInput {
+  content: string;
+  config?: AnalysisConfig;
+}
+
+/**
+ * 蓝图输出
+ */
+export interface BlueprintOutput {
+  blueprint: Blueprint;
+  analysis: IdeaAnalysis;
+}
+
+/**
  * 蓝图定义
  */
 export interface Blueprint {
@@ -362,7 +378,7 @@ export interface IdeaSearchResult {
 /**
  * 想法分析配置
  */
-export interface AdvancedAnalysisConfig extends AnalysisConfig {
+export interface AdvancedAnalysisConfig extends Omit<AnalysisConfig, 'domain'> {
   // NLP 设置
   nlp: {
     enabled: boolean;

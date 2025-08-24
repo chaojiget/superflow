@@ -12,6 +12,7 @@ import {
 } from 'reactflow';
 import { generateId } from '@/shared/utils';
 import type { FlowNode, FlowEdge, NodePosition } from '@/shared/types';
+import type { ExecutionDAG } from '@/planner/types';
 
 /**
  * 流程画布配置
@@ -455,5 +456,88 @@ export class FlowCanvas {
     }
 
     return layers;
+  }
+
+  /**
+   * 加载 DAG 到画布
+   */
+  async loadDAG(dag: ExecutionDAG): Promise<void> {
+    if (this.config.readonly) {
+      throw new Error('Canvas is readonly');
+    }
+
+    this.clear();
+
+    // 转换 DAG 节点为 React Flow 节点
+    const nodes: Node[] = dag.nodes.map((dagNode, index) => ({
+      id: dagNode.id,
+      type: (dagNode as any).kind || 'default',
+      position: { x: index * 200, y: 0 },
+      data: {
+        label: (dagNode as any).name || dagNode.id,
+        ...dagNode,
+      },
+    }));
+
+    // 转换 DAG 边为 React Flow 边
+    const edges: Edge[] = dag.edges.map((dagEdge) => ({
+      id: dagEdge.id,
+      source: dagEdge.source,
+      target: dagEdge.target,
+      type: dagEdge.type || 'default',
+      animated: false,
+    }));
+
+    this.setNodes(nodes);
+    this.setEdges(edges);
+  }
+
+  /**
+   * 加载节点和边到画布
+   */
+  async loadNodes(nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
+    if (this.config.readonly) {
+      throw new Error('Canvas is readonly');
+    }
+
+    this.clear();
+
+    // 转换 FlowNode 为 React Flow 节点
+    const reactFlowNodes: Node[] = nodes.map((flowNode, index) => ({
+      id: flowNode.id,
+      type: flowNode.kind || 'default',
+      position: flowNode.position || { x: index * 200, y: 0 },
+      data: {
+        label: flowNode.name || flowNode.id,
+        ...flowNode,
+      },
+    }));
+
+    // 转换 FlowEdge 为 React Flow 边
+    const reactFlowEdges: Edge[] = edges.map((flowEdge) => ({
+      id: flowEdge.id,
+      source: flowEdge.source,
+      target: flowEdge.target,
+      type: flowEdge.type || 'default',
+      animated: flowEdge.animated || false,
+    }));
+
+    this.setNodes(reactFlowNodes);
+    this.setEdges(reactFlowEdges);
+  }
+
+  /**
+   * 执行流程
+   */
+  async execute(input?: unknown): Promise<unknown> {
+    // 简单的模拟执行
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    return {
+      success: true,
+      nodesExecuted: this.nodes.length,
+      input,
+      timestamp: Date.now(),
+    };
   }
 }
