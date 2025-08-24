@@ -94,7 +94,8 @@ describe('流程集成测试', () => {
     const result = await canvas.execute(runRecord.id, undefined, runCenter);
 
     expect(result.status).toBe('completed');
-    expect(result.outputs.output).toBe('HELLO WORLD');
+    expect(result.outputs).toBeDefined();
+    expect(result.outputs!.output).toBe('HELLO WORLD');
   });
 
   it('应该处理节点执行失败', async () => {
@@ -192,11 +193,13 @@ describe('流程集成测试', () => {
     // 测试大于10的情况
     const runRecord1 = await runCenter.createRun('condition-flow-test-1');
     const result1 = await canvas.execute(runRecord1.id, { input: 15 }, runCenter);
-    expect(result1.outputs['true-branch']).toBe('large');
+    expect(result1.outputs).toBeDefined();
+    expect(result1.outputs!['true-branch']).toBe('large');
 
     // 测试小于等于10的情况
     const runRecord2 = await runCenter.createRun('condition-flow-test-2');
     const result2 = await canvas.execute(runRecord2.id, { input: 5 }, runCenter);
-    expect(result2.outputs['false-branch']).toBe('small');
+    expect(result2.outputs).toBeDefined();
+    expect(result2.outputs!['false-branch']).toBe('small');
   });
 });

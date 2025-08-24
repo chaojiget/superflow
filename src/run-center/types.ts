@@ -458,3 +458,49 @@ export type MetricCollector = (
   metrics: Partial<RunMetrics>
 ) => void;
 export type ProgressCallback = (progress: RunProgress) => void;
+
+/**
+ * 运行中心配置
+ */
+export interface RunCenterConfig {
+  maxConcurrentRuns: number;
+  defaultTimeout: number;
+  logLevel: 'debug' | 'info' | 'warn' | 'error';
+  enableMetrics: boolean;
+  enablePersistence: boolean;
+}
+
+/**
+ * 可观测性指标
+ */
+export interface ObservabilityMetrics {
+  activeRuns: number;
+  totalRuns: number;
+  successRate: number;
+  averageExecutionTime: number;
+  resourceUtilization: ResourceUtilization;
+}
+
+/**
+ * 资源利用率
+ */
+export interface ResourceUtilization {
+  cpu: {
+    avg: number;
+    max: number;
+    efficiency: number;
+  };
+  memory: {
+    avg: number;
+    max: number;
+    efficiency: number;
+  };
+  network: {
+    throughput: number;
+    utilization: number;
+  };
+  storage: {
+    throughput: number;
+    utilization: number;
+  };
+}

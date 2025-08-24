@@ -621,12 +621,12 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                     </div>
                   )}
 
-                  {debugResult.output && (
+                  {debugResult.output ? (
                     <div className="output-data">
                       <h4>输出数据:</h4>
                       <pre>{String(JSON.stringify(debugResult.output, null, 2))}</pre>
                     </div>
-                  )}
+                  ) : null}
 
                   <div className="debug-metadata">
                     <h4>调试信息:</h4>

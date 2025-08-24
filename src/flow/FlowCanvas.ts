@@ -493,25 +493,46 @@ export class FlowCanvas {
   }
 
   /**
-   * 加载节点和边到画布
+   * 加载简化的节点和边到画布（用于测试）
    */
-  async loadNodes(nodes: FlowNode[], edges: FlowEdge[]): Promise<void> {
+  async loadNodes(nodes: any[], edges: any[]): Promise<void>;
+  async loadNodes(nodes: FlowNode[], edges: FlowEdge[]): Promise<void>;
+  async loadNodes(nodes: any[], edges: any[]): Promise<void> {
     if (this.config.readonly) {
       throw new Error('Canvas is readonly');
     }
 
     this.clear();
 
-    // 转换 FlowNode 为 React Flow 节点
-    const reactFlowNodes: Node[] = nodes.map((flowNode, index) => ({
-      id: flowNode.id,
-      type: flowNode.kind || 'default',
-      position: flowNode.position || { x: index * 200, y: 0 },
-      data: {
-        label: flowNode.name || flowNode.id,
-        ...flowNode,
-      },
-    }));
+    // 转换节点为 React Flow 节点（支持简化格式）
+    const reactFlowNodes: Node[] = nodes.map((node, index) => {
+      // 检查是否是完整的 FlowNode 还是简化格式
+      const isSimpleNode = !node.position && !node.name && !node.description;
+      
+      if (isSimpleNode) {
+        // 简化格式：{id, type, data}
+        return {
+          id: node.id,
+          type: node.type || 'default',
+          position: { x: index * 200, y: 0 },
+          data: {
+            label: node.id,
+            ...node.data,
+          },
+        };
+      } else {
+        // 完整的 FlowNode 格式
+        return {
+          id: node.id,
+          type: node.kind || 'default',
+          position: node.position || { x: index * 200, y: 0 },
+          data: {
+            label: node.name || node.id,
+            ...node,
+          },
+        };
+      }
+    });
 
     // 转换 FlowEdge 为 React Flow 边
     const reactFlowEdges: Edge[] = edges.map((flowEdge) => ({
