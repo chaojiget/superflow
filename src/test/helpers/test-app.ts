@@ -349,3 +349,41 @@ export class PerformanceTracker {
 export function createPerformanceTracker(): PerformanceTracker {
   return new PerformanceTracker();
 }
+
+/**
+ * 创建测试应用实例
+ */
+export async function createTestApp(): Promise<{
+  render: (ui: React.ReactElement) => RenderResult;
+  cleanup: () => Promise<void>;
+  storage: any;
+  mocks: Record<string, any>;
+}> {
+  // 设置全局 mocks
+  setupGlobalMocks();
+  
+  // 创建测试存储
+  const { createStorage } = await import('../../shared/db');
+  const storage = await createStorage('test-e2e-db');
+  
+  // 收集 mocks
+  const mocks = {
+    localStorage: mockLocalStorage(),
+    sessionStorage: mockSessionStorage(),
+    storage,
+  };
+  
+  return {
+    render: (ui: React.ReactElement) => {
+      return renderWithProviders(ui, { mocks });
+    },
+    cleanup: async () => {
+      cleanupMocks();
+      if (storage && typeof storage.close === 'function') {
+        await storage.close();
+      }
+    },
+    storage,
+    mocks,
+  };
+}

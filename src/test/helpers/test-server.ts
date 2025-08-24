@@ -314,6 +314,34 @@ export function createDeferred<T = any>(): {
 }
 
 /**
+ * 启动测试服务器
+ */
+export async function startTestServer(port: number = 3000): Promise<{
+  url: string;
+  close: () => Promise<void>;
+  mockServer: MockServer;
+}> {
+  const mockServer = createMockServer();
+  
+  // 设置默认路由
+  mockServer.on('GET', '/health', () => ({ status: 'ok' }));
+  mockServer.on('GET', '/api/flows', () => ({ flows: [] }));
+  mockServer.on('POST', '/api/flows', (req) => ({ 
+    id: 'test-flow-id', 
+    ...req.data 
+  }));
+  
+  return {
+    url: `http://localhost:${port}`,
+    close: async () => {
+      // 清理资源
+      mockServer.reset();
+    },
+    mockServer,
+  };
+}
+
+/**
  * 监听事件发射器
  */
 export class EventCapture {

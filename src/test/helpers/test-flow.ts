@@ -19,7 +19,9 @@ export async function createTestFlow(name = '测试流程'): Promise<TestFlow> {
     cleanup: async () => {
       // 清理测试数据
       const { clearTestData } = await import('./test-storage');
-      await clearTestData(flowId);
+      const { createStorage } = await import('../../shared/db');
+      const storage = await createStorage('test-db');
+      await clearTestData(storage);
     },
   };
 

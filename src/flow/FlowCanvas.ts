@@ -529,15 +529,47 @@ export class FlowCanvas {
   /**
    * 执行流程
    */
-  async execute(input?: unknown): Promise<unknown> {
-    // 简单的模拟执行
-    await new Promise(resolve => setTimeout(resolve, 100));
+  async execute(runId?: string, input?: unknown): Promise<{
+    status: 'completed' | 'failed' | 'running';
+    outputs?: Record<string, unknown>;
+    error?: string;
+    duration?: number;
+    timestamp: number;
+  }> {
+    const startTime = Date.now();
     
-    return {
-      success: true,
-      nodesExecuted: this.nodes.length,
-      input,
-      timestamp: Date.now(),
-    };
+    try {
+      // 简单的模拟执行
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 模拟输出
+      const outputs: Record<string, unknown> = {};
+      
+      // 处理输出节点的结果
+      const outputNodes = this.nodes.filter(node => node.type === 'output');
+      if (outputNodes.length > 0) {
+        outputNodes.forEach(outputNode => {
+          if (outputNode.data?.label) {
+            outputs[outputNode.data.label] = input || 'processed result';
+          }
+        });
+      } else {
+        outputs.output = input || 'processed result';
+      }
+      
+      return {
+        status: 'completed',
+        outputs,
+        duration: Date.now() - startTime,
+        timestamp: Date.now(),
+      };
+    } catch (error) {
+      return {
+        status: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+        duration: Date.now() - startTime,
+        timestamp: Date.now(),
+      };
+    }
   }
 }

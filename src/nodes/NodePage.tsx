@@ -3,6 +3,16 @@
  * 节点管理和调试页面
  */
 
+declare global {
+  // Node.js globals for browser compatibility
+  var process: {
+    version?: string;
+    platform?: string;
+    env?: Record<string, string>;
+    memoryUsage?: () => object;
+  } | undefined;
+}
+
 import React, { useState, useCallback } from 'react';
 import { generateId, logger } from '@/shared/utils';
 import type {
@@ -421,10 +431,10 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
   const [nodePage] = useState(
     () =>
       new NodePage({
-        onNodeCreated: onNodeCreated || undefined,
-        onNodeUpdated: onNodeUpdated || undefined,
-        onNodeDeleted: onNodeDeleted || undefined,
-        onError: onError || undefined,
+        ...(onNodeCreated && { onNodeCreated }),
+        ...(onNodeUpdated && { onNodeUpdated }),
+        ...(onNodeDeleted && { onNodeDeleted }),
+        ...(onError && { onError }),
       })
   );
 
@@ -614,7 +624,7 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   {debugResult.output && (
                     <div className="output-data">
                       <h4>输出数据:</h4>
-                      <pre>{JSON.stringify(debugResult.output, null, 2)}</pre>
+                      <pre>{JSON.stringify(debugResult.output, null, 2) as string}</pre>
                     </div>
                   )}
 
