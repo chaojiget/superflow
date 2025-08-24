@@ -3,7 +3,7 @@
  * 规划和执行相关类型
  */
 
-import type { FlowNode, FlowEdge, Port, NodeCapability } from '@/shared/types';
+import type { Port, NodeCapability } from '@/shared/types';
 
 /**
  * 执行 DAG
@@ -542,3 +542,24 @@ export type PendingStatus = 'pending' | 'ready';
 export type ActiveStatus = 'running';
 export type FinalStatus = 'completed' | 'failed' | 'skipped' | 'cancelled';
 export type AllNodeStatus = PendingStatus | ActiveStatus | FinalStatus;
+
+/**
+ * 规划器配置
+ */
+export interface PlannerConfig {
+  maxConcurrency: number;
+  enableOptimization: boolean;
+  enableParallelization: boolean;
+  enableCaching: boolean;
+  timeoutMs: number;
+  retryAttempts: number;
+}
+
+/**
+ * 执行策略
+ */
+export type ExecutionStrategy = 
+  | 'sequential' // 顺序执行
+  | 'parallel' // 并行执行
+  | 'adaptive' // 自适应执行
+  | 'priority'; // 优先级执行

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { generateId, logger } from '@/shared/utils';
+import { generateId } from '@/shared/utils';
 import type { RunRecord, ExecutionSnapshot, RunMetrics } from './types';
 
 /**

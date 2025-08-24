@@ -95,17 +95,25 @@ export function blueprintToDag(
     ? calculateMetrics(dagNodes, dagEdges, topology)
     : undefined;
 
-  return {
+  const result: ExecutionDAG = {
     id: generateId(),
     nodes: dagNodes,
     edges: dagEdges,
     topology,
     dependencies,
-    executionPlan: executionPlan ?? undefined,
-    metrics: metrics ?? undefined,
     createdAt: Date.now(),
     executionOrder: topology.order,
   };
+  
+  if (executionPlan) {
+    result.executionPlan = executionPlan;
+  }
+  
+  if (metrics) {
+    result.metrics = metrics;
+  }
+  
+  return result;
 }
 
 /**
@@ -536,8 +544,8 @@ function generateExecutionPlan(
  * 计算估计执行时间
  */
 function calculateEstimatedExecutionTime(
-  nodes: DAGNode[],
-  edges: DAGEdge[],
+  _nodes: DAGNode[],
+  _edges: DAGEdge[],
   batches: string[][]
 ): number {
   // 简单的估算：每个节点基础时间 + 网络延迟
@@ -706,7 +714,7 @@ export function optimizeDAG(dag: ExecutionDAG): ExecutionDAG {
 /**
  * 合并兼容的节点
  */
-function mergeCompatibleNodes(nodes: DAGNode[], edges: DAGEdge[]): DAGNode[] {
+function mergeCompatibleNodes(nodes: DAGNode[], _edges: DAGEdge[]): DAGNode[] {
   // 简单实现：找到可以合并的线性链条
   const result = [...nodes];
 

@@ -589,21 +589,34 @@ export class FlowCanvas {
       
       // 3. 处理条件分支
       const conditionNodes = this.nodes.filter(node => node.type === 'condition');
+      const processNodes = this.nodes.filter(node => node.type === 'process');
+      
       for (const conditionNode of conditionNodes) {
         if (conditionNode.data?.condition && typeof input === 'object' && input !== null) {
           const inputValue = (input as any).input;
-          if (typeof inputValue === 'number') {
-            if (inputValue > 10) {
-              outputs['true-branch'] = 'large';
+          if (typeof inputValue === 'number' && typeof conditionNode.data.condition === 'function') {
+            const conditionResult = conditionNode.data.condition(inputValue);
+            
+            // 根据条件结果执行对应的分支
+            if (conditionResult) {
+              // 找到 true 分支节点
+              const trueBranchNode = processNodes.find(node => node.id === 'true-branch');
+              if (trueBranchNode && trueBranchNode.data?.value) {
+                outputs['true-branch'] = trueBranchNode.data.value;
+              }
             } else {
-              outputs['false-branch'] = 'small';
+              // 找到 false 分支节点
+              const falseBranchNode = processNodes.find(node => node.id === 'false-branch');
+              if (falseBranchNode && falseBranchNode.data?.value) {
+                outputs['false-branch'] = falseBranchNode.data.value;
+              }
             }
           }
         }
       }
       
-      // 4. 处理输出节点
-      if (outputNodes.length > 0) {
+      // 4. 处理输出节点（仅当没有条件分支的情况下）
+      if (outputNodes.length > 0 && Object.keys(outputs).length === 0) {
         outputNodes.forEach(outputNode => {
           if (outputNode.data?.label) {
             outputs[outputNode.data.label] = currentData;
@@ -611,7 +624,7 @@ export class FlowCanvas {
             outputs.output = currentData;
           }
         });
-      } else {
+      } else if (Object.keys(outputs).length === 0) {
         outputs.output = currentData;
       }
       
