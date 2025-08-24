@@ -112,9 +112,9 @@ export function median(numbers: number[]): number {
   const mid = Math.floor(sorted.length / 2);
 
   if (sorted.length % 2 === 0) {
-    return (sorted[mid - 1] + sorted[mid]) / 2;
+    return ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2;
   } else {
-    return sorted[mid];
+    return sorted[mid] ?? 0;
   }
 }
 
@@ -141,10 +141,10 @@ export function percentile(numbers: number[], p: number): number {
   const index = (p / 100) * (sorted.length - 1);
 
   if (Math.floor(index) === index) {
-    return sorted[index];
+    return sorted[index] ?? 0;
   } else {
-    const lower = sorted[Math.floor(index)];
-    const upper = sorted[Math.ceil(index)];
+    const lower = sorted[Math.floor(index)] ?? 0;
+    const upper = sorted[Math.ceil(index)] ?? 0;
     return lerp(lower, upper, index - Math.floor(index));
   }
 }

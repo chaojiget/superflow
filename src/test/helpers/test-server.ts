@@ -77,7 +77,7 @@ export function createMockServer(): MockServer {
  * 模拟 fetch API
  */
 export function mockFetch(responses: Record<string, any> = {}): void {
-  global.fetch = vi.fn((url: string | URL, options?: RequestInit) => {
+  (globalThis as any).fetch = vi.fn((url: string | URL, options?: RequestInit) => {
     const urlString = url.toString();
     const method = options?.method || 'GET';
     const key = `${method} ${urlString}`;
@@ -170,7 +170,7 @@ export class MockWebSocket {
  * 设置 WebSocket mock
  */
 export function mockWebSocket(): void {
-  global.WebSocket = MockWebSocket as any;
+  (globalThis as any).WebSocket = MockWebSocket as any;
 }
 
 /**
@@ -248,11 +248,11 @@ export class MockTimer {
 export function mockTimer(): MockTimer {
   const timer = new MockTimer();
 
-  global.setTimeout = timer.setTimeout.bind(timer);
-  global.clearTimeout = timer.clearTimeout.bind(timer);
-  global.setInterval = timer.setInterval.bind(timer);
-  global.clearInterval = timer.clearInterval.bind(timer);
-  global.Date.now = timer.now.bind(timer);
+  (globalThis as any).setTimeout = timer.setTimeout.bind(timer);
+  (globalThis as any).clearTimeout = timer.clearTimeout.bind(timer);
+  (globalThis as any).setInterval = timer.setInterval.bind(timer);
+  (globalThis as any).clearInterval = timer.clearInterval.bind(timer);
+  (globalThis as any).Date.now = timer.now.bind(timer);
 
   return timer;
 }

@@ -134,7 +134,7 @@ export function createTestStorage(): MemoryStorageAdapter {
 export function mockIndexedDB(): void {
   const databases = new Map<string, any>();
 
-  global.indexedDB = {
+  (globalThis as any).indexedDB = {
     open: vi.fn().mockImplementation((name: string, version?: number) => {
       const request = {
         result: {

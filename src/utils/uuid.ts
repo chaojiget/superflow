@@ -63,6 +63,7 @@ export function getTimestampFromULID(ulid: string): number {
 
   for (let i = 0; i < timeComponent.length; i++) {
     const char = timeComponent[i];
+    if (!char) continue;
     const value = base32Chars.indexOf(char);
     if (value === -1) {
       throw new Error('Invalid ULID character');
@@ -102,7 +103,7 @@ export function parsePrefixedId(prefixedId: string): {
   }
 
   return {
-    prefix: parts[0],
+    prefix: parts[0] ?? '',
     id: parts.slice(1).join('_'),
   };
 }

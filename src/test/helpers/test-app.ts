@@ -158,7 +158,7 @@ export function setupStorageMocks(): void {
  * 模拟 ResizeObserver
  */
 export function mockResizeObserver(): void {
-  global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  (globalThis as any).ResizeObserver = vi.fn().mockImplementation(() => ({
     observe: vi.fn(),
     unobserve: vi.fn(),
     disconnect: vi.fn(),
@@ -169,7 +169,7 @@ export function mockResizeObserver(): void {
  * 模拟 IntersectionObserver
  */
 export function mockIntersectionObserver(): void {
-  global.IntersectionObserver = vi.fn().mockImplementation(() => ({
+  (globalThis as any).IntersectionObserver = vi.fn().mockImplementation(() => ({
     observe: vi.fn(),
     unobserve: vi.fn(),
     disconnect: vi.fn(),
@@ -188,7 +188,7 @@ export function setupGlobalMocks(): void {
   mockIntersectionObserver();
 
   // Mock console methods for cleaner test output
-  global.console = {
+  (globalThis as any).console = {
     ...console,
     log: vi.fn(),
     debug: vi.fn(),

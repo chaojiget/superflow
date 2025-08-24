@@ -90,7 +90,7 @@ export class StructuredWriter implements LogWriter {
     };
 
     if (record.error) {
-      logEntry.error = {
+      (logEntry as any).error = {
         name: record.error.name,
         message: record.error.message,
         stack: record.error.stack,
@@ -210,8 +210,8 @@ export class Logger {
       timestamp: Date.now(),
       level,
       message,
-      context: { ...this.defaultContext, ...context },
-      error,
+      context: { event: context.event || 'unknown', ...this.defaultContext, ...context },
+      ...(error && { error }),
     };
 
     this.writer.write(record);
@@ -262,7 +262,7 @@ export function createLogger(
 ): Logger {
   const defaultWriter =
     writer ||
-    (process.env.NODE_ENV === 'production'
+    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'
       ? new StructuredWriter()
       : new ConsoleWriter());
 
@@ -299,15 +299,15 @@ export const filters = {
  */
 export function measurePerformance(logger: Logger, event: string) {
   return function (
-    target: any,
-    propertyKey: string,
+    _target: any,
+    _propertyKey: string,
     descriptor: PropertyDescriptor
   ) {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: any[]) {
       const startTime = performance.now();
-      const context = { event, method: propertyKey };
+      const context = { event, method: _propertyKey };
 
       logger.debug('方法开始执行', context);
 
