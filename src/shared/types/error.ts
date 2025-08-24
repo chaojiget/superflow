@@ -40,7 +40,7 @@ export class SuperflowErrorImpl extends Error implements SuperflowError {
     this.name = 'SuperflowError';
     this.code = code;
     this.cause = options?.cause;
-    this.traceId = options?.traceId;
+    this.traceId = options?.traceId ?? undefined;
     this.timestamp = Date.now();
   }
 }
@@ -56,3 +56,14 @@ export const createResult = {
     error 
   }),
 };
+
+export function createError(
+  code: ErrorCode,
+  message: string,
+  options?: {
+    cause?: unknown;
+    traceId?: TraceId;
+  }
+): SuperflowErrorImpl {
+  return new SuperflowErrorImpl(code, message, options);
+}

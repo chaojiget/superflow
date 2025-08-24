@@ -47,3 +47,31 @@ export const ImportExportSchemaValidator = z.object({
     configs: z.array(z.unknown()).optional(),
   }),
 });
+
+/**
+ * 存储适配器接口
+ */
+export interface StorageAdapter {
+  get<T = unknown>(table: string, key: string): Promise<T | undefined>;
+  put<T = unknown>(table: string, value: T & { id: string }): Promise<void>;
+  delete(table: string, key: string): Promise<void>;
+  getAll<T = unknown>(table: string): Promise<T[]>;
+  putMany<T = unknown>(table: string, values: (T & { id: string })[]): Promise<void>;
+  deleteMany(table: string, keys: string[]): Promise<void>;
+  count(table: string): Promise<number>;
+  clear(table: string): Promise<void>;
+  transaction<T>(
+    tables: string[],
+    mode: 'readonly' | 'readwrite',
+    callback: (tx: StorageTransaction) => Promise<T>
+  ): Promise<T>;
+}
+
+/**
+ * 存储事务接口
+ */
+export interface StorageTransaction {
+  get<T = unknown>(table: string, key: string): Promise<T | undefined>;
+  put<T = unknown>(table: string, value: T & { id: string }): Promise<void>;
+  delete(table: string, key: string): Promise<void>;
+}

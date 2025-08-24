@@ -1,28 +1,21 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import React from 'react'
 import { FlowCanvas } from '../FlowCanvas'
 import { renderFlow } from '../renderFlow'
 
 // Mock React Flow
 vi.mock('reactflow', () => ({
-  ReactFlow: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="react-flow">{children}</div>
-  ),
-  Controls: () => <div data-testid="flow-controls" />,
-  Background: () => <div data-testid="flow-background" />,
-  MiniMap: () => <div data-testid="flow-minimap" />
+  ReactFlow: ({ children }: { children: React.ReactNode }) => 
+    React.createElement('div', { 'data-testid': 'react-flow' }, children),
+  Controls: () => React.createElement('div', { 'data-testid': 'flow-controls' }),
+  Background: () => React.createElement('div', { 'data-testid': 'flow-background' }),
+  MiniMap: () => React.createElement('div', { 'data-testid': 'flow-minimap' })
 }))
 
 describe('Flow Module', () => {
   describe('FlowCanvas', () => {
     it('应该渲染流程画布', () => {
-      const mockNodes = [
-        { id: '1', position: { x: 0, y: 0 }, data: { label: 'Node 1' } }
-      ]
-      const mockEdges = [
-        { id: 'e1-2', source: '1', target: '2' }
-      ]
-
       const canvas = new FlowCanvas()
       expect(canvas).toBeInstanceOf(FlowCanvas)
     })
@@ -58,7 +51,7 @@ describe('Flow Module', () => {
     })
 
     it('应该处理空节点数组', () => {
-      const result = render(renderFlow([], []))
+      render(renderFlow([], []))
       expect(screen.getByTestId('react-flow')).toBeInTheDocument()
     })
   })
