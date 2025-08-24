@@ -3,6 +3,7 @@
  * 管理 React Flow 的节点和边操作
  */
 
+import React from 'react';
 import {
   type Node,
   type Edge,
@@ -471,10 +472,10 @@ export class FlowCanvas {
     // 转换 DAG 节点为 React Flow 节点
     const nodes: Node[] = dag.nodes.map((dagNode, index) => ({
       id: dagNode.id,
-      type: (dagNode as any).kind || 'default',
+      type: (dagNode as FlowNode).kind || 'default',
       position: { x: index * 200, y: 0 },
       data: {
-        label: (dagNode as any).name || dagNode.id,
+        label: (dagNode as FlowNode).name || dagNode.id,
         ...dagNode,
       },
     }));
@@ -495,9 +496,21 @@ export class FlowCanvas {
   /**
    * 加载简化的节点和边到画布（用于测试）
    */
-  async loadNodes(nodes: any[], edges: any[]): Promise<void>;
-  async loadNodes(nodes: FlowNode[], edges: FlowEdge[]): Promise<void>;
-  async loadNodes(nodes: any[], edges: any[]): Promise<void> {
+  async loadNodes(
+    nodes: Array<{
+      id: string;
+      type?: string;
+      data?: Record<string, unknown>;
+    }> | FlowNode[],
+    edges: Array<{
+      id: string;
+      source: string;
+      target: string;
+      type?: string;
+      animated?: boolean;
+      data?: Record<string, unknown>;
+    }> | FlowEdge[]
+  ): Promise<void> {
     if (this.config.readonly) {
       throw new Error('Canvas is readonly');
     }
@@ -550,7 +563,10 @@ export class FlowCanvas {
   /**
    * 执行流程
    */
-  async execute(runId?: string, input?: unknown, runCenter?: any): Promise<{
+  async execute(runId?: string, input?: unknown, runCenter?: {
+    addLog: (runId: string, log: { level: string; message: string }) => Promise<void>;
+    updateRunStatus: (runId: string, status: string, data?: Record<string, unknown>) => Promise<void>;
+  }): Promise<{
     status: 'completed' | 'failed' | 'running';
     outputs?: Record<string, unknown>;
     error?: string;
@@ -614,7 +630,7 @@ export class FlowCanvas {
       
       for (const conditionNode of conditionNodes) {
         if (conditionNode.data?.condition && typeof input === 'object' && input !== null) {
-          const inputValue = (input as any).input;
+          const inputValue = (input as Record<string, unknown>).input;
           if (typeof inputValue === 'number' && typeof conditionNode.data.condition === 'function') {
             const conditionResult = conditionNode.data.condition(inputValue);
             

@@ -67,6 +67,12 @@ export class RunCenter {
       },
       logs: [],
       metrics: {
+        duration: 0,
+        throughput: 0,
+        errorRate: 0,
+        avgNodeTime: 0,
+        peakMemory: 0,
+        cpuUsage: 0,
         executionTime: 0,
         nodeCount: 0,
         successCount: 0,
@@ -194,6 +200,12 @@ export class RunCenter {
       },
       logs: [],
       metrics: {
+        duration: 0,
+        throughput: 0,
+        errorRate: 0,
+        avgNodeTime: 0,
+        peakMemory: 0,
+        cpuUsage: 0,
         executionTime: 0,
         nodeCount: 0,
         successCount: 0,
@@ -435,6 +447,7 @@ export class RunCenter {
 
         run.progress.running = 1;
         run.logs.push({
+          id: generateId(),
           timestamp: Date.now(),
           level: 'info',
           message: `执行节点 ${i + 1}/${nodeCount}`,
@@ -446,6 +459,7 @@ export class RunCenter {
           run.progress.failed++;
           run.metrics.failureCount++;
           run.logs.push({
+            id: generateId(),
             timestamp: Date.now(),
             level: 'error',
             message: `节点 ${i + 1} 执行失败`,
@@ -532,7 +546,7 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
     if (readonly) return;
 
     try {
-      const runId = await runCenter.startRun('demo-flow', { test: 'data' });
+      await runCenter.startRun('demo-flow', { test: 'data' });
       refreshRuns();
     } catch (error) {
       console.error('启动运行失败:', error);
@@ -593,7 +607,6 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
     .sort((a, b) => b.startTime - a.startTime);
 
   const selectedRunData = selectedRun ? runCenter.getRun(selectedRun) : null;
-  const snapshot = selectedRun ? runCenter.getSnapshot(selectedRun) : null;
 
   return (
     <div className={`run-center ${className}`}>

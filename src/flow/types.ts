@@ -4,6 +4,7 @@
  */
 
 import type { Node, Edge, Viewport, XYPosition } from 'reactflow';
+import React from 'react';
 import type { FlowNode, NodeKind, EdgeType } from '@/shared/types';
 
 /**

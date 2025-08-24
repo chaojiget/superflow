@@ -161,8 +161,8 @@ export function mockIndexedDB(): void {
           }),
           transaction: vi
             .fn()
-            .mockImplementation((stores: string[], mode: string) => ({
-              objectStore: vi.fn().mockImplementation((storeName: string) => ({
+            .mockImplementation((_stores: string[], _mode: string) => ({
+              objectStore: vi.fn().mockImplementation((_storeName: string) => ({
                 add: vi
                   .fn()
                   .mockReturnValue({ onsuccess: null, onerror: null }),

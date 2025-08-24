@@ -481,26 +481,3 @@ export interface ObservabilityMetrics {
   resourceUtilization: ResourceUtilization;
 }
 
-/**
- * 资源利用率
- */
-export interface ResourceUtilization {
-  cpu: {
-    avg: number;
-    max: number;
-    efficiency: number;
-  };
-  memory: {
-    avg: number;
-    max: number;
-    efficiency: number;
-  };
-  network: {
-    throughput: number;
-    utilization: number;
-  };
-  storage: {
-    throughput: number;
-    utilization: number;
-  };
-}

@@ -4,6 +4,7 @@
  */
 
 import type { Port, NodeCapability } from '@/shared/types';
+import React from 'react';
 import type { WorkerContext } from '@/shared/runtime/worker';
 
 /**
