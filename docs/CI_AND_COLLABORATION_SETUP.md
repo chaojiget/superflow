@@ -11,7 +11,7 @@
 ✅ **代码所有者权限分配**  
 ✅ **分支保护规则**  
 ✅ **团队协作文档**  
-✅ **开发者指南**  
+✅ **开发者指南**
 
 ---
 
@@ -28,11 +28,11 @@ graph TD
     D --> E
     E --> F[端到端测试]
     F --> G[构建部署]
-    
+
     C --> C1[Node 18.x]
-    C --> C2[Node 20.x] 
+    C --> C2[Node 20.x]
     C --> C3[Node 22.x]
-    
+
     D --> D1[Ideas 模块]
     D --> D2[Planner 模块]
     D --> D3[Flow 模块]
@@ -58,7 +58,7 @@ graph TD
 strategy:
   matrix:
     node-version: [18.x, 20.x, 22.x]
-    
+
 # 为每个版本运行：
 - 单元测试
 - 覆盖率报告 (仅 20.x)
@@ -71,7 +71,7 @@ strategy:
 strategy:
   matrix:
     module: [ideas, planner, flow, nodes, run-center, shared]
-    
+
 # 为每个模块运行：
 - 模块独立测试
 - 模块覆盖率检查
@@ -104,14 +104,14 @@ strategy:
 
 ### 模块负责制
 
-| 模块 | 负责团队 | 审查权限 | 关键技能 |
-|------|----------|----------|----------|
-| **Ideas** | @ideas-team | `src/ideas/` | AI集成、需求分析 |
-| **Planner** | @planner-team | `src/planner/` | 图算法、优化 |
-| **Flow** | @flow-team | `src/flow/` | React、可视化 |
-| **Nodes** | @nodes-team | `src/nodes/` | Worker、沙箱 |
-| **Run Center** | @run-center-team | `src/run-center/` | 监控、可观测性 |
-| **Shared** | @shared-team | `src/shared/` | 基础设施、类型 |
+| 模块           | 负责团队         | 审查权限          | 关键技能         |
+| -------------- | ---------------- | ----------------- | ---------------- |
+| **Ideas**      | @ideas-team      | `src/ideas/`      | AI集成、需求分析 |
+| **Planner**    | @planner-team    | `src/planner/`    | 图算法、优化     |
+| **Flow**       | @flow-team       | `src/flow/`       | React、可视化    |
+| **Nodes**      | @nodes-team      | `src/nodes/`      | Worker、沙箱     |
+| **Run Center** | @run-center-team | `src/run-center/` | 监控、可观测性   |
+| **Shared**     | @shared-team     | `src/shared/`     | 基础设施、类型   |
 
 ### 权限分配策略
 
@@ -141,10 +141,10 @@ main 分支保护:
   required_reviews: 2
   require_code_owner_reviews: true
   required_status_checks:
-    - "Code Quality"
-    - "Test (Node 18.x/20.x/22.x)"
-    - "Module Tests" 
-    - "Integration Tests"
+    - 'Code Quality'
+    - 'Test (Node 18.x/20.x/22.x)'
+    - 'Module Tests'
+    - 'Integration Tests'
   enforce_admins: true
   allow_force_pushes: false
 ```
@@ -158,7 +158,7 @@ main 分支保护:
 ```
            E2E (5%)
         /            \
-   Integration (15%)   
+   Integration (15%)
   /                  \
 Unit Tests (80%)
 ```
@@ -166,6 +166,7 @@ Unit Tests (80%)
 #### 测试分层详解
 
 **单元测试 (80%)**：
+
 ```bash
 # 覆盖范围
 - 纯函数逻辑
@@ -180,6 +181,7 @@ npm run test:coverage          # 覆盖率报告
 ```
 
 **集成测试 (15%)**：
+
 ```bash
 # 覆盖范围
 - 模块间交互
@@ -192,6 +194,7 @@ npm run test:integration       # 集成测试套件
 ```
 
 **端到端测试 (5%)**：
+
 ```bash
 # 覆盖范围
 - 完整用户旅程
@@ -217,14 +220,14 @@ vitest.e2e.config.ts       # E2E测试配置
 
 ```typescript
 // 模块级 Mock
-vi.mock('reactflow')
-vi.mock('../../shared/db')
+vi.mock('reactflow');
+vi.mock('../../shared/db');
 
 // 环境变量 Mock
-process.env.NODE_ENV = 'test'
+process.env.NODE_ENV = 'test';
 
 // Worker Mock
-global.Worker = vi.fn()
+global.Worker = vi.fn();
 ```
 
 ---
@@ -278,22 +281,22 @@ gh pr create --title "feat(module): description" \
 
 ### 代码质量目标
 
-| 指标 | 目标值 | 当前值 | 监控工具 |
-|------|--------|--------|----------|
-| 测试覆盖率 | ≥80% | - | Codecov |
-| 类型覆盖率 | 100% | - | TypeScript |
-| 代码重复率 | ≤5% | - | SonarQube |
-| 圈复杂度 | ≤10 | - | ESLint |
-| 构建时间 | ≤5分钟 | - | GitHub Actions |
+| 指标       | 目标值 | 当前值 | 监控工具       |
+| ---------- | ------ | ------ | -------------- |
+| 测试覆盖率 | ≥80%   | -      | Codecov        |
+| 类型覆盖率 | 100%   | -      | TypeScript     |
+| 代码重复率 | ≤5%    | -      | SonarQube      |
+| 圈复杂度   | ≤10    | -      | ESLint         |
+| 构建时间   | ≤5分钟 | -      | GitHub Actions |
 
 ### 团队效率指标
 
-| 指标 | 目标值 | 监控方式 |
-|------|--------|----------|
-| PR 合并时间 | ≤2天 | GitHub Insights |
-| CI 成功率 | ≥95% | Actions Dashboard |
-| 代码审查响应时间 | ≤24小时 | PR Analytics |
-| 缺陷逃逸率 | ≤5% | 生产监控 |
+| 指标             | 目标值  | 监控方式          |
+| ---------------- | ------- | ----------------- |
+| PR 合并时间      | ≤2天    | GitHub Insights   |
+| CI 成功率        | ≥95%    | Actions Dashboard |
+| 代码审查响应时间 | ≤24小时 | PR Analytics      |
+| 缺陷逃逸率       | ≤5%     | 生产监控          |
 
 ---
 
@@ -305,7 +308,7 @@ gh pr create --title "feat(module): description" \
 {
   "推荐 VS Code 扩展": [
     "ms-vscode.vscode-typescript-next",
-    "esbenp.prettier-vscode", 
+    "esbenp.prettier-vscode",
     "ms-vscode.vscode-eslint",
     "vitest.explorer",
     "bradlc.vscode-tailwindcss"
@@ -336,18 +339,21 @@ GitHub Actions:
 ### 部署前检查清单
 
 **代码质量**：
+
 - [ ] 所有 CI 检查通过
 - [ ] 代码审查完成
 - [ ] 测试覆盖率达标
 - [ ] 无高优先级技术债务
 
 **功能验证**：
+
 - [ ] 功能测试通过
 - [ ] 性能测试通过
 - [ ] 安全扫描通过
 - [ ] 可访问性检查通过
 
 **文档更新**：
+
 - [ ] API 文档更新
 - [ ] 用户文档更新
 - [ ] 运维文档更新
@@ -382,12 +388,12 @@ git push origin v1.2.3
 
 ### 关键联系人
 
-| 角色 | 负责人 | 联系方式 |
-|------|--------|----------|
-| 技术负责人 | @tech-lead | tech-lead@company.com |
-| CI/CD 管理员 | @devops-team | devops@company.com |
-| 质量负责人 | @qa-lead | qa@company.com |
-| 安全负责人 | @security-team | security@company.com |
+| 角色         | 负责人         | 联系方式              |
+| ------------ | -------------- | --------------------- |
+| 技术负责人   | @tech-lead     | tech-lead@company.com |
+| CI/CD 管理员 | @devops-team   | devops@company.com    |
+| 质量负责人   | @qa-lead       | qa@company.com        |
+| 安全负责人   | @security-team | security@company.com  |
 
 ### 问题反馈
 
@@ -422,5 +428,5 @@ git push origin v1.2.3
 
 ---
 
-*设置完成日期：2024年8月*  
-*下次审查：2024年9月（月度回顾）*
+_设置完成日期：2024年8月_  
+_下次审查：2024年9月（月度回顾）_

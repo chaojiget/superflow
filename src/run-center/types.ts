@@ -25,22 +25,22 @@ export interface RunRecord {
 /**
  * 运行状态
  */
-export type RunStatus = 
-  | 'pending'    // 等待开始
-  | 'running'    // 运行中
-  | 'completed'  // 成功完成
-  | 'failed'     // 执行失败
-  | 'cancelled'  // 用户取消
-  | 'timeout';   // 执行超时
+export type RunStatus =
+  | 'pending' // 等待开始
+  | 'running' // 运行中
+  | 'completed' // 成功完成
+  | 'failed' // 执行失败
+  | 'cancelled' // 用户取消
+  | 'timeout'; // 执行超时
 
 /**
  * 运行进度
  */
 export interface RunProgress {
-  total: number;      // 总节点数
-  completed: number;  // 已完成节点数
-  failed: number;     // 失败节点数
-  running: number;    // 正在运行的节点数
+  total: number; // 总节点数
+  completed: number; // 已完成节点数
+  failed: number; // 失败节点数
+  running: number; // 正在运行的节点数
   percentage: number; // 完成百分比
 }
 
@@ -60,15 +60,15 @@ export interface RunLog {
  * 运行指标
  */
 export interface RunMetrics {
-  executionTime: number;  // 执行时间（毫秒）
-  nodeCount: number;      // 节点总数
-  successCount: number;   // 成功节点数
-  failureCount: number;   // 失败节点数
-  avgNodeTime?: number;   // 平均节点执行时间
-  maxNodeTime?: number;   // 最大节点执行时间
-  minNodeTime?: number;   // 最小节点执行时间
-  memoryUsage?: number;   // 内存使用量
-  cpuUsage?: number;      // CPU 使用率
+  executionTime: number; // 执行时间（毫秒）
+  nodeCount: number; // 节点总数
+  successCount: number; // 成功节点数
+  failureCount: number; // 失败节点数
+  avgNodeTime?: number; // 平均节点执行时间
+  maxNodeTime?: number; // 最大节点执行时间
+  minNodeTime?: number; // 最小节点执行时间
+  memoryUsage?: number; // 内存使用量
+  cpuUsage?: number; // CPU 使用率
 }
 
 /**
@@ -84,30 +84,30 @@ export interface ExecutionSnapshot {
   logs: RunLog[];
   timestamp: number;
   currentNodes?: string[]; // 当前运行的节点
-  nextNodes?: string[];    // 下一步要执行的节点
+  nextNodes?: string[]; // 下一步要执行的节点
 }
 
 /**
  * 运行配置
  */
 export interface RunConfiguration {
-  maxConcurrency: number;        // 最大并发数
-  timeout: number;               // 超时时间（毫秒）
-  retryAttempts: number;         // 重试次数
-  enableLogging: boolean;        // 启用日志
-  enableMetrics: boolean;        // 启用指标收集
-  enableCache: boolean;          // 启用缓存
+  maxConcurrency: number; // 最大并发数
+  timeout: number; // 超时时间（毫秒）
+  retryAttempts: number; // 重试次数
+  enableLogging: boolean; // 启用日志
+  enableMetrics: boolean; // 启用指标收集
+  enableCache: boolean; // 启用缓存
   environment: Record<string, string>; // 环境变量
-  resources?: ResourceLimits;    // 资源限制
+  resources?: ResourceLimits; // 资源限制
 }
 
 /**
  * 资源限制
  */
 export interface ResourceLimits {
-  maxMemoryMB: number;    // 最大内存（MB）
-  maxCpuPercent: number;  // 最大CPU使用率
-  maxDiskMB: number;      // 最大磁盘使用（MB）
+  maxMemoryMB: number; // 最大内存（MB）
+  maxCpuPercent: number; // 最大CPU使用率
+  maxDiskMB: number; // 最大磁盘使用（MB）
   maxNetworkMBps: number; // 最大网络带宽（MB/s）
 }
 
@@ -115,7 +115,11 @@ export interface ResourceLimits {
  * 执行器接口
  */
 export interface FlowExecutor {
-  execute(flowId: string, input?: unknown, config?: RunConfiguration): Promise<string>;
+  execute(
+    flowId: string,
+    input?: unknown,
+    config?: RunConfiguration
+  ): Promise<string>;
   stop(runId: string): Promise<void>;
   pause(runId: string): Promise<void>;
   resume(runId: string): Promise<void>;
@@ -128,8 +132,14 @@ export interface FlowExecutor {
  * 监控器接口
  */
 export interface RunMonitor {
-  subscribe(runId: string, callback: (snapshot: ExecutionSnapshot) => void): void;
-  unsubscribe(runId: string, callback: (snapshot: ExecutionSnapshot) => void): void;
+  subscribe(
+    runId: string,
+    callback: (snapshot: ExecutionSnapshot) => void
+  ): void;
+  unsubscribe(
+    runId: string,
+    callback: (snapshot: ExecutionSnapshot) => void
+  ): void;
   getSnapshot(runId: string): ExecutionSnapshot | null;
   getAllActiveRuns(): string[];
   getRunHistory(limit?: number): RunRecord[];
@@ -287,9 +297,9 @@ export interface DebugInfo {
  */
 export interface ReplayConfig {
   runId: string;
-  speed: number;        // 回放速度倍数
-  startFrom?: number;   // 开始时间戳
-  endAt?: number;       // 结束时间戳
+  speed: number; // 回放速度倍数
+  startFrom?: number; // 开始时间戳
+  endAt?: number; // 结束时间戳
   includeData: boolean; // 包含数据
   includeLogs: boolean; // 包含日志
 }
@@ -387,7 +397,7 @@ export interface RetryStrategy {
 /**
  * 事件类型
  */
-export type RunEvent = 
+export type RunEvent =
   | 'run_started'
   | 'run_completed'
   | 'run_failed'
@@ -437,5 +447,8 @@ export interface RunContext {
 // 常用类型别名
 export type RunFilter = (run: RunRecord) => boolean;
 export type LogFilter = (log: RunLog) => boolean;
-export type MetricCollector = (runId: string, metrics: Partial<RunMetrics>) => void;
+export type MetricCollector = (
+  runId: string,
+  metrics: Partial<RunMetrics>
+) => void;
 export type ProgressCallback = (progress: RunProgress) => void;

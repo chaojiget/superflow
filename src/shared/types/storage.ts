@@ -56,7 +56,10 @@ export interface StorageAdapter {
   put<T = unknown>(table: string, value: T & { id: string }): Promise<void>;
   delete(table: string, key: string): Promise<void>;
   getAll<T = unknown>(table: string): Promise<T[]>;
-  putMany<T = unknown>(table: string, values: (T & { id: string })[]): Promise<void>;
+  putMany<T = unknown>(
+    table: string,
+    values: (T & { id: string })[]
+  ): Promise<void>;
   deleteMany(table: string, keys: string[]): Promise<void>;
   count(table: string): Promise<number>;
   clear(table: string): Promise<void>;

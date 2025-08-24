@@ -5,15 +5,15 @@ global.Worker = class {
   constructor(url: string | URL) {
     this.url = url;
   }
-  
+
   url: string | URL;
   onmessage: ((event: MessageEvent) => void) | null = null;
   onerror: ((event: ErrorEvent) => void) | null = null;
-  
+
   postMessage(_data: unknown): void {
     // Mock implementation
   }
-  
+
   terminate(): void {
     // Mock implementation
   }

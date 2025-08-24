@@ -9,7 +9,7 @@ export enum LogLevel {
   DEBUG = 0,
   INFO = 1,
   WARN = 2,
-  ERROR = 3
+  ERROR = 3,
 }
 
 /**
@@ -52,10 +52,11 @@ export class ConsoleWriter implements LogWriter {
     const timestamp = new Date(record.timestamp).toISOString();
     const levelName = LogLevel[record.level];
     const message = `[${timestamp}] ${levelName}: ${record.message}`;
-    
-    const contextStr = Object.keys(record.context).length > 0 
-      ? ` ${JSON.stringify(record.context)}`
-      : '';
+
+    const contextStr =
+      Object.keys(record.context).length > 0
+        ? ` ${JSON.stringify(record.context)}`
+        : '';
 
     switch (record.level) {
       case LogLevel.DEBUG:
@@ -85,14 +86,14 @@ export class StructuredWriter implements LogWriter {
       timestamp: record.timestamp,
       level: LogLevel[record.level],
       message: record.message,
-      ...record.context
+      ...record.context,
     };
 
     if (record.error) {
       logEntry.error = {
         name: record.error.name,
         message: record.error.message,
-        stack: record.error.stack
+        stack: record.error.stack,
       };
     }
 
@@ -123,11 +124,11 @@ export class MemoryWriter implements LogWriter {
   }
 
   getRecordsByLevel(level: LogLevel): LogRecord[] {
-    return this.records.filter(record => record.level === level);
+    return this.records.filter((record) => record.level === level);
   }
 
   getRecordsSince(timestamp: number): LogRecord[] {
-    return this.records.filter(record => record.timestamp >= timestamp);
+    return this.records.filter((record) => record.timestamp >= timestamp);
   }
 
   clear(): void {
@@ -163,8 +164,9 @@ export class MultiWriter implements LogWriter {
   write(record: LogRecord): void {
     for (const writer of this.writers) {
       const filters = this.filters.get(writer) || [];
-      const shouldWrite = filters.length === 0 || filters.every(filter => filter(record));
-      
+      const shouldWrite =
+        filters.length === 0 || filters.every((filter) => filter(record));
+
       if (shouldWrite) {
         try {
           writer.write(record);
@@ -194,7 +196,12 @@ export class Logger {
     this.defaultContext = defaultContext;
   }
 
-  private log(level: LogLevel, message: string, context: Partial<LogContext> = {}, error?: Error): void {
+  private log(
+    level: LogLevel,
+    message: string,
+    context: Partial<LogContext> = {},
+    error?: Error
+  ): void {
     if (level < this.minLevel) {
       return;
     }
@@ -204,7 +211,7 @@ export class Logger {
       level,
       message,
       context: { ...this.defaultContext, ...context },
-      error
+      error,
     };
 
     this.writer.write(record);
@@ -235,11 +242,10 @@ export class Logger {
   }
 
   withContext(context: Partial<LogContext>): Logger {
-    return new Logger(
-      this.writer,
-      this.minLevel,
-      { ...this.defaultContext, ...context }
-    );
+    return new Logger(this.writer, this.minLevel, {
+      ...this.defaultContext,
+      ...context,
+    });
   }
 
   child(context: Partial<LogContext>): Logger {
@@ -254,12 +260,12 @@ export function createLogger(
   level: LogLevel = LogLevel.INFO,
   writer?: LogWriter
 ): Logger {
-  const defaultWriter = writer || (
-    process.env.NODE_ENV === 'production' 
+  const defaultWriter =
+    writer ||
+    (process.env.NODE_ENV === 'production'
       ? new StructuredWriter()
-      : new ConsoleWriter()
-  );
-  
+      : new ConsoleWriter());
+
   return new Logger(defaultWriter, level);
 }
 
@@ -273,49 +279,62 @@ export const logger = createLogger();
  */
 export const filters = {
   byLevel: (level: LogLevel) => (record: LogRecord) => record.level >= level,
-  byEvent: (event: string) => (record: LogRecord) => record.context.event === event,
-  byTraceId: (traceId: string) => (record: LogRecord) => record.context.traceId === traceId,
-  byUserId: (userId: string) => (record: LogRecord) => record.context.userId === userId,
-  byFlowId: (flowId: string) => (record: LogRecord) => record.context.flowId === flowId,
-  byNodeId: (nodeId: string) => (record: LogRecord) => record.context.nodeId === nodeId,
+  byEvent: (event: string) => (record: LogRecord) =>
+    record.context.event === event,
+  byTraceId: (traceId: string) => (record: LogRecord) =>
+    record.context.traceId === traceId,
+  byUserId: (userId: string) => (record: LogRecord) =>
+    record.context.userId === userId,
+  byFlowId: (flowId: string) => (record: LogRecord) =>
+    record.context.flowId === flowId,
+  byNodeId: (nodeId: string) => (record: LogRecord) =>
+    record.context.nodeId === nodeId,
   withError: () => (record: LogRecord) => record.error !== undefined,
-  timeRange: (start: number, end: number) => (record: LogRecord) => 
-    record.timestamp >= start && record.timestamp <= end
+  timeRange: (start: number, end: number) => (record: LogRecord) =>
+    record.timestamp >= start && record.timestamp <= end,
 };
 
 /**
  * 性能测量装饰器
  */
 export function measurePerformance(logger: Logger, event: string) {
-  return function(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (
+    target: any,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function(...args: any[]) {
+    descriptor.value = async function (...args: any[]) {
       const startTime = performance.now();
       const context = { event, method: propertyKey };
-      
+
       logger.debug('方法开始执行', context);
-      
+
       try {
         const result = await originalMethod.apply(this, args);
         const duration = performance.now() - startTime;
-        
-        logger.info('方法执行完成', { 
-          ...context, 
+
+        logger.info('方法执行完成', {
+          ...context,
           duration: Math.round(duration),
-          success: true 
+          success: true,
         });
-        
+
         return result;
       } catch (error) {
         const duration = performance.now() - startTime;
-        
-        logger.error('方法执行失败', { 
-          ...context, 
-          duration: Math.round(duration),
-          success: false 
-        }, error as Error);
-        
+
+        logger.error(
+          '方法执行失败',
+          {
+            ...context,
+            duration: Math.round(duration),
+            success: false,
+          },
+          error as Error
+        );
+
         throw error;
       }
     };
@@ -335,29 +354,33 @@ export async function withLogging<T>(
 ): Promise<T> {
   const startTime = performance.now();
   const logContext = { event, ...context };
-  
+
   logger.debug('操作开始', logContext);
-  
+
   try {
     const result = await operation();
     const duration = performance.now() - startTime;
-    
-    logger.info('操作完成', { 
-      ...logContext, 
+
+    logger.info('操作完成', {
+      ...logContext,
       duration: Math.round(duration),
-      success: true 
+      success: true,
     });
-    
+
     return result;
   } catch (error) {
     const duration = performance.now() - startTime;
-    
-    logger.error('操作失败', { 
-      ...logContext, 
-      duration: Math.round(duration),
-      success: false 
-    }, error as Error);
-    
+
+    logger.error(
+      '操作失败',
+      {
+        ...logContext,
+        duration: Math.round(duration),
+        success: false,
+      },
+      error as Error
+    );
+
     throw error;
   }
 }

@@ -67,11 +67,14 @@ export interface WorkerConfig {
  */
 export class WorkerClient {
   private worker: Worker;
-  private pendingMessages = new Map<string, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-    controller: AbortController;
-  }>();
+  private pendingMessages = new Map<
+    string,
+    {
+      resolve: (value: unknown) => void;
+      reject: (error: Error) => void;
+      controller: AbortController;
+    }
+  >();
   private messageId = 0;
 
   constructor(
@@ -121,9 +124,9 @@ export class WorkerClient {
         config: {
           env: { ...this.config.env, ...options.env },
           signal: controller.signal,
-          logger: options.logger
-        }
-      }
+          logger: options.logger,
+        },
+      },
     };
 
     return new Promise((resolve, reject) => {
@@ -134,7 +137,7 @@ export class WorkerClient {
         new Promise(() => {}), // 永不解决的 Promise
         timeoutMs,
         controller.signal
-      ).catch(error => {
+      ).catch((error) => {
         this.pendingMessages.delete(messageId);
         reject(error);
       });
@@ -159,7 +162,7 @@ export class WorkerClient {
       reject(new Error('Worker 已终止'));
     }
     this.pendingMessages.clear();
-    
+
     this.worker.terminate();
   }
 
@@ -179,14 +182,14 @@ export class WorkerClient {
     this.worker.onmessage = (event) => {
       const response = event.data as WorkerResponse;
       const pending = this.pendingMessages.get(response.id);
-      
+
       if (!pending) {
         console.warn('收到未知消息 ID:', response.id);
         return;
       }
 
       this.pendingMessages.delete(response.id);
-      
+
       if (response.success) {
         pending.resolve(response.data);
       } else {
@@ -198,7 +201,7 @@ export class WorkerClient {
   private setupErrorHandler(): void {
     this.worker.onerror = (event) => {
       const error = new Error(`Worker 错误: ${event.message}`);
-      
+
       // 拒绝所有待处理的消息
       for (const [id, { reject }] of this.pendingMessages) {
         reject(error);
@@ -228,14 +231,14 @@ export async function createWorker(
   config?: WorkerConfig
 ): Promise<WorkerClient> {
   const client = new WorkerClient(workerScript, config);
-  
+
   // 等待 Worker 初始化完成
   const isHealthy = await client.ping();
   if (!isHealthy) {
     client.terminate();
     throw new Error('Worker 初始化失败');
   }
-  
+
   return client;
 }
 
@@ -260,7 +263,7 @@ export class WorkerPool {
     const promises = Array.from({ length: this.poolSize }, () =>
       createWorker(this.workerScript, this.config)
     );
-    
+
     this.workers = await Promise.all(promises);
     this.available = [...this.workers];
   }
@@ -273,7 +276,7 @@ export class WorkerPool {
     options?: Parameters<WorkerClient['execute']>[1]
   ): Promise<unknown> {
     const worker = await this.acquireWorker();
-    
+
     try {
       return await worker.execute(input, options);
     } finally {
@@ -304,7 +307,7 @@ export class WorkerPool {
     return {
       total: this.workers.length,
       available: this.available.length,
-      busy: this.busy.size
+      busy: this.busy.size,
     };
   }
 
@@ -351,41 +354,41 @@ export interface WorkerHost {
  */
 export function createWorkerHost(): WorkerHost {
   let userHandler: UserCodeHandler | null = null;
-  
+
   self.onmessage = async (event) => {
     const message = event.data as WorkerMessage;
-    
+
     try {
       if (message.type === 'ping') {
         self.postMessage({
           id: message.id,
           success: true,
-          data: 'pong'
+          data: 'pong',
         } as WorkerResponse);
         return;
       }
 
       if (message.type === 'execute' && userHandler) {
         const { input, config } = message.data as any;
-        
+
         // 创建执行上下文
         const context: WorkerContext = {
           signal: config.signal || new AbortController().signal,
           logger: config.logger || {
             info: () => {},
             warn: () => {},
-            error: () => {}
+            error: () => {},
           },
           env: config.env || {},
-          kv: config.kv
+          kv: config.kv,
         };
 
         const result = await userHandler(input, context);
-        
+
         self.postMessage({
           id: message.id,
           success: true,
-          data: result
+          data: result,
         } as WorkerResponse);
       } else {
         throw new Error(`未知消息类型: ${message.type}`);
@@ -394,7 +397,7 @@ export function createWorkerHost(): WorkerHost {
       self.postMessage({
         id: message.id,
         success: false,
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       } as WorkerResponse);
     }
   };
@@ -403,13 +406,19 @@ export function createWorkerHost(): WorkerHost {
     register(handler: UserCodeHandler): void {
       userHandler = handler;
     },
-    
+
     ready(): void {
       // Worker 已准备就绪的信号
       self.postMessage({ type: 'ready' });
-    }
+    },
   };
 }
 
 // 导出类型
-export type { WorkerMessage, WorkerResponse, WorkerContext, WorkerConfig, UserCodeHandler };
+export type {
+  WorkerMessage,
+  WorkerResponse,
+  WorkerContext,
+  WorkerConfig,
+  UserCodeHandler,
+};

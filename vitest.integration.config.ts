@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config'
-import { resolve } from 'path'
+import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
   test: {
@@ -17,13 +17,13 @@ export default defineConfig({
         'dist/**',
         '**/*.test.{js,ts}',
         '**/*.config.{js,ts}',
-        'src/test/**'
-      ]
-    }
+        'src/test/**',
+      ],
+    },
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src')
-    }
-  }
-})
+      '@': resolve(__dirname, './src'),
+    },
+  },
+});

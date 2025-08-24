@@ -49,7 +49,7 @@ gh api repos/:owner/:repo/branches/main/protection \
 
 ## 功能分支模式
 
-### codex/* 分支
+### codex/\* 分支
 
 用于功能开发的临时分支：
 
@@ -58,7 +58,7 @@ gh api repos/:owner/:repo/branches/main/protection \
 - 合并后自动删除
 - 无特殊保护规则
 
-### release/* 分支
+### release/\* 分支
 
 用于发布准备的分支：
 
@@ -70,27 +70,33 @@ gh api repos/:owner/:repo/branches/main/protection \
 ## 模块负责人权限
 
 ### Ideas 模块 (@ideas-team)
+
 - 对 `src/ideas/` 路径有审查权限
 - 可以批准该模块的更改
 - 需要参与架构决策
 
 ### Planner 模块 (@planner-team)
+
 - 对 `src/planner/` 路径有审查权限
 - 算法相关更改需要 @algorithm-engineer 参与
 
 ### Flow 模块 (@flow-team)
+
 - 对 `src/flow/` 路径有审查权限
 - UI/UX 更改需要 @ux-designer 参与
 
 ### Nodes 模块 (@nodes-team)
+
 - 对 `src/nodes/` 路径有审查权限
 - 节点执行逻辑需要 @backend-engineer 审查
 
 ### Run Center 模块 (@run-center-team)
+
 - 对 `src/run-center/` 路径有审查权限
 - 监控相关更改需要 @monitoring-team 参与
 
 ### Shared 模块 (@shared-team)
+
 - 对 `src/shared/` 路径有审查权限
 - 核心更改需要 @tech-lead 参与
 
@@ -117,7 +123,7 @@ gh api repos/:owner/:repo/branches/main/protection \
 
 ## 紧急修复流程
 
-### 热修复分支 (hotfix/*)
+### 热修复分支 (hotfix/\*)
 
 用于生产环境紧急修复：
 

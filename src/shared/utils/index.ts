@@ -15,7 +15,7 @@ export function isValidId(id: string): boolean {
   if (!id || typeof id !== 'string') {
     return false;
   }
-  
+
   // ULID 格式: 26字符，使用 Crockford's Base32
   const ulidPattern = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
   return ulidPattern.test(id);
@@ -32,7 +32,7 @@ export function formatTimestamp(timestamp: number): string {
  * 创建延迟Promise
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -95,7 +95,13 @@ export const math = {
   /**
    * 将数值从一个范围映射到另一个范围
    */
-  map(value: number, fromMin: number, fromMax: number, toMin: number, toMax: number): number {
+  map(
+    value: number,
+    fromMin: number,
+    fromMax: number,
+    toMin: number,
+    toMax: number
+  ): number {
     const t = (value - fromMin) / (fromMax - fromMin);
     return this.lerp(toMin, toMax, t);
   },
@@ -107,7 +113,7 @@ export const math = {
     const dx = x2 - x1;
     const dy = y2 - y1;
     return Math.sqrt(dx * dx + dy * dy);
-  }
+  },
 };
 
 /**
@@ -142,7 +148,7 @@ export function createConsoleLogger(): Logger {
     },
     error(context: LogContext): void {
       console.error('[ERROR]', context);
-    }
+    },
   };
 }
 
@@ -152,14 +158,20 @@ export function createConsoleLogger(): Logger {
 export function createStructuredLogger(): Logger {
   return {
     info(context: LogContext): void {
-      console.log(JSON.stringify({ level: 'info', timestamp: Date.now(), ...context }));
+      console.log(
+        JSON.stringify({ level: 'info', timestamp: Date.now(), ...context })
+      );
     },
     warn(context: LogContext): void {
-      console.log(JSON.stringify({ level: 'warn', timestamp: Date.now(), ...context }));
+      console.log(
+        JSON.stringify({ level: 'warn', timestamp: Date.now(), ...context })
+      );
     },
     error(context: LogContext): void {
-      console.log(JSON.stringify({ level: 'error', timestamp: Date.now(), ...context }));
-    }
+      console.log(
+        JSON.stringify({ level: 'error', timestamp: Date.now(), ...context })
+      );
+    },
   };
 }
 

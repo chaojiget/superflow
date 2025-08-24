@@ -4,7 +4,7 @@ import { FlowNode, FlowEdge } from './node';
 
 export const FlowStatusSchema = z.enum([
   'draft',
-  'published', 
+  'published',
   'archived',
   'running',
   'paused',

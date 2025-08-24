@@ -19,7 +19,13 @@ export function lerp(start: number, end: number, t: number): number {
 /**
  * 将数值从一个范围映射到另一个范围
  */
-export function map(value: number, fromMin: number, fromMax: number, toMin: number, toMax: number): number {
+export function map(
+  value: number,
+  fromMin: number,
+  fromMax: number,
+  toMin: number,
+  toMax: number
+): number {
   const t = (value - fromMin) / (fromMax - fromMin);
   return lerp(toMin, toMax, t);
 }
@@ -27,7 +33,12 @@ export function map(value: number, fromMin: number, fromMax: number, toMin: numb
 /**
  * 计算两点间距离
  */
-export function distance(x1: number, y1: number, x2: number, y2: number): number {
+export function distance(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): number {
   const dx = x2 - x1;
   const dy = y2 - y1;
   return Math.sqrt(dx * dx + dy * dy);
@@ -96,10 +107,10 @@ export function average(numbers: number[]): number {
  */
 export function median(numbers: number[]): number {
   if (numbers.length === 0) return 0;
-  
+
   const sorted = [...numbers].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  
+
   if (sorted.length % 2 === 0) {
     return (sorted[mid - 1] + sorted[mid]) / 2;
   } else {
@@ -112,11 +123,11 @@ export function median(numbers: number[]): number {
  */
 export function standardDeviation(numbers: number[]): number {
   if (numbers.length === 0) return 0;
-  
+
   const avg = average(numbers);
-  const squaredDiffs = numbers.map(num => Math.pow(num - avg, 2));
+  const squaredDiffs = numbers.map((num) => Math.pow(num - avg, 2));
   const avgSquaredDiff = average(squaredDiffs);
-  
+
   return Math.sqrt(avgSquaredDiff);
 }
 
@@ -125,10 +136,10 @@ export function standardDeviation(numbers: number[]): number {
  */
 export function percentile(numbers: number[], p: number): number {
   if (numbers.length === 0) return 0;
-  
+
   const sorted = [...numbers].sort((a, b) => a - b);
   const index = (p / 100) * (sorted.length - 1);
-  
+
   if (Math.floor(index) === index) {
     return sorted[index];
   } else {

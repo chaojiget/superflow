@@ -2,9 +2,9 @@ name: 🚀 Superflow CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -52,7 +52,7 @@ jobs:
   test:
     name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
-    
+
     strategy:
       fail-fast: false
       matrix:
@@ -200,7 +200,7 @@ jobs:
 
       - name: Start dev server
         run: npm run preview &
-        
+
       - name: Wait for server
         run: npx wait-on http://localhost:4173 --timeout 30000
 

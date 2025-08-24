@@ -35,14 +35,14 @@ Superflow 工作流：想法 → 蓝图 → 规划 → 流程 → 执行 → 监
 
 ### 模块职责
 
-| 模块 | 职责 | 主要技术栈 |
-|------|------|-----------|
-| **Ideas** | 需求分析、蓝图生成 | AI集成、Schema验证 |
-| **Planner** | DAG规划、拓扑排序 | 图算法、依赖分析 |
-| **Flow** | 可视化编辑、交互 | React Flow、Canvas |
-| **Nodes** | 节点定义、调试执行 | Web Worker、代码沙箱 |
-| **Run Center** | 执行监控、日志追踪 | 可观测性、指标收集 |
-| **Shared** | 通用工具、类型系统 | TypeScript、工具库 |
+| 模块           | 职责               | 主要技术栈           |
+| -------------- | ------------------ | -------------------- |
+| **Ideas**      | 需求分析、蓝图生成 | AI集成、Schema验证   |
+| **Planner**    | DAG规划、拓扑排序  | 图算法、依赖分析     |
+| **Flow**       | 可视化编辑、交互   | React Flow、Canvas   |
+| **Nodes**      | 节点定义、调试执行 | Web Worker、代码沙箱 |
+| **Run Center** | 执行监控、日志追踪 | 可观测性、指标收集   |
+| **Shared**     | 通用工具、类型系统 | TypeScript、工具库   |
 
 ---
 
@@ -110,12 +110,14 @@ npx husky add .husky/pre-push "npm run test"
 **核心成员**：@ai-engineer @requirement-analyst
 
 **主要任务**：
+
 - 实现想法到蓝图的转换逻辑
 - 集成 AI 服务进行需求分析
 - 优化蓝图生成算法
 - 维护想法库和模板
 
 **技能要求**：
+
 - AI/LLM 集成经验
 - 自然语言处理
 - Schema 设计
@@ -127,12 +129,14 @@ npx husky add .husky/pre-push "npm run test"
 **核心成员**：@graph-specialist @optimization-expert
 
 **主要任务**：
+
 - 实现 DAG 规划算法
 - 优化执行策略
 - 处理循环依赖检测
 - 设计重试和容错机制
 
 **技能要求**：
+
 - 图算法专长
 - 分布式系统设计
 - 性能优化
@@ -144,12 +148,14 @@ npx husky add .husky/pre-push "npm run test"
 **核心成员**：@react-expert @ux-designer
 
 **主要任务**：
+
 - React Flow 集成和定制
 - 画布交互体验优化
 - 布局算法实现
 - 快捷键和手势支持
 
 **技能要求**：
+
 - React/TypeScript 精通
 - Canvas/SVG 操作
 - 用户体验设计
@@ -161,12 +167,14 @@ npx husky add .husky/pre-push "npm run test"
 **核心成员**：@security-engineer @performance-engineer
 
 **主要任务**：
+
 - 节点执行引擎开发
 - Web Worker 沙箱实现
 - 代码调试工具
 - 安全策略制定
 
 **技能要求**：
+
 - Web Worker 专长
 - 代码沙箱技术
 - 安全防护
@@ -178,12 +186,14 @@ npx husky add .husky/pre-push "npm run test"
 **核心成员**：@observability-engineer @database-expert
 
 **主要任务**：
+
 - 执行引擎开发
 - 监控指标收集
 - 日志系统优化
 - 性能分析工具
 
 **技能要求**：
+
 - 可观测性设计
 - 时序数据处理
 - 性能监控
@@ -195,12 +205,14 @@ npx husky add .husky/pre-push "npm run test"
 **核心成员**：@type-system-expert @infrastructure-engineer
 
 **主要任务**：
+
 - 类型系统设计
 - 通用工具开发
 - 存储层抽象
 - 构建系统维护
 
 **技能要求**：
+
 - TypeScript 深度掌握
 - 系统架构设计
 - 构建工具链
@@ -327,6 +339,7 @@ npm run test:coverage
 ```
 
 **重点覆盖**：
+
 - 纯函数逻辑
 - 错误处理分支
 - 边界条件
@@ -340,6 +353,7 @@ npm run test:integration
 ```
 
 **重点覆盖**：
+
 - 模块间交互
 - 数据流传递
 - API 契约
@@ -353,6 +367,7 @@ npm run test:e2e
 ```
 
 **重点覆盖**：
+
 - 完整用户旅程
 - 关键业务流程
 - 浏览器兼容性
@@ -367,17 +382,17 @@ describe('NodeExecutor', () => {
   describe('execute()', () => {
     it('应该成功执行有效节点', async () => {
       // 测试内容
-    })
+    });
 
     it('应该在超时时抛出错误', async () => {
       // 测试内容
-    })
+    });
 
     it('应该处理节点执行异常', async () => {
       // 测试内容
-    })
-  })
-})
+    });
+  });
+});
 ```
 
 #### Mock 策略
@@ -388,14 +403,14 @@ vi.mock('../../shared/db', () => ({
   createStorage: vi.fn().mockResolvedValue({
     get: vi.fn(),
     put: vi.fn(),
-    delete: vi.fn()
-  })
-}))
+    delete: vi.fn(),
+  }),
+}));
 
 // 为外部依赖创建适配器接口
 interface DatabaseAdapter {
-  get(key: string): Promise<any>
-  put(key: string, value: any): Promise<void>
+  get(key: string): Promise<any>;
+  put(key: string, value: any): Promise<void>;
 }
 ```
 
@@ -410,16 +425,16 @@ interface DatabaseAdapter {
 ```typescript
 // ✅ 好的实践
 interface NodeConfig {
-  readonly id: string
-  readonly type: NodeType
-  timeout?: number
-  retries?: number
+  readonly id: string;
+  readonly type: NodeType;
+  timeout?: number;
+  retries?: number;
 }
 
 // ❌ 避免的写法
 interface NodeConfig {
-  id: any // 不要使用 any
-  type: string // 使用更具体的类型
+  id: any; // 不要使用 any
+  type: string; // 使用更具体的类型
 }
 ```
 
@@ -433,15 +448,15 @@ class NodeExecutionError extends Error {
     public readonly nodeId: string,
     public readonly cause?: unknown
   ) {
-    super(message)
-    this.name = 'NodeExecutionError'
+    super(message);
+    this.name = 'NodeExecutionError';
   }
 }
 
 // ✅ 使用 Result 类型
-type Result<T, E = Error> = 
+type Result<T, E = Error> =
   | { success: true; data: T }
-  | { success: false; error: E }
+  | { success: false; error: E };
 ```
 
 #### 3. 异步处理
@@ -452,13 +467,13 @@ async function executeWithTimeout<T>(
   operation: (signal: AbortSignal) => Promise<T>,
   timeoutMs: number
 ): Promise<T> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
-    return await operation(controller.signal)
+    return await operation(controller.signal);
   } finally {
-    clearTimeout(timeout)
+    clearTimeout(timeout);
   }
 }
 ```
@@ -479,17 +494,17 @@ export function NodeEditor({ nodeId, onSave, onCancel }: NodeEditorProps) {
   // 1. Hooks
   const [config, setConfig] = useState<NodeConfig>()
   const [loading, setLoading] = useState(false)
-  
+
   // 2. 事件处理
   const handleSave = useCallback(async () => {
     // 实现
   }, [config])
-  
+
   // 3. 副作用
   useEffect(() => {
     // 实现
   }, [nodeId])
-  
+
   // 4. 渲染
   return (
     <div className="node-editor">
@@ -504,24 +519,27 @@ export function NodeEditor({ nodeId, onSave, onCancel }: NodeEditorProps) {
 ```typescript
 // ✅ 自定义 Hook 示例
 function useNodeExecution(nodeId: string) {
-  const [status, setStatus] = useState<ExecutionStatus>('idle')
-  const [result, setResult] = useState<unknown>()
-  const [error, setError] = useState<Error>()
-  
-  const execute = useCallback(async (input: unknown) => {
-    try {
-      setStatus('running')
-      setError(undefined)
-      const output = await executeNode(nodeId, input)
-      setResult(output)
-      setStatus('completed')
-    } catch (err) {
-      setError(err as Error)
-      setStatus('failed')
-    }
-  }, [nodeId])
-  
-  return { status, result, error, execute }
+  const [status, setStatus] = useState<ExecutionStatus>('idle');
+  const [result, setResult] = useState<unknown>();
+  const [error, setError] = useState<Error>();
+
+  const execute = useCallback(
+    async (input: unknown) => {
+      try {
+        setStatus('running');
+        setError(undefined);
+        const output = await executeNode(nodeId, input);
+        setResult(output);
+        setStatus('completed');
+      } catch (err) {
+        setError(err as Error);
+        setStatus('failed');
+      }
+    },
+    [nodeId]
+  );
+
+  return { status, result, error, execute };
 }
 ```
 
@@ -534,21 +552,25 @@ function useNodeExecution(nodeId: string) {
 #### 审查清单
 
 **功能性**：
+
 - [ ] 功能是否按需求实现？
 - [ ] 边界条件是否处理？
 - [ ] 错误处理是否完善？
 
 **代码质量**：
+
 - [ ] 代码结构是否清晰？
 - [ ] 命名是否有意义？
 - [ ] 是否遵循项目规范？
 
 **性能**：
+
 - [ ] 是否有性能问题？
 - [ ] 内存泄漏检查
 - [ ] 算法复杂度是否合理？
 
 **测试**：
+
 - [ ] 测试覆盖是否充分？
 - [ ] 测试用例是否有效？
 - [ ] CI 是否通过？
@@ -579,6 +601,7 @@ gh pr review --comment --body "建议优化性能"
 #### 冲突解决
 
 1. **代码冲突**：
+
    ```bash
    # 解决合并冲突
    git fetch origin main
@@ -618,10 +641,10 @@ gh pr review --comment --body "建议优化性能"
 ## 📞 联系方式
 
 - **技术负责人**：@tech-lead
-- **产品负责人**：@product-manager  
+- **产品负责人**：@product-manager
 - **DevOps 团队**：@devops-team
 - **QA 团队**：@qa-team
 
 ---
 
-*最后更新：2024年*
+_最后更新：2024年_

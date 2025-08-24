@@ -16,20 +16,20 @@ export interface TimeoutResult {
  */
 export function createTimeout(timeoutMs: number): TimeoutResult {
   const controller = new AbortController();
-  
+
   const promise = new Promise<never>((_, reject) => {
     const timeoutId = setTimeout(() => {
       controller.abort();
       reject(new Error('操作被取消'));
     }, timeoutMs);
-    
+
     // 如果手动取消，清除定时器
     controller.signal.addEventListener('abort', () => {
       clearTimeout(timeoutId);
       reject(new Error('操作被取消'));
     });
   });
-  
+
   return { controller, promise };
 }
 
@@ -47,7 +47,7 @@ export async function withTimeout<T>(
   }
 
   const { controller, promise: timeoutPromise } = createTimeout(timeoutMs);
-  
+
   // 监听外部取消信号
   if (signal) {
     signal.addEventListener('abort', () => {
@@ -58,12 +58,12 @@ export async function withTimeout<T>(
   try {
     return await Promise.race([
       promise,
-      timeoutPromise.catch(error => {
+      timeoutPromise.catch((error) => {
         if (signal?.aborted) {
           throw new Error('操作已取消');
         }
         throw new Error('操作超时');
-      })
+      }),
     ]);
   } finally {
     controller.abort(); // 清理资源
@@ -92,7 +92,7 @@ const DEFAULT_RETRY_OPTIONS: Required<Omit<RetryOptions, 'signal'>> = {
   maxDelayMs: 30000,
   backoffFactor: 2,
   jitter: true,
-  shouldRetry: () => true
+  shouldRetry: () => true,
 };
 
 /**
@@ -115,26 +115,27 @@ export async function retry<T>(
       return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       // 最后一次尝试失败，不再重试
       if (attempt === config.maxAttempts) {
         break;
       }
-      
+
       // 检查是否应该重试
       if (!config.shouldRetry(lastError, attempt)) {
         throw lastError;
       }
-      
+
       // 计算延迟时间
-      const baseDelay = config.baseDelayMs * Math.pow(config.backoffFactor, attempt - 1);
+      const baseDelay =
+        config.baseDelayMs * Math.pow(config.backoffFactor, attempt - 1);
       const clampedDelay = Math.min(baseDelay, config.maxDelayMs);
-      const jitterDelay = config.jitter 
-        ? clampedDelay * (0.5 + Math.random() * 0.5) 
+      const jitterDelay = config.jitter
+        ? clampedDelay * (0.5 + Math.random() * 0.5)
         : clampedDelay;
-      
+
       // 等待重试
-      await new Promise(resolve => setTimeout(resolve, jitterDelay));
+      await new Promise((resolve) => setTimeout(resolve, jitterDelay));
     }
   }
 
@@ -149,7 +150,7 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
   delayMs: number
 ): T {
   let timeoutId: ReturnType<typeof setTimeout>;
-  
+
   return ((...args) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), delayMs);
@@ -165,11 +166,11 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 ): T {
   let lastCallTime = 0;
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  
+
   return ((...args) => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCallTime;
-    
+
     if (timeSinceLastCall >= intervalMs) {
       lastCallTime = now;
       fn(...args);
@@ -209,7 +210,7 @@ export class TaskQueue {
           reject(error);
         }
       });
-      
+
       this.processQueue();
     });
   }
@@ -224,7 +225,7 @@ export class TaskQueue {
 
     this.activeCount++;
     const task = this.tasks.shift()!;
-    
+
     try {
       await task();
     } finally {
@@ -261,7 +262,7 @@ export class TaskQueue {
 export class BatchProcessor<T, R> {
   private items: T[] = [];
   private timeoutId: ReturnType<typeof setTimeout> | null = null;
-  
+
   constructor(
     private processor: (items: T[]) => Promise<R[]>,
     private batchSize: number = 10,
@@ -274,20 +275,20 @@ export class BatchProcessor<T, R> {
   async add(item: T): Promise<R> {
     return new Promise((resolve, reject) => {
       this.items.push(item);
-      
+
       const itemIndex = this.items.length - 1;
-      
+
       // 如果达到批处理大小，立即处理
       if (this.items.length >= this.batchSize) {
         this.processBatch()
-          .then(results => resolve(results[itemIndex]))
+          .then((results) => resolve(results[itemIndex]))
           .catch(reject);
       } else {
         // 设置延迟处理
         if (!this.timeoutId) {
           this.timeoutId = setTimeout(() => {
             this.processBatch()
-              .then(results => resolve(results[itemIndex]))
+              .then((results) => resolve(results[itemIndex]))
               .catch(reject);
           }, this.maxWaitMs);
         }
@@ -303,12 +304,12 @@ export class BatchProcessor<T, R> {
       clearTimeout(this.timeoutId);
       this.timeoutId = null;
     }
-    
+
     const currentItems = this.items.splice(0);
     if (currentItems.length === 0) {
       return [];
     }
-    
+
     return await this.processor(currentItems);
   }
 }
@@ -333,7 +334,7 @@ export class Semaphore {
       return;
     }
 
-    return new Promise(resolve => {
+    return new Promise((resolve) => {
       this.queue.push(resolve);
     });
   }
@@ -366,7 +367,7 @@ export class Semaphore {
 /**
  * 结果类型（用于错误处理）
  */
-export type Result<T, E = Error> = 
+export type Result<T, E = Error> =
   | { success: true; data: T }
   | { success: false; error: E };
 
@@ -438,6 +439,8 @@ export async function mapAsync<T, U, E>(
     const mappedData = await fn(result.data);
     return success(mappedData);
   } catch (error) {
-    return failure(error instanceof Error ? error : new Error(String(error))) as Result<U, E>;
+    return failure(
+      error instanceof Error ? error : new Error(String(error))
+    ) as Result<U, E>;
   }
 }

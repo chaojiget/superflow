@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config'
-import { resolve } from 'path'
+import { defineConfig } from 'vitest/config';
+import { resolve } from 'path';
 
 export default defineConfig({
   test: {
@@ -13,19 +13,19 @@ export default defineConfig({
     hookTimeout: 30000,
     teardownTimeout: 10000,
     coverage: {
-      enabled: false // E2E测试通常不需要覆盖率
+      enabled: false, // E2E测试通常不需要覆盖率
     },
     // 串行执行，避免端口冲突
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true
-      }
-    }
+        singleFork: true,
+      },
+    },
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src')
-    }
-  }
-})
+      '@': resolve(__dirname, './src'),
+    },
+  },
+});

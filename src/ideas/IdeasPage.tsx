@@ -43,9 +43,9 @@ export class IdeasPage {
       language: 'zh',
       complexity: 'medium',
       includeValidation: true,
-      includeErrorHandling: true
+      includeErrorHandling: true,
     },
-    currentBlueprint: null
+    currentBlueprint: null,
   };
 
   constructor(private props: IdeasPageProps = {}) {}
@@ -67,31 +67,32 @@ export class IdeasPage {
 
     try {
       const blueprint = await generateBlueprint(idea, this.state.config);
-      
+
       // 添加到历史记录
       const historyItem: IdeaHistory = {
         id: generateId(),
         idea: idea.trim(),
         blueprint,
         timestamp: Date.now(),
-        config: { ...this.state.config }
+        config: { ...this.state.config },
       };
-      
+
       this.state.history.unshift(historyItem);
       this.state.currentBlueprint = blueprint;
       this.state.idea = '';
-      
+
       // 触发回调
       this.props.onBlueprintGenerated?.(blueprint);
-      
+
       return blueprint;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : '生成蓝图时发生未知错误';
+      const errorMessage =
+        error instanceof Error ? error.message : '生成蓝图时发生未知错误';
       this.state.error = errorMessage;
-      
+
       const errorObj = new Error(errorMessage);
       this.props.onError?.(errorObj);
-      
+
       throw errorObj;
     } finally {
       this.state.isGenerating = false;
@@ -113,10 +114,10 @@ export class IdeasPage {
               children: {
                 type: 'h1',
                 props: {
-                  children: '想法转蓝图'
-                }
-              }
-            }
+                  children: '想法转蓝图',
+                },
+              },
+            },
           },
           {
             type: 'main',
@@ -131,27 +132,34 @@ export class IdeasPage {
                         type: 'textarea',
                         props: {
                           value: this.state.idea,
-                          placeholder: '请描述您的想法，例如："创建一个用户注册流程"',
-                          disabled: this.state.isGenerating || this.props.readonly
-                        }
+                          placeholder:
+                            '请描述您的想法，例如："创建一个用户注册流程"',
+                          disabled:
+                            this.state.isGenerating || this.props.readonly,
+                        },
                       },
                       {
                         type: 'button',
                         props: {
                           type: 'submit',
-                          disabled: this.state.isGenerating || !this.state.idea.trim() || this.props.readonly,
-                          children: this.state.isGenerating ? '生成中...' : '生成蓝图'
-                        }
-                      }
-                    ]
-                  }
+                          disabled:
+                            this.state.isGenerating ||
+                            !this.state.idea.trim() ||
+                            this.props.readonly,
+                          children: this.state.isGenerating
+                            ? '生成中...'
+                            : '生成蓝图',
+                        },
+                      },
+                    ],
+                  },
                 },
                 this.state.error && {
                   type: 'div',
                   props: {
                     className: 'error-message',
-                    children: this.state.error
-                  }
+                    children: this.state.error,
+                  },
                 },
                 this.state.currentBlueprint && {
                   type: 'div',
@@ -160,16 +168,20 @@ export class IdeasPage {
                     children: {
                       type: 'pre',
                       props: {
-                        children: JSON.stringify(this.state.currentBlueprint, null, 2)
-                      }
-                    }
-                  }
-                }
-              ].filter(Boolean)
-            }
-          }
-        ]
-      }
+                        children: JSON.stringify(
+                          this.state.currentBlueprint,
+                          null,
+                          2
+                        ),
+                      },
+                    },
+                  },
+                },
+              ].filter(Boolean),
+            },
+          },
+        ],
+      },
     };
   }
 
@@ -209,7 +221,7 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
   onBlueprintGenerated,
   onError,
   className = '',
-  readonly = false
+  readonly = false,
 }) => {
   const [idea, setIdea] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -219,64 +231,73 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
     language: 'zh',
     complexity: 'medium',
     includeValidation: true,
-    includeErrorHandling: true
+    includeErrorHandling: true,
   });
-  const [currentBlueprint, setCurrentBlueprint] = useState<Blueprint | null>(null);
+  const [currentBlueprint, setCurrentBlueprint] = useState<Blueprint | null>(
+    null
+  );
 
   /**
    * 处理表单提交
    */
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!idea || idea.trim().length === 0) {
-      setError('请输入您的想法');
-      return;
-    }
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
 
-    if (readonly) {
-      setError('只读模式下无法生成蓝图');
-      return;
-    }
+      if (!idea || idea.trim().length === 0) {
+        setError('请输入您的想法');
+        return;
+      }
 
-    setIsGenerating(true);
-    setError(null);
+      if (readonly) {
+        setError('只读模式下无法生成蓝图');
+        return;
+      }
 
-    try {
-      const blueprint = await generateBlueprint(idea, config);
-      
-      // 添加到历史记录
-      const historyItem: IdeaHistory = {
-        id: generateId(),
-        idea: idea.trim(),
-        blueprint,
-        timestamp: Date.now(),
-        config: { ...config }
-      };
-      
-      setHistory(prev => [historyItem, ...prev]);
-      setCurrentBlueprint(blueprint);
-      setIdea('');
-      
-      // 触发回调
-      onBlueprintGenerated?.(blueprint);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '生成蓝图时发生未知错误';
-      setError(errorMessage);
-      
-      const errorObj = new Error(errorMessage);
-      onError?.(errorObj);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [idea, config, readonly, onBlueprintGenerated, onError]);
+      setIsGenerating(true);
+      setError(null);
+
+      try {
+        const blueprint = await generateBlueprint(idea, config);
+
+        // 添加到历史记录
+        const historyItem: IdeaHistory = {
+          id: generateId(),
+          idea: idea.trim(),
+          blueprint,
+          timestamp: Date.now(),
+          config: { ...config },
+        };
+
+        setHistory((prev) => [historyItem, ...prev]);
+        setCurrentBlueprint(blueprint);
+        setIdea('');
+
+        // 触发回调
+        onBlueprintGenerated?.(blueprint);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : '生成蓝图时发生未知错误';
+        setError(errorMessage);
+
+        const errorObj = new Error(errorMessage);
+        onError?.(errorObj);
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [idea, config, readonly, onBlueprintGenerated, onError]
+  );
 
   /**
    * 处理配置变更
    */
-  const handleConfigChange = useCallback((newConfig: Partial<AnalysisConfig>) => {
-    setConfig(prev => ({ ...prev, ...newConfig }));
-  }, []);
+  const handleConfigChange = useCallback(
+    (newConfig: Partial<AnalysisConfig>) => {
+      setConfig((prev) => ({ ...prev, ...newConfig }));
+    },
+    []
+  );
 
   /**
    * 从历史记录重新生成
@@ -300,9 +321,11 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
           <div className="config-grid">
             <label>
               复杂度:
-              <select 
-                value={config.complexity} 
-                onChange={(e) => handleConfigChange({ complexity: e.target.value as any })}
+              <select
+                value={config.complexity}
+                onChange={(e) =>
+                  handleConfigChange({ complexity: e.target.value as any })
+                }
                 disabled={readonly}
               >
                 <option value="simple">简单</option>
@@ -310,22 +333,26 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                 <option value="complex">复杂</option>
               </select>
             </label>
-            
+
             <label>
               <input
                 type="checkbox"
                 checked={config.includeValidation}
-                onChange={(e) => handleConfigChange({ includeValidation: e.target.checked })}
+                onChange={(e) =>
+                  handleConfigChange({ includeValidation: e.target.checked })
+                }
                 disabled={readonly}
               />
               包含验证节点
             </label>
-            
+
             <label>
               <input
                 type="checkbox"
                 checked={config.includeErrorHandling}
-                onChange={(e) => handleConfigChange({ includeErrorHandling: e.target.checked })}
+                onChange={(e) =>
+                  handleConfigChange({ includeErrorHandling: e.target.checked })
+                }
                 disabled={readonly}
               />
               包含错误处理
@@ -348,7 +375,7 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                 className="idea-textarea"
               />
             </div>
-            
+
             <div className="action-buttons">
               <button
                 type="submit"
@@ -357,7 +384,7 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
               >
                 {isGenerating ? '🔄 生成中...' : '✨ 生成蓝图'}
               </button>
-              
+
               {idea && !isGenerating && (
                 <button
                   type="button"
@@ -371,11 +398,7 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
             </div>
           </form>
 
-          {error && (
-            <div className="error-message">
-              ⚠️ {error}
-            </div>
-          )}
+          {error && <div className="error-message">⚠️ {error}</div>}
         </section>
 
         {/* 蓝图预览 */}
@@ -386,10 +409,12 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
               <div className="summary-stats">
                 <span>📊 {currentBlueprint.nodes.length} 个节点</span>
                 <span>🔗 {currentBlueprint.edges.length} 个连接</span>
-                <span>📅 {new Date(currentBlueprint.createdAt).toLocaleString()}</span>
+                <span>
+                  📅 {new Date(currentBlueprint.createdAt).toLocaleString()}
+                </span>
               </div>
               <div className="blueprint-actions">
-                <button 
+                <button
                   onClick={() => onBlueprintGenerated?.(currentBlueprint)}
                   className="use-blueprint-button"
                 >
@@ -397,7 +422,7 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                 </button>
               </div>
             </div>
-            
+
             <div className="node-list">
               <h4>节点列表:</h4>
               <ul>

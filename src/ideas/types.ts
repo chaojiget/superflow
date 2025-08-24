@@ -371,14 +371,14 @@ export interface AdvancedAnalysisConfig extends AnalysisConfig {
     keywords: boolean;
     similarity: boolean;
   };
-  
+
   // 领域特定设置
   domain: {
     type: string;
     customRules?: DomainRule[];
     vocabulary?: string[];
   };
-  
+
   // 生成设置
   generation: {
     creativity: number; // 0-1
@@ -386,7 +386,7 @@ export interface AdvancedAnalysisConfig extends AnalysisConfig {
     iterations: number;
     alternatives: number;
   };
-  
+
   // 验证设置
   validation: {
     strict: boolean;
@@ -437,6 +437,10 @@ export interface IdeaMetrics {
 export type IdeaStatus = 'draft' | 'review' | 'approved' | 'implemented';
 export type ContributorRole = 'creator' | 'contributor' | 'reviewer';
 export type CommentType = 'general' | 'suggestion' | 'issue' | 'approval';
-export type RecommendationSource = 'similar_users' | 'trending' | 'content_based' | 'collaborative';
+export type RecommendationSource =
+  | 'similar_users'
+  | 'trending'
+  | 'content_based'
+  | 'collaborative';
 export type ComplexityLevel = 'simple' | 'medium' | 'complex';
 export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';

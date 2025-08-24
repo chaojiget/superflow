@@ -451,7 +451,10 @@ export interface NodePlugin {
  */
 export interface PluginHooks {
   beforeNodeExecution?: (nodeId: string, input: unknown) => Promise<unknown>;
-  afterNodeExecution?: (nodeId: string, result: NodeExecutionResult) => Promise<void>;
+  afterNodeExecution?: (
+    nodeId: string,
+    result: NodeExecutionResult
+  ) => Promise<void>;
   onNodeError?: (nodeId: string, error: Error) => Promise<void>;
   onNodeRegistered?: (definition: NodeDefinition) => void;
   onNodeUnregistered?: (id: string) => void;
@@ -464,7 +467,10 @@ export interface NodeConfigEditor {
   nodeTypeId: string;
   schema: unknown; // JSON Schema
   uiSchema?: unknown; // UI 配置
-  render(config: Record<string, unknown>, onChange: (config: Record<string, unknown>) => void): React.ReactElement;
+  render(
+    config: Record<string, unknown>,
+    onChange: (config: Record<string, unknown>) => void
+  ): React.ReactElement;
   validate(config: Record<string, unknown>): ValidationResult;
 }
 
@@ -498,15 +504,37 @@ export interface NodeCacheStrategy {
  * 节点执行器
  */
 export interface NodeExecutor {
-  execute(node: NodeInstance, input: unknown, context: WorkerContext): Promise<NodeExecutionResult>;
-  executeParallel(nodes: NodeInstance[], inputs: unknown[], context: WorkerContext): Promise<NodeExecutionResult[]>;
-  executeBatch(batch: { node: NodeInstance; input: unknown }[], context: WorkerContext): Promise<NodeExecutionResult[]>;
+  execute(
+    node: NodeInstance,
+    input: unknown,
+    context: WorkerContext
+  ): Promise<NodeExecutionResult>;
+  executeParallel(
+    nodes: NodeInstance[],
+    inputs: unknown[],
+    context: WorkerContext
+  ): Promise<NodeExecutionResult[]>;
+  executeBatch(
+    batch: { node: NodeInstance; input: unknown }[],
+    context: WorkerContext
+  ): Promise<NodeExecutionResult[]>;
   cancel(executionId: string): void;
   getExecutionStatus(executionId: string): string | undefined;
 }
 
 // 导出常用的类型联合
-export type NodeStatus = 'idle' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type NodeStatus =
+  | 'idle'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
 export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type AlertType = 'performance' | 'error' | 'resource' | 'custom';
-export type TestAssertionType = 'equals' | 'contains' | 'matches' | 'type' | 'range' | 'custom';
+export type TestAssertionType =
+  | 'equals'
+  | 'contains'
+  | 'matches'
+  | 'type'
+  | 'range'
+  | 'custom';

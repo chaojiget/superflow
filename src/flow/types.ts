@@ -4,7 +4,7 @@
  */
 
 import type { Node, Edge, Viewport, XYPosition } from 'reactflow';
-import type { FlowNode, FlowEdge, NodeKind, EdgeType } from '@/shared/types';
+import type { FlowNode, NodeKind, EdgeType } from '@/shared/types';
 
 /**
  * 流程画布状态
@@ -433,5 +433,5 @@ export type {
   Node as ReactFlowNode,
   Edge as ReactFlowEdge,
   Viewport,
-  XYPosition
+  XYPosition,
 };

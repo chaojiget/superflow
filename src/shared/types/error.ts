@@ -45,15 +45,15 @@ export class SuperflowErrorImpl extends Error implements SuperflowError {
   }
 }
 
-export type Result<T, E = SuperflowError> = 
+export type Result<T, E = SuperflowError> =
   | { success: true; data: T }
   | { success: false; error: E };
 
 export const createResult = {
   success: <T>(data: T): Result<T> => ({ success: true, data }),
-  error: <E = SuperflowError>(error: E): Result<never, E> => ({ 
-    success: false, 
-    error 
+  error: <E = SuperflowError>(error: E): Result<never, E> => ({
+    success: false,
+    error,
   }),
 };
 

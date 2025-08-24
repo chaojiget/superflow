@@ -16,7 +16,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
     return tableData?.get(key) as T | undefined;
   }
 
-  async put<T = unknown>(table: string, value: T & { id: string }): Promise<void> {
+  async put<T = unknown>(
+    table: string,
+    value: T & { id: string }
+  ): Promise<void> {
     if (!this.data.has(table)) {
       this.data.set(table, new Map());
     }
@@ -35,7 +38,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
     return tableData ? Array.from(tableData.values()) : [];
   }
 
-  async putMany<T = unknown>(table: string, values: (T & { id: string })[]): Promise<void> {
+  async putMany<T = unknown>(
+    table: string,
+    values: (T & { id: string })[]
+  ): Promise<void> {
     if (!this.data.has(table)) {
       this.data.set(table, new Map());
     }
@@ -72,9 +78,9 @@ export class MemoryStorageAdapter implements StorageAdapter {
     const transaction: StorageTransaction = {
       get: this.get.bind(this),
       put: this.put.bind(this),
-      delete: this.delete.bind(this)
+      delete: this.delete.bind(this),
     };
-    
+
     return await callback(transaction);
   }
 
@@ -127,14 +133,21 @@ export function createTestStorage(): MemoryStorageAdapter {
  */
 export function mockIndexedDB(): void {
   const databases = new Map<string, any>();
-  
+
   global.indexedDB = {
     open: vi.fn().mockImplementation((name: string, version?: number) => {
       const request = {
         result: {
           name,
           version: version || 1,
-          objectStoreNames: ['runs', 'logs', 'versions', 'flows', 'nodes', 'kv'],
+          objectStoreNames: [
+            'runs',
+            'logs',
+            'versions',
+            'flows',
+            'nodes',
+            'kv',
+          ],
           createObjectStore: vi.fn().mockReturnValue({
             add: vi.fn(),
             put: vi.fn(),
@@ -144,54 +157,84 @@ export function mockIndexedDB(): void {
             clear: vi.fn(),
             count: vi.fn().mockReturnValue({ onsuccess: null, result: 0 }),
             createIndex: vi.fn(),
-            index: vi.fn()
+            index: vi.fn(),
           }),
-          transaction: vi.fn().mockImplementation((stores: string[], mode: string) => ({
-            objectStore: vi.fn().mockImplementation((storeName: string) => ({
-              add: vi.fn().mockReturnValue({ onsuccess: null, onerror: null }),
-              put: vi.fn().mockReturnValue({ onsuccess: null, onerror: null }),
-              get: vi.fn().mockReturnValue({ onsuccess: null, onerror: null, result: null }),
-              delete: vi.fn().mockReturnValue({ onsuccess: null, onerror: null }),
-              getAll: vi.fn().mockReturnValue({ onsuccess: null, onerror: null, result: [] }),
-              clear: vi.fn().mockReturnValue({ onsuccess: null, onerror: null }),
-              count: vi.fn().mockReturnValue({ onsuccess: null, onerror: null, result: 0 }),
-              openCursor: vi.fn().mockReturnValue({ onsuccess: null, onerror: null }),
-              index: vi.fn()
+          transaction: vi
+            .fn()
+            .mockImplementation((stores: string[], mode: string) => ({
+              objectStore: vi.fn().mockImplementation((storeName: string) => ({
+                add: vi
+                  .fn()
+                  .mockReturnValue({ onsuccess: null, onerror: null }),
+                put: vi
+                  .fn()
+                  .mockReturnValue({ onsuccess: null, onerror: null }),
+                get: vi
+                  .fn()
+                  .mockReturnValue({
+                    onsuccess: null,
+                    onerror: null,
+                    result: null,
+                  }),
+                delete: vi
+                  .fn()
+                  .mockReturnValue({ onsuccess: null, onerror: null }),
+                getAll: vi
+                  .fn()
+                  .mockReturnValue({
+                    onsuccess: null,
+                    onerror: null,
+                    result: [],
+                  }),
+                clear: vi
+                  .fn()
+                  .mockReturnValue({ onsuccess: null, onerror: null }),
+                count: vi
+                  .fn()
+                  .mockReturnValue({
+                    onsuccess: null,
+                    onerror: null,
+                    result: 0,
+                  }),
+                openCursor: vi
+                  .fn()
+                  .mockReturnValue({ onsuccess: null, onerror: null }),
+                index: vi.fn(),
+              })),
+              oncomplete: null,
+              onerror: null,
+              onabort: null,
             })),
-            oncomplete: null,
-            onerror: null,
-            onabort: null
-          })),
-          close: vi.fn()
+          close: vi.fn(),
         },
         onsuccess: null,
         onerror: null,
-        onupgradeneeded: null
+        onupgradeneeded: null,
       };
-      
+
       // 模拟异步打开
       setTimeout(() => {
         if (request.onsuccess) {
           request.onsuccess({ target: request } as any);
         }
       }, 0);
-      
+
       return request;
     }),
-    
+
     deleteDatabase: vi.fn().mockImplementation((name: string) => {
       databases.delete(name);
       return {
         onsuccess: null,
-        onerror: null
+        onerror: null,
       };
     }),
-    
+
     cmp: vi.fn().mockImplementation((a: any, b: any) => {
       if (a < b) return -1;
       if (a > b) return 1;
       return 0;
-    })
+    }),
   } as any;
 }
 
@@ -209,7 +252,7 @@ export function createTestDataset() {
         edges: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        version: '1.0.0'
+        version: '1.0.0',
       },
       {
         id: 'flow-2',
@@ -219,10 +262,10 @@ export function createTestDataset() {
         edges: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        version: '1.0.0'
-      }
+        version: '1.0.0',
+      },
     ],
-    
+
     runs: [
       {
         id: 'run-1',
@@ -230,21 +273,43 @@ export function createTestDataset() {
         status: 'completed',
         startTime: Date.now() - 10000,
         endTime: Date.now() - 5000,
-        progress: { total: 3, completed: 3, failed: 0, running: 0, percentage: 100 },
+        progress: {
+          total: 3,
+          completed: 3,
+          failed: 0,
+          running: 0,
+          percentage: 100,
+        },
         logs: [],
-        metrics: { executionTime: 5000, nodeCount: 3, successCount: 3, failureCount: 0 }
+        metrics: {
+          executionTime: 5000,
+          nodeCount: 3,
+          successCount: 3,
+          failureCount: 0,
+        },
       },
       {
         id: 'run-2',
         flowId: 'flow-1',
         status: 'running',
         startTime: Date.now() - 2000,
-        progress: { total: 3, completed: 1, failed: 0, running: 1, percentage: 33 },
+        progress: {
+          total: 3,
+          completed: 1,
+          failed: 0,
+          running: 1,
+          percentage: 33,
+        },
         logs: [],
-        metrics: { executionTime: 2000, nodeCount: 3, successCount: 1, failureCount: 0 }
-      }
+        metrics: {
+          executionTime: 2000,
+          nodeCount: 3,
+          successCount: 1,
+          failureCount: 0,
+        },
+      },
     ],
-    
+
     nodes: [
       {
         id: 'node-1',
@@ -254,7 +319,7 @@ export function createTestDataset() {
         version: '1.0.0',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        author: 'test'
+        author: 'test',
       },
       {
         id: 'node-2',
@@ -264,10 +329,10 @@ export function createTestDataset() {
         version: '1.0.0',
         createdAt: Date.now(),
         updatedAt: Date.now(),
-        author: 'test'
-      }
+        author: 'test',
+      },
     ],
-    
+
     logs: [
       {
         id: 'log-1',
@@ -275,7 +340,7 @@ export function createTestDataset() {
         ts: Date.now() - 8000,
         level: 'info',
         event: 'node_started',
-        data: { nodeId: 'node-1' }
+        data: { nodeId: 'node-1' },
       },
       {
         id: 'log-2',
@@ -283,16 +348,19 @@ export function createTestDataset() {
         ts: Date.now() - 7000,
         level: 'info',
         event: 'node_completed',
-        data: { nodeId: 'node-1' }
-      }
-    ]
+        data: { nodeId: 'node-1' },
+      },
+    ],
   };
 }
 
 /**
  * 填充测试数据
  */
-export async function seedTestData(storage: StorageAdapter, dataset = createTestDataset()): Promise<void> {
+export async function seedTestData(
+  storage: StorageAdapter,
+  dataset = createTestDataset()
+): Promise<void> {
   for (const [table, records] of Object.entries(dataset)) {
     if (Array.isArray(records)) {
       await storage.putMany(table, records);
@@ -332,21 +400,21 @@ export async function verifyStorageState(
  */
 export class StorageSnapshot {
   private snapshot: Record<string, any[]> = {};
-  
+
   constructor(private storage: StorageAdapter) {}
-  
+
   async capture(tables: string[]): Promise<void> {
     for (const table of tables) {
       this.snapshot[table] = await this.storage.getAll(table);
     }
   }
-  
+
   async restore(): Promise<void> {
     // 清空现有数据
     for (const table of Object.keys(this.snapshot)) {
       await this.storage.clear(table);
     }
-    
+
     // 恢复快照数据
     for (const [table, records] of Object.entries(this.snapshot)) {
       if (records.length > 0) {
@@ -354,7 +422,7 @@ export class StorageSnapshot {
       }
     }
   }
-  
+
   getSnapshot(): Record<string, any[]> {
     return { ...this.snapshot };
   }
@@ -363,7 +431,9 @@ export class StorageSnapshot {
 /**
  * 创建存储快照
  */
-export function createStorageSnapshot(storage: StorageAdapter): StorageSnapshot {
+export function createStorageSnapshot(
+  storage: StorageAdapter
+): StorageSnapshot {
   return new StorageSnapshot(storage);
 }
 
@@ -372,37 +442,37 @@ export function createStorageSnapshot(storage: StorageAdapter): StorageSnapshot 
  */
 export class StoragePerformanceTester {
   constructor(private storage: StorageAdapter) {}
-  
+
   async benchmarkInsert(table: string, recordCount: number): Promise<number> {
     const records = Array.from({ length: recordCount }, (_, i) => ({
       id: `test-${i}`,
       data: `test data ${i}`,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }));
-    
+
     const start = performance.now();
     await this.storage.putMany(table, records);
     const end = performance.now();
-    
+
     return end - start;
   }
-  
+
   async benchmarkRead(table: string, keyCount: number): Promise<number> {
     const start = performance.now();
-    
+
     for (let i = 0; i < keyCount; i++) {
       await this.storage.get(table, `test-${i}`);
     }
-    
+
     const end = performance.now();
     return end - start;
   }
-  
+
   async benchmarkQuery(table: string): Promise<number> {
     const start = performance.now();
     await this.storage.getAll(table);
     const end = performance.now();
-    
+
     return end - start;
   }
 }

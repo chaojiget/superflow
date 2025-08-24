@@ -20,7 +20,7 @@ export interface TestAppConfig {
  */
 export function createTestWrapper(config: TestAppConfig = {}) {
   const { providers = [] } = config;
-  
+
   return function TestWrapper({ children }: { children: React.ReactNode }) {
     return providers.reduce(
       (acc, Provider) => React.createElement(Provider, {}, acc),
@@ -37,19 +37,19 @@ export function renderWithProviders(
   options: RenderOptions & TestAppConfig = {}
 ): RenderResult {
   const { initialState, mocks, providers, ...renderOptions } = options;
-  
+
   // 设置 mocks
   if (mocks) {
     Object.entries(mocks).forEach(([key, value]) => {
       vi.mocked(global as any)[key] = value;
     });
   }
-  
+
   const Wrapper = createTestWrapper({ initialState, providers });
-  
+
   return render(ui, {
     wrapper: Wrapper,
-    ...renderOptions
+    ...renderOptions,
   });
 }
 
@@ -57,11 +57,15 @@ export function renderWithProviders(
  * 模拟组件
  */
 export function createMockComponent(name: string) {
-  return vi.fn().mockImplementation(({ children, ...props }) => 
-    React.createElement('div', {
-      'data-testid': `mock-${name.toLowerCase()}`,
-      'data-props': JSON.stringify(props)
-    }, children)
+  return vi.fn().mockImplementation(({ children, ...props }) =>
+    React.createElement(
+      'div',
+      {
+        'data-testid': `mock-${name.toLowerCase()}`,
+        'data-props': JSON.stringify(props),
+      },
+      children
+    )
   );
 }
 
@@ -73,7 +77,7 @@ export function mockHook<T>(hookName: string, returnValue: T): void {
     const actual = await vi.importActual('react');
     return {
       ...actual,
-      [hookName]: () => returnValue
+      [hookName]: () => returnValue,
     };
   });
 }
@@ -94,7 +98,7 @@ export function createTestNode(overrides: any = {}) {
     type: 'default',
     position: { x: 0, y: 0 },
     data: { label: 'Test Node' },
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -106,7 +110,7 @@ export function createTestEdge(overrides: any = {}) {
     id: 'test-edge',
     source: 'node1',
     target: 'node2',
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -115,14 +119,16 @@ export function createTestEdge(overrides: any = {}) {
  */
 export function mockLocalStorage(): Storage {
   const store = new Map<string, string>();
-  
+
   return {
     getItem: vi.fn((key: string) => store.get(key) || null),
     setItem: vi.fn((key: string, value: string) => store.set(key, value)),
     removeItem: vi.fn((key: string) => store.delete(key)),
     clear: vi.fn(() => store.clear()),
     key: vi.fn((index: number) => Array.from(store.keys())[index] || null),
-    get length() { return store.size; }
+    get length() {
+      return store.size;
+    },
   };
 }
 
@@ -139,12 +145,12 @@ export function mockSessionStorage(): Storage {
 export function setupStorageMocks(): void {
   Object.defineProperty(window, 'localStorage', {
     value: mockLocalStorage(),
-    writable: true
+    writable: true,
   });
-  
+
   Object.defineProperty(window, 'sessionStorage', {
     value: mockSessionStorage(),
-    writable: true
+    writable: true,
   });
 }
 
@@ -155,7 +161,7 @@ export function mockResizeObserver(): void {
   global.ResizeObserver = vi.fn().mockImplementation(() => ({
     observe: vi.fn(),
     unobserve: vi.fn(),
-    disconnect: vi.fn()
+    disconnect: vi.fn(),
   }));
 }
 
@@ -169,7 +175,7 @@ export function mockIntersectionObserver(): void {
     disconnect: vi.fn(),
     root: null,
     rootMargin: '',
-    thresholds: []
+    thresholds: [],
   }));
 }
 
@@ -180,7 +186,7 @@ export function setupGlobalMocks(): void {
   setupStorageMocks();
   mockResizeObserver();
   mockIntersectionObserver();
-  
+
   // Mock console methods for cleaner test output
   global.console = {
     ...console,
@@ -188,13 +194,13 @@ export function setupGlobalMocks(): void {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
-    error: vi.fn()
+    error: vi.fn(),
   };
-  
+
   // Mock window.matchMedia
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -202,14 +208,14 @@ export function setupGlobalMocks(): void {
       removeListener: vi.fn(),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn()
-    }))
+      dispatchEvent: vi.fn(),
+    })),
   });
-  
+
   // Mock window.scrollTo
   Object.defineProperty(window, 'scrollTo', {
     value: vi.fn(),
-    writable: true
+    writable: true,
   });
 }
 
@@ -272,26 +278,26 @@ export const assertions = {
   async eventually(assertion: () => void | Promise<void>, timeout = 5000) {
     const start = Date.now();
     let lastError: Error;
-    
+
     while (Date.now() - start < timeout) {
       try {
         await assertion();
         return; // 断言成功
       } catch (error) {
         lastError = error as Error;
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
       }
     }
-    
+
     throw lastError || new Error('Assertion timeout');
-  }
+  },
 };
 
 /**
  * 创建测试数据工厂
  */
 export function createTestDataFactory<T>(defaultData: T) {
-  return function(overrides: Partial<T> = {}): T {
+  return function (overrides: Partial<T> = {}): T {
     return { ...defaultData, ...overrides };
   };
 }
@@ -310,14 +316,14 @@ export class PerformanceTracker {
   measure(name: string, startMark: string, endMark?: string): number {
     const startTime = this.marks.get(startMark);
     const endTime = endMark ? this.marks.get(endMark) : performance.now();
-    
+
     if (startTime === undefined) {
       throw new Error(`Start mark "${startMark}" not found`);
     }
     if (endMark && endTime === undefined) {
       throw new Error(`End mark "${endMark}" not found`);
     }
-    
+
     const duration = endTime! - startTime;
     this.measures.set(name, duration);
     return duration;

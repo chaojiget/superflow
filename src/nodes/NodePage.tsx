@@ -6,7 +6,11 @@
 import React, { useState, useCallback } from 'react';
 import { generateId, logger } from '@/shared/utils';
 import { createWorker } from '@/shared/runtime/worker';
-import type { NodeDefinition, NodeExecutionResult, NodeDebugInfo } from './types';
+import type {
+  NodeDefinition,
+  NodeExecutionResult,
+  NodeDebugInfo,
+} from './types';
 
 /**
  * 节点页面属性
@@ -38,7 +42,7 @@ export class NodePage {
     registeredTypes: new Map(),
     nodeStatuses: new Map(),
     executions: new Map(),
-    errorHandlers: []
+    errorHandlers: [],
   };
 
   constructor(private props: NodePageProps = {}) {
@@ -49,6 +53,67 @@ export class NodePage {
    * 初始化内置节点类型
    */
   private initializeBuiltinTypes(): void {
+    // 测试节点（用于测试）
+    this.registerNodeType({
+      id: 'test-node',
+      name: '测试节点',
+      description: '用于测试的节点',
+      category: 'test',
+      inputs: [
+        {
+          id: 'input',
+          name: '输入',
+          type: 'data',
+          direction: 'input',
+          required: false,
+        },
+      ],
+      outputs: [
+        {
+          id: 'output',
+          name: '输出',
+          type: 'data',
+          direction: 'output',
+          required: true,
+        },
+      ],
+      handler: async (input) => ({ result: 'test', input }),
+      icon: '🧪',
+      color: '#9C27B0',
+    });
+
+    // 计时器测试节点
+    this.registerNodeType({
+      id: 'timer-test',
+      name: '计时器测试节点',
+      description: '用于测试执行时间的节点',
+      category: 'test',
+      inputs: [
+        {
+          id: 'input',
+          name: '输入',
+          type: 'data',
+          direction: 'input',
+          required: false,
+        },
+      ],
+      outputs: [
+        {
+          id: 'output',
+          name: '输出',
+          type: 'data',
+          direction: 'output',
+          required: true,
+        },
+      ],
+      handler: async (input) => {
+        // 模拟一些处理时间
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return { result: 'timer-test', input, timestamp: Date.now() };
+      },
+      icon: '⏱️',
+      color: '#607D8B',
+    });
     // 输入节点
     this.registerNodeType({
       id: 'input',
@@ -57,11 +122,17 @@ export class NodePage {
       category: 'io',
       inputs: [],
       outputs: [
-        { id: 'output', name: '输出', type: 'data', direction: 'output', required: true }
+        {
+          id: 'output',
+          name: '输出',
+          type: 'data',
+          direction: 'output',
+          required: true,
+        },
       ],
       handler: async (input) => input,
       icon: '📥',
-      color: '#4CAF50'
+      color: '#4CAF50',
     });
 
     // 输出节点
@@ -71,7 +142,13 @@ export class NodePage {
       description: '输出处理结果',
       category: 'io',
       inputs: [
-        { id: 'input', name: '输入', type: 'data', direction: 'input', required: true }
+        {
+          id: 'input',
+          name: '输入',
+          type: 'data',
+          direction: 'input',
+          required: true,
+        },
       ],
       outputs: [],
       handler: async (input) => {
@@ -79,7 +156,7 @@ export class NodePage {
         return input;
       },
       icon: '📤',
-      color: '#FF9800'
+      color: '#FF9800',
     });
 
     // 转换节点
@@ -89,10 +166,22 @@ export class NodePage {
       description: '数据转换和处理',
       category: 'processing',
       inputs: [
-        { id: 'input', name: '输入', type: 'data', direction: 'input', required: true }
+        {
+          id: 'input',
+          name: '输入',
+          type: 'data',
+          direction: 'input',
+          required: true,
+        },
       ],
       outputs: [
-        { id: 'output', name: '输出', type: 'data', direction: 'output', required: true }
+        {
+          id: 'output',
+          name: '输出',
+          type: 'data',
+          direction: 'output',
+          required: true,
+        },
       ],
       handler: async (input) => {
         // 默认的数据转换逻辑
@@ -102,7 +191,7 @@ export class NodePage {
         return { value: input, processed: true, timestamp: Date.now() };
       },
       icon: '🔄',
-      color: '#2196F3'
+      color: '#2196F3',
     });
   }
 
@@ -139,7 +228,7 @@ export class NodePage {
     const node: NodeDefinition = {
       ...nodeType,
       id: generateId(),
-      ...config
+      ...config,
     };
 
     this.props.onNodeCreated?.(node);
@@ -168,7 +257,8 @@ export class NodePage {
   async executeNode(nodeId: string, input: unknown): Promise<unknown> {
     try {
       // 查找节点类型
-      const nodeType = this.findNodeTypeById(nodeId) || this.state.registeredTypes.get(nodeId);
+      const nodeType =
+        this.findNodeTypeById(nodeId) || this.state.registeredTypes.get(nodeId);
       if (!nodeType) {
         throw new Error(`找不到节点: ${nodeId}`);
       }
@@ -180,7 +270,7 @@ export class NodePage {
       const result = await nodeType.handler(input, {
         signal: new AbortController().signal,
         logger,
-        env: process.env as Record<string, string>
+        env: process.env as Record<string, string>,
       });
 
       const endTime = Date.now();
@@ -192,7 +282,7 @@ export class NodePage {
         endTime,
         duration: endTime - startTime,
         status: 'success',
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.state.executions.set(nodeId, execution);
@@ -200,8 +290,9 @@ export class NodePage {
 
       return result;
     } catch (error) {
-      const errorObj = error instanceof Error ? error : new Error(String(error));
-      
+      const errorObj =
+        error instanceof Error ? error : new Error(String(error));
+
       const execution: NodeExecutionResult = {
         nodeId,
         input,
@@ -210,13 +301,13 @@ export class NodePage {
         duration: 0,
         status: 'error',
         error: errorObj.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.state.executions.set(nodeId, execution);
       this.setNodeStatus(nodeId, 'failed');
       this.handleError(errorObj);
-      
+
       throw errorObj;
     }
   }
@@ -225,7 +316,8 @@ export class NodePage {
    * 调试节点
    */
   async debugNode(nodeId: string, input: unknown): Promise<NodeDebugInfo> {
-    const nodeType = this.findNodeTypeById(nodeId) || this.state.registeredTypes.get(nodeId);
+    const nodeType =
+      this.findNodeTypeById(nodeId) || this.state.registeredTypes.get(nodeId);
     if (!nodeType) {
       throw new Error(`找不到节点: ${nodeId}`);
     }
@@ -240,15 +332,15 @@ export class NodePage {
       environment: {
         nodeVersion: process.version,
         platform: process.platform,
-        memory: process.memoryUsage?.() || {}
-      }
+        memory: process.memoryUsage?.() || {},
+      },
     };
 
     try {
       const startTime = performance.now();
       const output = await this.executeNode(nodeId, input);
       const endTime = performance.now();
-      
+
       debugInfo.output = output;
       debugInfo.executionTime = endTime - startTime;
       debugInfo.status = 'success';
@@ -293,7 +385,7 @@ export class NodePage {
    */
   private handleError(error: Error): void {
     this.props.onError?.(error);
-    this.state.errorHandlers.forEach(handler => {
+    this.state.errorHandlers.forEach((handler) => {
       try {
         handler(error);
       } catch (handlerError) {
@@ -320,18 +412,21 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
   onNodeDeleted,
   onError,
   className = '',
-  readonly = false
+  readonly = false,
 }) => {
   const [selectedNodeType, setSelectedNodeType] = useState<string>('');
   const [debugInput, setDebugInput] = useState<string>('{}');
   const [debugResult, setDebugResult] = useState<NodeDebugInfo | null>(null);
   const [isDebugging, setIsDebugging] = useState(false);
-  const [nodePage] = useState(() => new NodePage({ 
-    onNodeCreated, 
-    onNodeUpdated, 
-    onNodeDeleted, 
-    onError 
-  }));
+  const [nodePage] = useState(
+    () =>
+      new NodePage({
+        onNodeCreated,
+        onNodeUpdated,
+        onNodeDeleted,
+        onError,
+      })
+  );
 
   /**
    * 处理节点调试
@@ -356,7 +451,7 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
         status: 'error',
         error: error instanceof Error ? error.message : String(error),
         timestamp: Date.now(),
-        environment: {}
+        environment: {},
       };
       setDebugResult(errorResult);
     } finally {
@@ -393,7 +488,7 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
         <section className="node-type-selector">
           <h2>节点类型</h2>
           <div className="type-grid">
-            {registeredTypes.map(typeId => {
+            {registeredTypes.map((typeId) => {
               const nodeType = nodePage.getNodeType(typeId);
               return (
                 <div
@@ -401,13 +496,18 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   className={`type-card ${selectedNodeType === typeId ? 'selected' : ''}`}
                   onClick={() => setSelectedNodeType(typeId)}
                 >
-                  <div className="type-icon" style={{ backgroundColor: nodeType?.color }}>
+                  <div
+                    className="type-icon"
+                    style={{ backgroundColor: nodeType?.color }}
+                  >
                     {nodeType?.icon || '🔧'}
                   </div>
                   <div className="type-info">
                     <h3>{nodeType?.name || typeId}</h3>
                     <p>{nodeType?.description || '无描述'}</p>
-                    <span className="type-category">{nodeType?.category || 'general'}</span>
+                    <span className="type-category">
+                      {nodeType?.category || 'general'}
+                    </span>
                   </div>
                 </div>
               );
@@ -428,10 +528,12 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   <div className="detail-section">
                     <h3>输入端口</h3>
                     <ul>
-                      {nodeType.inputs.map(input => (
+                      {nodeType.inputs.map((input) => (
                         <li key={input.id}>
                           <strong>{input.name}</strong> ({input.type})
-                          {input.required && <span className="required">*</span>}
+                          {input.required && (
+                            <span className="required">*</span>
+                          )}
                           {input.description && <p>{input.description}</p>}
                         </li>
                       ))}
@@ -441,7 +543,7 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   <div className="detail-section">
                     <h3>输出端口</h3>
                     <ul>
-                      {nodeType.outputs.map(output => (
+                      {nodeType.outputs.map((output) => (
                         <li key={output.id}>
                           <strong>{output.name}</strong> ({output.type})
                           {output.description && <p>{output.description}</p>}
@@ -496,7 +598,7 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   <div className={`result-status ${debugResult.status}`}>
                     状态: {debugResult.status}
                   </div>
-                  
+
                   {debugResult.executionTime && (
                     <div className="execution-time">
                       执行时间: {debugResult.executionTime.toFixed(2)}ms
@@ -518,12 +620,18 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
 
                   <div className="debug-metadata">
                     <h4>调试信息:</h4>
-                    <pre>{JSON.stringify({
-                      nodeId: debugResult.nodeId,
-                      nodeType: debugResult.nodeType,
-                      timestamp: debugResult.timestamp,
-                      environment: debugResult.environment
-                    }, null, 2)}</pre>
+                    <pre>
+                      {JSON.stringify(
+                        {
+                          nodeId: debugResult.nodeId,
+                          nodeType: debugResult.nodeType,
+                          timestamp: debugResult.timestamp,
+                          environment: debugResult.environment,
+                        },
+                        null,
+                        2
+                      )}
+                    </pre>
                   </div>
                 </div>
               )}

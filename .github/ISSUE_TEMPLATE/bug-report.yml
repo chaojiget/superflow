@@ -1,7 +1,7 @@
 name: 🐛 Bug 报告
 description: 报告项目中的 bug 或问题
-title: "[BUG] {简短描述}"
-labels: ["type/bug", "status/new"]
+title: '[BUG] {简短描述}'
+labels: ['type/bug', 'status/new']
 
 body:
   - type: markdown
@@ -12,45 +12,45 @@ body:
   - type: dropdown
     id: severity
     attributes:
-      label: "严重程度"
+      label: '严重程度'
       options:
-        - "🔥 Critical - 阻塞开发"
-        - "🔴 High - 影响核心功能"
-        - "🟡 Medium - 影响用户体验"
-        - "🔵 Low - 轻微问题"
+        - '🔥 Critical - 阻塞开发'
+        - '🔴 High - 影响核心功能'
+        - '🟡 Medium - 影响用户体验'
+        - '🔵 Low - 轻微问题'
     validations:
       required: true
 
   - type: dropdown
     id: module
     attributes:
-      label: "影响模块"
+      label: '影响模块'
       options:
-        - "shared/types"
-        - "shared/runtime"
-        - "shared/storage"
-        - "flow"
-        - "nodes"
-        - "ideas"
-        - "planner"
-        - "run-center"
-        - "components"
-        - "build/ci"
+        - 'shared/types'
+        - 'shared/runtime'
+        - 'shared/storage'
+        - 'flow'
+        - 'nodes'
+        - 'ideas'
+        - 'planner'
+        - 'run-center'
+        - 'components'
+        - 'build/ci'
 
   - type: textarea
     id: description
     attributes:
-      label: "问题描述"
-      description: "详细描述遇到的问题"
-      placeholder: "描述问题的具体表现..."
+      label: '问题描述'
+      description: '详细描述遇到的问题'
+      placeholder: '描述问题的具体表现...'
     validations:
       required: true
 
   - type: textarea
     id: reproduction
     attributes:
-      label: "复现步骤"
-      description: "提供重现问题的步骤"
+      label: '复现步骤'
+      description: '提供重现问题的步骤'
       placeholder: |
         1. 执行 npm run ...
         2. 点击 ...
@@ -61,15 +61,15 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: "期望行为"
-      description: "描述你期望的正确行为"
-      placeholder: "应该显示..."
+      label: '期望行为'
+      description: '描述你期望的正确行为'
+      placeholder: '应该显示...'
 
   - type: textarea
     id: environment
     attributes:
-      label: "环境信息"
-      description: "提供相关的环境信息"
+      label: '环境信息'
+      description: '提供相关的环境信息'
       placeholder: |
         - OS: macOS 13.0
         - Node.js: v18.17.0

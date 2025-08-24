@@ -3,7 +3,13 @@
  * 管理 React Flow 的节点和边操作
  */
 
-import { type Node, type Edge, type NodeChange, type EdgeChange, type Connection } from 'reactflow';
+import {
+  type Node,
+  type Edge,
+  type NodeChange,
+  type EdgeChange,
+  type Connection,
+} from 'reactflow';
 import { generateId } from '@/shared/utils';
 import type { FlowNode, FlowEdge, NodePosition } from '@/shared/types';
 
@@ -48,7 +54,7 @@ export class FlowCanvas {
       defaultZoom: 1,
       minZoom: 0.1,
       maxZoom: 2,
-      ...config
+      ...config,
     };
   }
 
@@ -94,8 +100,8 @@ export class FlowCanvas {
       position: nodeData.position,
       data: {
         label: nodeData.name || 'New Node',
-        ...nodeData.data
-      }
+        ...nodeData.data,
+      },
     };
 
     this.nodes.push(node);
@@ -110,7 +116,7 @@ export class FlowCanvas {
       throw new Error('Canvas is readonly');
     }
 
-    const index = this.nodes.findIndex(node => node.id === nodeId);
+    const index = this.nodes.findIndex((node) => node.id === nodeId);
     if (index === -1) {
       return false;
     }
@@ -119,8 +125,8 @@ export class FlowCanvas {
     this.nodes.splice(index, 1);
 
     // 删除相关的边
-    this.edges = this.edges.filter(edge => 
-      edge.source !== nodeId && edge.target !== nodeId
+    this.edges = this.edges.filter(
+      (edge) => edge.source !== nodeId && edge.target !== nodeId
     );
 
     return true;
@@ -134,7 +140,7 @@ export class FlowCanvas {
       throw new Error('Canvas is readonly');
     }
 
-    const index = this.nodes.findIndex(node => node.id === nodeId);
+    const index = this.nodes.findIndex((node) => node.id === nodeId);
     if (index === -1) {
       return false;
     }
@@ -144,7 +150,7 @@ export class FlowCanvas {
       this.nodes[index] = {
         ...currentNode,
         ...updates,
-        id: currentNode.id // 确保 ID 存在
+        id: currentNode.id, // 确保 ID 存在
       };
     }
 
@@ -155,33 +161,43 @@ export class FlowCanvas {
    * 获取节点
    */
   getNode(nodeId: string): Node | undefined {
-    return this.nodes.find(node => node.id === nodeId);
+    return this.nodes.find((node) => node.id === nodeId);
   }
 
   /**
    * 添加边
    */
-  addEdge(edgeData: Partial<FlowEdge> & { source: string; target: string }): Edge {
+  addEdge(
+    edgeData: Partial<FlowEdge> & { source: string; target: string }
+  ): Edge {
     if (this.config.readonly) {
       throw new Error('Canvas is readonly');
     }
 
     const edge: Edge = {
-      id: edgeData.id || this.generateEdgeId(edgeData.source, edgeData.target, edgeData.sourceHandle, edgeData.targetHandle),
+      id:
+        edgeData.id ||
+        this.generateEdgeId(
+          edgeData.source,
+          edgeData.target,
+          edgeData.sourceHandle,
+          edgeData.targetHandle
+        ),
       source: edgeData.source,
       target: edgeData.target,
       sourceHandle: edgeData.sourceHandle ?? null,
       targetHandle: edgeData.targetHandle ?? null,
       type: edgeData.type || 'default',
-      animated: edgeData.animated || false
+      animated: edgeData.animated || false,
     };
 
     // 检查是否已存在相同的连接
-    const existingEdge = this.edges.find(e => 
-      e.source === edge.source && 
-      e.target === edge.target &&
-      e.sourceHandle === edge.sourceHandle &&
-      e.targetHandle === edge.targetHandle
+    const existingEdge = this.edges.find(
+      (e) =>
+        e.source === edge.source &&
+        e.target === edge.target &&
+        e.sourceHandle === edge.sourceHandle &&
+        e.targetHandle === edge.targetHandle
     );
 
     if (existingEdge) {
@@ -200,7 +216,7 @@ export class FlowCanvas {
       throw new Error('Canvas is readonly');
     }
 
-    const index = this.edges.findIndex(edge => edge.id === edgeId);
+    const index = this.edges.findIndex((edge) => edge.id === edgeId);
     if (index === -1) {
       return false;
     }
@@ -213,21 +229,21 @@ export class FlowCanvas {
    * 获取边
    */
   getEdge(edgeId: string): Edge | undefined {
-    return this.edges.find(edge => edge.id === edgeId);
+    return this.edges.find((edge) => edge.id === edgeId);
   }
 
   /**
    * 获取节点的输入边
    */
   getNodeInputEdges(nodeId: string): Edge[] {
-    return this.edges.filter(edge => edge.target === nodeId);
+    return this.edges.filter((edge) => edge.target === nodeId);
   }
 
   /**
    * 获取节点的输出边
    */
   getNodeOutputEdges(nodeId: string): Edge[] {
-    return this.edges.filter(edge => edge.source === nodeId);
+    return this.edges.filter((edge) => edge.source === nodeId);
   }
 
   /**
@@ -246,30 +262,30 @@ export class FlowCanvas {
    * 获取选中的节点
    */
   getSelectedNodes(): Node[] {
-    return this.nodes.filter(node => node.selected);
+    return this.nodes.filter((node) => node.selected);
   }
 
   /**
    * 获取选中的边
    */
   getSelectedEdges(): Edge[] {
-    return this.edges.filter(edge => edge.selected);
+    return this.edges.filter((edge) => edge.selected);
   }
 
   /**
    * 选择所有元素
    */
   selectAll(): void {
-    this.nodes.forEach(node => node.selected = true);
-    this.edges.forEach(edge => edge.selected = true);
+    this.nodes.forEach((node) => (node.selected = true));
+    this.edges.forEach((edge) => (edge.selected = true));
   }
 
   /**
    * 取消选择所有元素
    */
   deselectAll(): void {
-    this.nodes.forEach(node => node.selected = false);
-    this.edges.forEach(edge => edge.selected = false);
+    this.nodes.forEach((node) => (node.selected = false));
+    this.edges.forEach((edge) => (edge.selected = false));
   }
 
   /**
@@ -284,10 +300,10 @@ export class FlowCanvas {
     const selectedEdges = this.getSelectedEdges();
 
     // 删除选中的节点（会自动删除相关边）
-    selectedNodes.forEach(node => this.deleteNode(node.id));
+    selectedNodes.forEach((node) => this.deleteNode(node.id));
 
     // 删除选中的边
-    selectedEdges.forEach(edge => this.deleteEdge(edge.id));
+    selectedEdges.forEach((edge) => this.deleteEdge(edge.id));
   }
 
   /**
@@ -309,7 +325,7 @@ export class FlowCanvas {
         if (node) {
           node.position = {
             x: nodeIndex * nodeSpacing,
-            y: layerIndex * layerHeight
+            y: layerIndex * layerHeight,
           };
         }
       });
@@ -345,14 +361,18 @@ export class FlowCanvas {
     return {
       nodes: this.getNodes(),
       edges: this.getEdges(),
-      config: this.getConfig()
+      config: this.getConfig(),
     };
   }
 
   /**
    * 反序列化画布数据
    */
-  deserialize(data: { nodes: Node[]; edges: Edge[]; config?: FlowCanvasConfig }): void {
+  deserialize(data: {
+    nodes: Node[];
+    edges: Edge[];
+    config?: FlowCanvasConfig;
+  }): void {
     this.setNodes(data.nodes);
     this.setEdges(data.edges);
     if (data.config) {
@@ -364,12 +384,13 @@ export class FlowCanvas {
    * 生成边的ID
    */
   private generateEdgeId(
-    source: string, 
-    target: string, 
-    sourceHandle?: string, 
+    source: string,
+    target: string,
+    sourceHandle?: string,
     targetHandle?: string
   ): string {
-    const handles = sourceHandle && targetHandle ? `${sourceHandle}->${targetHandle}` : '';
+    const handles =
+      sourceHandle && targetHandle ? `${sourceHandle}->${targetHandle}` : '';
     return `${source}:${handles}->${target}`;
   }
 
@@ -382,7 +403,7 @@ export class FlowCanvas {
     const nodeChildren = new Map<string, string[]>();
 
     // 构建子节点映射
-    this.edges.forEach(edge => {
+    this.edges.forEach((edge) => {
       if (!nodeChildren.has(edge.source)) {
         nodeChildren.set(edge.source, []);
       }
@@ -394,8 +415,8 @@ export class FlowCanvas {
 
     // 找到根节点（没有输入边的节点）
     const rootNodes = this.nodes
-      .filter(node => !this.edges.some(edge => edge.target === node.id))
-      .map(node => node.id);
+      .filter((node) => !this.edges.some((edge) => edge.target === node.id))
+      .map((node) => node.id);
 
     if (rootNodes.length === 0) {
       // 如果没有根节点，选择第一个节点作为起点
@@ -411,10 +432,10 @@ export class FlowCanvas {
       layers.push([...currentLayer]);
       const nextLayer: string[] = [];
 
-      currentLayer.forEach(nodeId => {
+      currentLayer.forEach((nodeId) => {
         visited.add(nodeId);
         const children = nodeChildren.get(nodeId) || [];
-        children.forEach(childId => {
+        children.forEach((childId) => {
           if (!visited.has(childId) && !nextLayer.includes(childId)) {
             nextLayer.push(childId);
           }
@@ -426,8 +447,8 @@ export class FlowCanvas {
 
     // 处理未访问的节点（可能存在循环）
     const unvisited = this.nodes
-      .filter(node => !visited.has(node.id))
-      .map(node => node.id);
+      .filter((node) => !visited.has(node.id))
+      .map((node) => node.id);
 
     if (unvisited.length > 0) {
       layers.push(unvisited);

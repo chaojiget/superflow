@@ -23,7 +23,7 @@ npm run build
 ```
 src/
 ├── ideas/          # 想法转蓝图模块
-├── planner/        # 蓝图转DAG规划模块  
+├── planner/        # 蓝图转DAG规划模块
 ├── flow/           # React Flow 流程画布
 ├── nodes/          # 节点定义与调试
 ├── run-center/     # 运行中心与可观测性

@@ -5,17 +5,14 @@
 // 数学工具
 export * from './math';
 
-// UUID 工具  
+// UUID 工具
 export * from './uuid';
 
 // 日志工具
 export * from './logger';
 
 // 重新导出常用函数（兼容性）
-export { 
-  generateULID as generateId,
-  isValidULID as isValidId
-} from './uuid';
+export { generateULID as generateId, isValidULID as isValidId } from './uuid';
 
 export {
   clamp,
@@ -26,7 +23,7 @@ export {
   randomInt,
   round,
   average,
-  median
+  median,
 } from './math';
 
 export {
@@ -36,7 +33,7 @@ export {
   logger,
   filters as logFilters,
   measurePerformance,
-  withLogging
+  withLogging,
 } from './logger';
 
 // 通用工具函数
@@ -45,7 +42,7 @@ export {
  * 延迟执行
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -90,9 +87,12 @@ export function truncate(str: string, maxLength: number): string {
 /**
  * 格式化时间戳
  */
-export function formatTimestamp(timestamp: number, format: 'short' | 'long' | 'iso' = 'long'): string {
+export function formatTimestamp(
+  timestamp: number,
+  format: 'short' | 'long' | 'iso' = 'long'
+): string {
   const date = new Date(timestamp);
-  
+
   switch (format) {
     case 'short':
       return date.toLocaleTimeString();

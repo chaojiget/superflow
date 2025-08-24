@@ -25,21 +25,21 @@ export class MockServer {
   async request(method: string, path: string, data?: any): Promise<any> {
     const key = `${method.toUpperCase()} ${path}`;
     const handler = this.handlers.get(key);
-    
+
     const request = {
       method: method.toUpperCase(),
       path,
       data,
       headers: {},
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
-    
+
     this.requestHistory.push(request);
-    
+
     if (!handler) {
       throw new Error(`No handler for ${key}`);
     }
-    
+
     return handler(request);
   }
 
@@ -81,19 +81,19 @@ export function mockFetch(responses: Record<string, any> = {}): void {
     const urlString = url.toString();
     const method = options?.method || 'GET';
     const key = `${method} ${urlString}`;
-    
+
     const response = responses[key] || responses[urlString];
-    
+
     if (!response) {
       return Promise.resolve({
         ok: false,
         status: 404,
         statusText: 'Not Found',
         json: () => Promise.resolve({ error: 'Not Found' }),
-        text: () => Promise.resolve('Not Found')
+        text: () => Promise.resolve('Not Found'),
       } as Response);
     }
-    
+
     return Promise.resolve({
       ok: true,
       status: 200,
@@ -106,7 +106,7 @@ export function mockFetch(responses: Record<string, any> = {}): void {
       bodyUsed: false,
       redirected: false,
       type: 'basic',
-      url: urlString
+      url: urlString,
     } as Response);
   });
 }
@@ -189,7 +189,7 @@ export class MockTimer {
     const id = this.nextId++;
     this.timers.set(id, {
       callback,
-      time: this.currentTime + delay
+      time: this.currentTime + delay,
     });
     return id;
   }
@@ -204,12 +204,12 @@ export class MockTimer {
       callback();
       this.timers.set(id, {
         callback: repeatingCallback,
-        time: this.currentTime + interval
+        time: this.currentTime + interval,
       });
     };
     this.timers.set(id, {
       callback: repeatingCallback,
-      time: this.currentTime + interval
+      time: this.currentTime + interval,
     });
     return id;
   }
@@ -220,11 +220,11 @@ export class MockTimer {
 
   tick(time: number): void {
     this.currentTime += time;
-    
+
     const readyTimers = Array.from(this.timers.entries())
       .filter(([_, timer]) => timer.time <= this.currentTime)
       .sort(([_, a], [__, b]) => a.time - b.time);
-    
+
     for (const [id, timer] of readyTimers) {
       this.timers.delete(id);
       timer.callback();
@@ -247,13 +247,13 @@ export class MockTimer {
  */
 export function mockTimer(): MockTimer {
   const timer = new MockTimer();
-  
+
   global.setTimeout = timer.setTimeout.bind(timer);
   global.clearTimeout = timer.clearTimeout.bind(timer);
   global.setInterval = timer.setInterval.bind(timer);
   global.clearInterval = timer.clearInterval.bind(timer);
   global.Date.now = timer.now.bind(timer);
-  
+
   return timer;
 }
 
@@ -271,19 +271,19 @@ export async function waitFor(
   const {
     timeout = 5000,
     interval = 50,
-    timeoutMessage = 'Condition not met within timeout'
+    timeoutMessage = 'Condition not met within timeout',
   } = options;
-  
+
   const start = Date.now();
-  
+
   while (Date.now() - start < timeout) {
     const result = await condition();
     if (result) {
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, interval));
+    await new Promise((resolve) => setTimeout(resolve, interval));
   }
-  
+
   throw new Error(timeoutMessage);
 }
 
@@ -291,7 +291,7 @@ export async function waitFor(
  * 模拟异步延迟
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -304,12 +304,12 @@ export function createDeferred<T = any>(): {
 } {
   let resolve: (value: T) => void;
   let reject: (error: any) => void;
-  
+
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
   });
-  
+
   return { promise, resolve: resolve!, reject: reject! };
 }
 
@@ -318,31 +318,35 @@ export function createDeferred<T = any>(): {
  */
 export class EventCapture {
   private events: Array<{ type: string; data: any; timestamp: number }> = [];
-  
+
   capture(type: string, data: any): void {
     this.events.push({
       type,
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
-  
-  getEvents(type?: string): Array<{ type: string; data: any; timestamp: number }> {
+
+  getEvents(
+    type?: string
+  ): Array<{ type: string; data: any; timestamp: number }> {
     if (type) {
-      return this.events.filter(event => event.type === type);
+      return this.events.filter((event) => event.type === type);
     }
     return [...this.events];
   }
-  
-  getLastEvent(type?: string): { type: string; data: any; timestamp: number } | undefined {
+
+  getLastEvent(
+    type?: string
+  ): { type: string; data: any; timestamp: number } | undefined {
     const events = this.getEvents(type);
     return events[events.length - 1];
   }
-  
+
   clear(): void {
     this.events = [];
   }
-  
+
   count(type?: string): number {
     return this.getEvents(type).length;
   }

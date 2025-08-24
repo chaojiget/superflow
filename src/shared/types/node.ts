@@ -3,7 +3,7 @@ import { UlidSchema, VersionedEntity } from './base';
 
 export const NodeKindSchema = z.enum([
   'input',
-  'output', 
+  'output',
   'transform',
   'http-request',
   'condition',
@@ -31,7 +31,7 @@ export interface Port {
 
 export const NodeCapabilitySchema = z.enum([
   'concurrent',
-  'idempotent', 
+  'idempotent',
   'cacheable',
   'retryable',
 ]);

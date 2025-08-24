@@ -72,14 +72,14 @@ export interface DAGEdge {
 /**
  * 节点执行状态
  */
-export type NodeExecutionStatus = 
-  | 'pending'     // 等待执行
-  | 'ready'       // 准备执行
-  | 'running'     // 正在执行
-  | 'completed'   // 执行完成
-  | 'failed'      // 执行失败
-  | 'skipped'     // 跳过执行
-  | 'cancelled';  // 取消执行
+export type NodeExecutionStatus =
+  | 'pending' // 等待执行
+  | 'ready' // 准备执行
+  | 'running' // 正在执行
+  | 'completed' // 执行完成
+  | 'failed' // 执行失败
+  | 'skipped' // 跳过执行
+  | 'cancelled'; // 取消执行
 
 /**
  * 边条件
@@ -94,10 +94,10 @@ export interface EdgeCondition {
  * 资源需求
  */
 export interface ResourceRequirement {
-  cpu?: number;      // CPU 核心数
-  memory?: number;   // 内存 MB
-  gpu?: number;      // GPU 数量
-  disk?: number;     // 磁盘空间 MB
+  cpu?: number; // CPU 核心数
+  memory?: number; // 内存 MB
+  gpu?: number; // GPU 数量
+  disk?: number; // 磁盘空间 MB
   network?: boolean; // 是否需要网络访问
   external?: string[]; // 外部依赖服务
 }
@@ -106,10 +106,10 @@ export interface ResourceRequirement {
  * 拓扑结果
  */
 export interface TopologyResult {
-  order: string[];     // 拓扑排序顺序
+  order: string[]; // 拓扑排序顺序
   levels: string[][]; // 分层结果
-  depth: number;      // 最大深度
-  width: number;      // 最大宽度
+  depth: number; // 最大深度
+  width: number; // 最大宽度
 }
 
 /**
@@ -262,7 +262,13 @@ export interface ExecutionResult {
  * 执行错误
  */
 export interface ExecutionError {
-  type: 'runtime' | 'timeout' | 'resource' | 'validation' | 'network' | 'system';
+  type:
+    | 'runtime'
+    | 'timeout'
+    | 'resource'
+    | 'validation'
+    | 'network'
+    | 'system';
   code: string;
   message: string;
   stack?: string;
@@ -404,8 +410,8 @@ export interface OptimizationSuggestion {
   description: string;
   impact: {
     performance: number; // -1 to 1
-    cost: number;        // -1 to 1
-    complexity: number;  // -1 to 1
+    cost: number; // -1 to 1
+    complexity: number; // -1 to 1
   };
   implementation: {
     effort: 'low' | 'medium' | 'high';
@@ -430,7 +436,7 @@ export interface ExecutionMonitor {
 /**
  * 执行事件
  */
-export type ExecutionEvent = 
+export type ExecutionEvent =
   | 'node_started'
   | 'node_completed'
   | 'node_failed'
@@ -461,7 +467,10 @@ export type ExecutionEventHandler = (event: {
  */
 export interface FlowValidator {
   validateStructure(dag: ExecutionDAG): ValidationResult;
-  validateResources(dag: ExecutionDAG, limits: ResourceRequirement): ValidationResult;
+  validateResources(
+    dag: ExecutionDAG,
+    limits: ResourceRequirement
+  ): ValidationResult;
   validatePerformance(dag: ExecutionDAG): ValidationResult;
   validateSecurity(dag: ExecutionDAG): ValidationResult;
 }

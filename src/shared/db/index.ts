@@ -112,7 +112,7 @@ class SuperflowDB extends Dexie {
       versions: 'id, nodeId, createdAt, author',
       flows: 'id, name, createdAt, updatedAt, version',
       nodes: 'id, kind, name, version, createdAt, updatedAt',
-      kv: 'key, createdAt, updatedAt, expiresAt, namespace'
+      kv: 'key, createdAt, updatedAt, expiresAt, namespace',
     });
 
     this.version(2).stores({
@@ -121,7 +121,7 @@ class SuperflowDB extends Dexie {
       versions: 'id, nodeId, createdAt, author, version',
       flows: 'id, name, createdAt, updatedAt, version',
       nodes: 'id, kind, name, version, createdAt, updatedAt, author',
-      kv: 'key, createdAt, updatedAt, expiresAt, namespace'
+      kv: 'key, createdAt, updatedAt, expiresAt, namespace',
     });
 
     this.version(3).stores({
@@ -130,24 +130,30 @@ class SuperflowDB extends Dexie {
       versions: 'id, nodeId, createdAt, author, version',
       flows: 'id, name, createdAt, updatedAt, version',
       nodes: 'id, kind, name, version, createdAt, updatedAt, author',
-      kv: 'key, createdAt, updatedAt, expiresAt, namespace'
+      kv: 'key, createdAt, updatedAt, expiresAt, namespace',
     });
 
     // 数据迁移逻辑
-    this.version(2).upgrade(trans => {
-      return trans.table('versions').toCollection().modify(version => {
-        if (!version.version) {
-          version.version = '1.0.0';
-        }
-      });
+    this.version(2).upgrade((trans) => {
+      return trans
+        .table('versions')
+        .toCollection()
+        .modify((version) => {
+          if (!version.version) {
+            version.version = '1.0.0';
+          }
+        });
     });
 
-    this.version(3).upgrade(trans => {
-      return trans.table('nodes').toCollection().modify(node => {
-        if (!node.author) {
-          node.author = 'system';
-        }
-      });
+    this.version(3).upgrade((trans) => {
+      return trans
+        .table('nodes')
+        .toCollection()
+        .modify((node) => {
+          if (!node.author) {
+            node.author = 'system';
+          }
+        });
     });
   }
 }
@@ -164,7 +170,10 @@ class DexieStorageAdapter implements StorageAdapter {
     return result as T | undefined;
   }
 
-  async put<T = unknown>(table: string, value: T & { id: string }): Promise<void> {
+  async put<T = unknown>(
+    table: string,
+    value: T & { id: string }
+  ): Promise<void> {
     const dbTable = this.getTable(table);
     await dbTable.put(value);
   }
@@ -180,7 +189,10 @@ class DexieStorageAdapter implements StorageAdapter {
     return results as T[];
   }
 
-  async putMany<T = unknown>(table: string, values: (T & { id: string })[]): Promise<void> {
+  async putMany<T = unknown>(
+    table: string,
+    values: (T & { id: string })[]
+  ): Promise<void> {
     const dbTable = this.getTable(table);
     await dbTable.bulkPut(values);
   }
@@ -205,24 +217,31 @@ class DexieStorageAdapter implements StorageAdapter {
     mode: 'readonly' | 'readwrite',
     callback: (tx: StorageTransaction) => Promise<T>
   ): Promise<T> {
-    const dbTables = tables.map(table => this.getTable(table));
-    return await this.db.transaction(mode, dbTables, async (tx: Transaction) => {
-      const storageTransaction: StorageTransaction = {
-        get: async <U = unknown>(table: string, key: string) => {
-          const dbTable = tx.table(table);
-          return (await dbTable.get(key)) as U | undefined;
-        },
-        put: async <U = unknown>(table: string, value: U & { id: string }) => {
-          const dbTable = tx.table(table);
-          await dbTable.put(value);
-        },
-        delete: async (table: string, key: string) => {
-          const dbTable = tx.table(table);
-          await dbTable.delete(key);
-        }
-      };
-      return await callback(storageTransaction);
-    });
+    const dbTables = tables.map((table) => this.getTable(table));
+    return await this.db.transaction(
+      mode,
+      dbTables,
+      async (tx: Transaction) => {
+        const storageTransaction: StorageTransaction = {
+          get: async <U = unknown>(table: string, key: string) => {
+            const dbTable = tx.table(table);
+            return (await dbTable.get(key)) as U | undefined;
+          },
+          put: async <U = unknown>(
+            table: string,
+            value: U & { id: string }
+          ) => {
+            const dbTable = tx.table(table);
+            await dbTable.put(value);
+          },
+          delete: async (table: string, key: string) => {
+            const dbTable = tx.table(table);
+            await dbTable.delete(key);
+          },
+        };
+        return await callback(storageTransaction);
+      }
+    );
   }
 
   private getTable(tableName: string): Dexie.Table {
@@ -269,8 +288,8 @@ export async function exportData(storage: StorageAdapter): Promise<string> {
       versions: await storage.getAll('versions'),
       flows: await storage.getAll('flows'),
       nodes: await storage.getAll('nodes'),
-      kv: await storage.getAll('kv')
-    }
+      kv: await storage.getAll('kv'),
+    },
   };
   return JSON.stringify(data, null, 2);
 }
@@ -278,12 +297,17 @@ export async function exportData(storage: StorageAdapter): Promise<string> {
 /**
  * 从 JSON 导入数据
  */
-export async function importData(storage: StorageAdapter, jsonData: string): Promise<void> {
+export async function importData(
+  storage: StorageAdapter,
+  jsonData: string
+): Promise<void> {
   const data = JSON.parse(jsonData);
-  
+
   // 版本兼容性检查
   if (data.version > DB_VERSION) {
-    throw new Error(`数据版本 ${data.version} 高于当前支持的版本 ${DB_VERSION}`);
+    throw new Error(
+      `数据版本 ${data.version} 高于当前支持的版本 ${DB_VERSION}`
+    );
   }
 
   // 清空现有数据
@@ -309,15 +333,18 @@ export class KVStore {
   ) {}
 
   async get<T = unknown>(key: string): Promise<T | undefined> {
-    const record = await this.storage.get<KVRecord>('kv', this.getNamespacedKey(key));
+    const record = await this.storage.get<KVRecord>(
+      'kv',
+      this.getNamespacedKey(key)
+    );
     if (!record) return undefined;
-    
+
     // 检查过期时间
     if (record.expiresAt && record.expiresAt < Date.now()) {
       await this.delete(key);
       return undefined;
     }
-    
+
     return record.value as T;
   }
 
@@ -329,7 +356,7 @@ export class KVStore {
       createdAt: now,
       updatedAt: now,
       namespace: this.namespace,
-      expiresAt: ttlMs ? now + ttlMs : undefined
+      expiresAt: ttlMs ? now + ttlMs : undefined,
     };
     await this.storage.put('kv', record);
   }
@@ -347,13 +374,16 @@ export class KVStore {
     const allRecords = await this.storage.getAll<KVRecord>('kv');
     const prefix = this.namespace ? `${this.namespace}:` : '';
     return allRecords
-      .filter(record => record.key.startsWith(prefix))
-      .map(record => record.key.slice(prefix.length));
+      .filter((record) => record.key.startsWith(prefix))
+      .map((record) => record.key.slice(prefix.length));
   }
 
   async clear(): Promise<void> {
     const keys = await this.keys();
-    await this.storage.deleteMany('kv', keys.map(key => this.getNamespacedKey(key)));
+    await this.storage.deleteMany(
+      'kv',
+      keys.map((key) => this.getNamespacedKey(key))
+    );
   }
 
   private getNamespacedKey(key: string): string {
@@ -364,10 +394,20 @@ export class KVStore {
 /**
  * 创建键值存储实例
  */
-export function createKVStore(storage: StorageAdapter, namespace?: string): KVStore {
+export function createKVStore(
+  storage: StorageAdapter,
+  namespace?: string
+): KVStore {
   return new KVStore(storage, namespace);
 }
 
 // 导出数据库相关类型
-export type { RunRecord, LogRecord, VersionRecord, FlowRecord, NodeRecord, KVRecord };
+export type {
+  RunRecord,
+  LogRecord,
+  VersionRecord,
+  FlowRecord,
+  NodeRecord,
+  KVRecord,
+};
 export { SuperflowDB };

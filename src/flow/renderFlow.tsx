@@ -12,7 +12,7 @@ import {
   type Node,
   type Edge,
   type ReactFlowProps,
-  type BackgroundVariant
+  type BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -39,7 +39,7 @@ const DEFAULT_OPTIONS: Required<FlowRenderOptions> = {
   backgroundVariant: 'dots' as BackgroundVariant,
   className: '',
   style: {},
-  readonly: false
+  readonly: false,
 };
 
 /**
@@ -54,7 +54,7 @@ export function renderFlow(
   const config = { ...DEFAULT_OPTIONS, ...options };
 
   return (
-    <div 
+    <div
       className={`flow-container ${config.className}`}
       style={{ width: '100%', height: '100%', ...config.style }}
     >
@@ -67,18 +67,14 @@ export function renderFlow(
         {...flowProps}
       >
         {config.showControls && (
-          <Controls 
+          <Controls
             showZoom={true}
             showFitView={true}
             showInteractive={!config.readonly}
           />
         )}
         {config.showBackground && (
-          <Background 
-            variant={config.backgroundVariant}
-            gap={12}
-            size={1}
-          />
+          <Background variant={config.backgroundVariant} gap={12} size={1} />
         )}
         {config.showMiniMap && (
           <MiniMap
@@ -145,7 +141,7 @@ export const FlowContainer: React.FC<FlowContainerProps> = ({
         ...(onSelectionChange && { onSelectionChange }),
         ...(onNodeDrag && { onNodeDrag }),
         ...(onNodeDragStart && { onNodeDragStart }),
-        ...(onNodeDragStop && { onNodeDragStop })
+        ...(onNodeDragStop && { onNodeDragStop }),
       })}
       {children}
     </>
@@ -193,7 +189,7 @@ export const defaultTheme: FlowTheme = {
   edgeColor: '#cbd5e0',
   edgeSelectedColor: '#3182ce',
   backgroundColor: '#f7fafc',
-  gridColor: '#e2e8f0'
+  gridColor: '#e2e8f0',
 };
 
 /**
@@ -206,7 +202,7 @@ export const darkTheme: FlowTheme = {
   edgeColor: '#4a5568',
   edgeSelectedColor: '#63b3ed',
   backgroundColor: '#1a202c',
-  gridColor: '#2d3748'
+  gridColor: '#2d3748',
 };
 
 /**
@@ -220,7 +216,7 @@ export function applyTheme(theme: FlowTheme): React.CSSProperties {
     '--flow-edge-color': theme.edgeColor,
     '--flow-edge-selected': theme.edgeSelectedColor,
     '--flow-bg': theme.backgroundColor,
-    '--flow-grid': theme.gridColor
+    '--flow-grid': theme.gridColor,
   } as React.CSSProperties;
 }
 
@@ -255,7 +251,7 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
   onZoomIn,
   onZoomOut,
   onToggleFullscreen,
-  disabled = false
+  disabled = false,
 }) => {
   return (
     <div className="flow-toolbar">
@@ -282,20 +278,12 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
 
       <div className="flow-toolbar-group">
         {onCopy && (
-          <button
-            onClick={onCopy}
-            disabled={disabled}
-            title="复制"
-          >
+          <button onClick={onCopy} disabled={disabled} title="复制">
             📋 复制
           </button>
         )}
         {onPaste && (
-          <button
-            onClick={onPaste}
-            disabled={disabled}
-            title="粘贴"
-          >
+          <button onClick={onPaste} disabled={disabled} title="粘贴">
             📄 粘贴
           </button>
         )}
@@ -303,20 +291,12 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
 
       <div className="flow-toolbar-group">
         {onUndo && (
-          <button
-            onClick={onUndo}
-            disabled={disabled}
-            title="撤销"
-          >
+          <button onClick={onUndo} disabled={disabled} title="撤销">
             ↶ 撤销
           </button>
         )}
         {onRedo && (
-          <button
-            onClick={onRedo}
-            disabled={disabled}
-            title="重做"
-          >
+          <button onClick={onRedo} disabled={disabled} title="重做">
             ↷ 重做
           </button>
         )}
@@ -324,29 +304,17 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
 
       <div className="flow-toolbar-group">
         {onFitView && (
-          <button
-            onClick={onFitView}
-            disabled={disabled}
-            title="适配视图"
-          >
+          <button onClick={onFitView} disabled={disabled} title="适配视图">
             🎯 适配
           </button>
         )}
         {onZoomIn && (
-          <button
-            onClick={onZoomIn}
-            disabled={disabled}
-            title="放大"
-          >
+          <button onClick={onZoomIn} disabled={disabled} title="放大">
             🔍+ 放大
           </button>
         )}
         {onZoomOut && (
-          <button
-            onClick={onZoomOut}
-            disabled={disabled}
-            title="缩小"
-          >
+          <button onClick={onZoomOut} disabled={disabled} title="缩小">
             🔍- 缩小
           </button>
         )}
@@ -388,7 +356,7 @@ export const FlowStatusBar: React.FC<FlowStatusBarProps> = ({
   selectedCount,
   zoomLevel,
   readonly = false,
-  className = ''
+  className = '',
 }) => {
   return (
     <div className={`flow-status-bar ${className}`}>
