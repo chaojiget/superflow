@@ -42,8 +42,8 @@ export class RunCenter {
   };
 
   private logs = new Map<string, any[]>();
-  private subscribers = new Map<string, Function[]>();
-  private logStreamers = new Map<string, Function[]>();
+  private subscribers = new Map<string, ((...args: any[]) => void)[]>();
+  private logStreamers = new Map<string, ((...args: any[]) => void)[]>();
 
   constructor(private props: RunCenterProps = {}) {}
 

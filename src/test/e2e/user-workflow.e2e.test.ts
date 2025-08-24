@@ -74,8 +74,8 @@ describe('用户工作流 E2E 测试', () => {
 
     const logs = await app.getLogs();
     expect(logs.length).toBeGreaterThan(0);
-    expect(logs.some((log) => log.event === 'flow_started')).toBe(true);
-    expect(logs.some((log) => log.event === 'flow_completed')).toBe(true);
+    expect(logs.some((log: any) => log.event === 'flow_started')).toBe(true);
+    expect(logs.some((log: any) => log.event === 'flow_completed')).toBe(true);
   });
 
   it('节点调试工作流', async () => {
@@ -180,7 +180,7 @@ describe('用户工作流 E2E 测试', () => {
     // 验证执行历史对两个用户都可见
     await user2.navigate('/run-center');
     const runs = await user2.getRunHistory();
-    expect(runs.some((run) => run.flowId === flowId)).toBe(true);
+    expect(runs.some((run: any) => run.flowId === flowId)).toBe(true);
   });
 
   it('错误处理和恢复工作流', async () => {
@@ -265,10 +265,8 @@ describe('用户工作流 E2E 测试', () => {
     await app.createComplexFlow();
 
     // 2. 执行流程并监控性能
-    const startTime = Date.now();
     await app.executeFlow();
     await app.waitForExecutionComplete();
-    const endTime = Date.now();
 
     // 3. 查看性能指标
     await app.navigate('/run-center');
@@ -285,7 +283,7 @@ describe('用户工作流 E2E 测试', () => {
     // 5. 检查性能警告
     const warnings = await app.getPerformanceWarnings();
     if (warnings.length > 0) {
-      expect(warnings.every((w) => w.type === 'performance')).toBe(true);
+      expect(warnings.every((w: any) => w.type === 'performance')).toBe(true);
     }
   });
 });

@@ -122,7 +122,7 @@ describe('流程集成测试', () => {
     expect(result.error).toBeDefined();
 
     const logs = await runCenter.getLogs(runRecord.id);
-    const errorLogs = logs.filter((log) => log.level === 'error');
+    const errorLogs = logs.filter((log: any) => log.level === 'error');
     expect(errorLogs.length).toBeGreaterThan(0);
   });
 

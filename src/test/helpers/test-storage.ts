@@ -70,8 +70,8 @@ export class MemoryStorageAdapter implements StorageAdapter {
   }
 
   async transaction<T>(
-    tables: string[],
-    mode: 'readonly' | 'readwrite',
+    _tables: string[],
+    _mode: 'readonly' | 'readwrite',
     callback: (tx: StorageTransaction) => Promise<T>
   ): Promise<T> {
     // 简单的事务实现（不支持回滚）
@@ -215,7 +215,7 @@ export function mockIndexedDB(): void {
       // 模拟异步打开
       setTimeout(() => {
         if (request.onsuccess) {
-          request.onsuccess({ target: request } as any);
+          (request.onsuccess as any)({ target: request } as any);
         }
       }, 0);
 
@@ -363,7 +363,7 @@ export async function seedTestData(
 ): Promise<void> {
   for (const [table, records] of Object.entries(dataset)) {
     if (Array.isArray(records)) {
-      await storage.putMany(table, records);
+      await storage.putMany(table, records as any);
     }
   }
 }

@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { render, RenderOptions, RenderResult } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, expect } from 'vitest';
 
 /**
  * 测试应用配置
@@ -23,7 +23,7 @@ export function createTestWrapper(config: TestAppConfig = {}) {
 
   return function TestWrapper({ children }: { children: React.ReactNode }) {
     return providers.reduce(
-      (acc, Provider) => React.createElement(Provider, {}, acc),
+      (acc, Provider) => React.createElement(Provider, { children: acc }, acc),
       children
     );
   };
@@ -41,11 +41,14 @@ export function renderWithProviders(
   // 设置 mocks
   if (mocks) {
     Object.entries(mocks).forEach(([key, value]) => {
-      vi.mocked(global as any)[key] = value;
+      vi.mocked(globalThis as any)[key] = value;
     });
   }
 
-  const Wrapper = createTestWrapper({ initialState, providers });
+  const Wrapper = createTestWrapper({ 
+    initialState, 
+    ...(providers && { providers })
+  });
 
   return render(ui, {
     wrapper: Wrapper,
@@ -277,7 +280,7 @@ export const assertions = {
    */
   async eventually(assertion: () => void | Promise<void>, timeout = 5000) {
     const start = Date.now();
-    let lastError: Error;
+    let lastError: Error | undefined;
 
     while (Date.now() - start < timeout) {
       try {
@@ -379,8 +382,8 @@ export async function createTestApp(): Promise<{
     },
     cleanup: async () => {
       cleanupMocks();
-      if (storage && typeof storage.close === 'function') {
-        await storage.close();
+      if (storage && typeof (storage as any).close === 'function') {
+        await (storage as any).close();
       }
     },
     storage,
