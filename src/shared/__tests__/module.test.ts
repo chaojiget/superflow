@@ -189,7 +189,8 @@ describe('Shared Module', () => {
       const mockMessage = { type: 'test', data: 'hello' };
 
       // Mock worker response
-      const mockWorker = ((globalThis as any).Worker as any).mock.results[0].value;
+      const mockWorker = ((globalThis as any).Worker as any).mock.results[0]
+        .value;
       setTimeout(() => {
         mockWorker.onmessage?.({ data: { result: 'processed' } });
       }, 10);
@@ -202,7 +203,8 @@ describe('Shared Module', () => {
       const { createWorker } = await import('../runtime/worker');
 
       const worker = await createWorker('/test-worker.js');
-      const mockWorker = ((globalThis as any).Worker as any).mock.results[0].value;
+      const mockWorker = ((globalThis as any).Worker as any).mock.results[0]
+        .value;
 
       setTimeout(() => {
         mockWorker.onerror?.({ message: 'Worker error' });

@@ -169,33 +169,27 @@ export function mockIndexedDB(): void {
                 put: vi
                   .fn()
                   .mockReturnValue({ onsuccess: null, onerror: null }),
-                get: vi
-                  .fn()
-                  .mockReturnValue({
-                    onsuccess: null,
-                    onerror: null,
-                    result: null,
-                  }),
+                get: vi.fn().mockReturnValue({
+                  onsuccess: null,
+                  onerror: null,
+                  result: null,
+                }),
                 delete: vi
                   .fn()
                   .mockReturnValue({ onsuccess: null, onerror: null }),
-                getAll: vi
-                  .fn()
-                  .mockReturnValue({
-                    onsuccess: null,
-                    onerror: null,
-                    result: [],
-                  }),
+                getAll: vi.fn().mockReturnValue({
+                  onsuccess: null,
+                  onerror: null,
+                  result: [],
+                }),
                 clear: vi
                   .fn()
                   .mockReturnValue({ onsuccess: null, onerror: null }),
-                count: vi
-                  .fn()
-                  .mockReturnValue({
-                    onsuccess: null,
-                    onerror: null,
-                    result: 0,
-                  }),
+                count: vi.fn().mockReturnValue({
+                  onsuccess: null,
+                  onerror: null,
+                  result: 0,
+                }),
                 openCursor: vi
                   .fn()
                   .mockReturnValue({ onsuccess: null, onerror: null }),

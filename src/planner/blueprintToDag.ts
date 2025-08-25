@@ -104,15 +104,15 @@ export function blueprintToDag(
     createdAt: Date.now(),
     executionOrder: topology.order,
   };
-  
+
   if (executionPlan) {
     result.executionPlan = executionPlan;
   }
-  
+
   if (metrics) {
     result.metrics = metrics;
   }
-  
+
   return result;
 }
 

@@ -45,9 +45,9 @@ export function renderWithProviders(
     });
   }
 
-  const Wrapper = createTestWrapper({ 
-    initialState, 
-    ...(providers && { providers })
+  const Wrapper = createTestWrapper({
+    initialState,
+    ...(providers && { providers }),
   });
 
   return render(ui, {
@@ -364,18 +364,18 @@ export async function createTestApp(): Promise<{
 }> {
   // 设置全局 mocks
   setupGlobalMocks();
-  
+
   // 创建测试存储
   const { createStorage } = await import('../../shared/db');
   const storage = await createStorage('test-e2e-db');
-  
+
   // 收集 mocks
   const mocks = {
     localStorage: mockLocalStorage(),
     sessionStorage: mockSessionStorage(),
     storage,
   };
-  
+
   return {
     render: (ui: React.ReactElement) => {
       return renderWithProviders(ui, { mocks });

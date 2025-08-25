@@ -322,15 +322,15 @@ export async function startTestServer(port: number = 3000): Promise<{
   mockServer: MockServer;
 }> {
   const mockServer = createMockServer();
-  
+
   // 设置默认路由
   mockServer.on('GET', '/health', () => ({ status: 'ok' }));
   mockServer.on('GET', '/api/flows', () => ({ flows: [] }));
-  mockServer.on('POST', '/api/flows', (req) => ({ 
-    id: 'test-flow-id', 
-    ...req.data 
+  mockServer.on('POST', '/api/flows', (req) => ({
+    id: 'test-flow-id',
+    ...req.data,
   }));
-  
+
   return {
     url: `http://localhost:${port}`,
     close: async () => {

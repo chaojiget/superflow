@@ -558,7 +558,7 @@ export interface PlannerConfig {
 /**
  * 执行策略
  */
-export type ExecutionStrategy = 
+export type ExecutionStrategy =
   | 'sequential' // 顺序执行
   | 'parallel' // 并行执行
   | 'adaptive' // 自适应执行

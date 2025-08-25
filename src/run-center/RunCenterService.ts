@@ -58,7 +58,11 @@ export class RunCenterService {
   /**
    * 更新运行状态
    */
-  async updateRunStatus(runId: string, status: RunStatus, data?: Partial<RunRecord>): Promise<void> {
+  async updateRunStatus(
+    runId: string,
+    status: RunStatus,
+    data?: Partial<RunRecord>
+  ): Promise<void> {
     const run = this.runs.get(runId);
     if (!run) {
       throw new Error(`Run not found: ${runId}`);
@@ -66,7 +70,9 @@ export class RunCenterService {
 
     Object.assign(run, {
       status,
-      ...(status === 'completed' || status === 'failed' ? { endTime: Date.now() } : {}),
+      ...(status === 'completed' || status === 'failed'
+        ? { endTime: Date.now() }
+        : {}),
       ...data,
     });
 
@@ -76,7 +82,10 @@ export class RunCenterService {
   /**
    * 添加日志
    */
-  async addLog(runId: string, log: Omit<RunLog, 'id' | 'timestamp'>): Promise<void> {
+  async addLog(
+    runId: string,
+    log: Omit<RunLog, 'id' | 'timestamp'>
+  ): Promise<void> {
     const logs = this.logs.get(runId) || [];
     const newLog: RunLog = {
       id: generateId(),

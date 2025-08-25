@@ -458,7 +458,7 @@ export class RunCenter {
         // 随机失败概率
         if (Math.random() < 0.1) {
           run.progress.failed++;
-        run.metrics.failureCount = (run.metrics.failureCount || 0) + 1;
+          run.metrics.failureCount = (run.metrics.failureCount || 0) + 1;
           run.logs.push({
             id: generateId(),
             timestamp: Date.now(),
@@ -796,18 +796,29 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
             <div className="run-logs">
               <h3>执行日志</h3>
               <div className="logs-container">
-                {selectedRunData.logs.map((log: { id?: string; timestamp: number; level: string; message: string; nodeId?: string }, index: number) => (
-                  <div key={index} className={`log-entry ${log.level}`}>
-                    <span className="timestamp">
-                      {new Date(log.timestamp).toLocaleTimeString()}
-                    </span>
-                    <span className="level">{log.level.toUpperCase()}</span>
-                    <span className="message">{log.message}</span>
-                    {log.nodeId && (
-                      <span className="node-id">[{log.nodeId}]</span>
-                    )}
-                  </div>
-                ))}
+                {selectedRunData.logs.map(
+                  (
+                    log: {
+                      id?: string;
+                      timestamp: number;
+                      level: string;
+                      message: string;
+                      nodeId?: string;
+                    },
+                    index: number
+                  ) => (
+                    <div key={index} className={`log-entry ${log.level}`}>
+                      <span className="timestamp">
+                        {new Date(log.timestamp).toLocaleTimeString()}
+                      </span>
+                      <span className="level">{log.level.toUpperCase()}</span>
+                      <span className="message">{log.message}</span>
+                      {log.nodeId && (
+                        <span className="node-id">[{log.nodeId}]</span>
+                      )}
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </section>
