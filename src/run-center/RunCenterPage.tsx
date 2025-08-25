@@ -18,9 +18,14 @@ const PAGE_SIZE = 5;
 /**
  * RunCenterPage 聚合流程画布、运行日志列表及全局进度条
  */
-export const RunCenterPage: React.FC<RunCenterPageProps> = ({ logs, onRetry }) => {
+export const RunCenterPage: React.FC<RunCenterPageProps> = ({
+  logs,
+  onRetry,
+}) => {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'success' | 'running' | 'failed'>('all');
+  const [filter, setFilter] = useState<
+    'all' | 'success' | 'running' | 'failed'
+  >('all');
   const [page, setPage] = useState(1);
 
   const filteredLogs = useMemo(() => {
@@ -29,7 +34,7 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({ logs, onRetry }) =
       .filter(
         (l) =>
           l.node.toLowerCase().includes(search.toLowerCase()) ||
-          l.message.toLowerCase().includes(search.toLowerCase()),
+          l.message.toLowerCase().includes(search.toLowerCase())
       );
   }, [logs, search, filter]);
 
@@ -40,7 +45,7 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({ logs, onRetry }) =
     (id: string) => {
       onRetry?.(id);
     },
-    [onRetry],
+    [onRetry]
   );
 
   return (
