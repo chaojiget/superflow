@@ -156,11 +156,7 @@ export class RunCenterService {
   /**
    * 处理 REST 请求
    */
-  async handleRequest(
-    method: string,
-    path: string,
-    body?: any
-  ): Promise<any> {
+  async handleRequest(method: string, path: string, body?: any): Promise<any> {
     if (method === 'POST' && path === '/runs') {
       const { flowId, input } = body || {};
       return this.createRun(flowId, input);
