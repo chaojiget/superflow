@@ -12,7 +12,13 @@ import {
   type Connection,
 } from 'reactflow';
 import { generateId } from '@/shared/utils';
-import type { FlowNode, FlowEdge, NodePosition } from '@/shared/types';
+import type {
+  FlowNode,
+  FlowEdge,
+  NodePosition,
+  NodeRuntimeStatus,
+  NodeExecutionEventSource,
+} from '@/shared/types';
 import type { ExecutionDAG } from '@/planner/types';
 
 /**
@@ -164,6 +170,35 @@ export class FlowCanvas {
    */
   getNode(nodeId: string): Node | undefined {
     return this.nodes.find((node) => node.id === nodeId);
+  }
+
+  updateNodeRuntimeStatus(nodeId: string, status: NodeRuntimeStatus): void {
+    const node = this.nodes.find((n) => n.id === nodeId);
+    if (node) {
+      node.data = {
+        ...node.data,
+        runtimeStatus: status,
+      };
+    }
+  }
+
+  attachExecutionEvents(
+    source: NodeExecutionEventSource,
+    runId: string
+  ): () => void {
+    return source.subscribeNodeEvents(runId, {
+      onNodeStart: (id) => this.updateNodeRuntimeStatus(id, 'running'),
+      onNodeSuccess: (id) => this.updateNodeRuntimeStatus(id, 'success'),
+      onNodeError: (id) => this.updateNodeRuntimeStatus(id, 'error'),
+    });
+  }
+
+  async retryNode(
+    source: NodeExecutionEventSource,
+    runId: string,
+    nodeId: string
+  ): Promise<void> {
+    await source.retryNode(runId, nodeId);
   }
 
   /**
