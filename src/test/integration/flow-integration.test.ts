@@ -1,13 +1,15 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import type { TestFlow } from '../helpers/test-flow';
+import { RunCenterService } from '../../run-center';
 
 describe('流程集成测试', () => {
-  let testFlow: any;
-  let runCenter: any;
+  let testFlow: TestFlow;
+  let runCenter: RunCenterService;
 
   beforeEach(async () => {
     // 初始化测试环境
     const { createTestFlow } = await import('../helpers/test-flow');
-    const { RunCenterService } = await import('../../run-center');
 
     testFlow = await createTestFlow();
     runCenter = new RunCenterService();
@@ -44,7 +46,11 @@ describe('流程集成测试', () => {
 
     // 4. 执行流程
     const runRecord = await runCenter.createRun(testFlow.id);
-    const result = await canvas.execute(runRecord.id, undefined, runCenter);
+    const result = await canvas.execute(
+      runRecord.id,
+      undefined,
+      runCenter as any
+    );
 
     expect(result.status).toBe('completed');
     expect(result.outputs).toBeDefined();
@@ -91,7 +97,11 @@ describe('流程集成测试', () => {
     await canvas.loadNodes(nodes, edges);
 
     const runRecord = await runCenter.createRun('data-flow-test');
-    const result = await canvas.execute(runRecord.id, undefined, runCenter);
+    const result = await canvas.execute(
+      runRecord.id,
+      undefined,
+      runCenter as any
+    );
 
     expect(result.status).toBe('completed');
     expect(result.outputs).toBeDefined();
@@ -116,7 +126,11 @@ describe('流程集成测试', () => {
     await canvas.loadNodes(nodes, []);
 
     const runRecord = await runCenter.createRun('error-flow-test');
-    const result = await canvas.execute(runRecord.id, undefined, runCenter);
+    const result = await canvas.execute(
+      runRecord.id,
+      undefined,
+      runCenter as any
+    );
 
     expect(result.status).toBe('failed');
     expect(result.error).toBeDefined();
@@ -195,7 +209,7 @@ describe('流程集成测试', () => {
     const result1 = await canvas.execute(
       runRecord1.id,
       { input: 15 },
-      runCenter
+      runCenter as any
     );
     expect(result1.outputs).toBeDefined();
     expect(result1.outputs!['true-branch']).toBe('large');
@@ -205,7 +219,7 @@ describe('流程集成测试', () => {
     const result2 = await canvas.execute(
       runRecord2.id,
       { input: 5 },
-      runCenter
+      runCenter as any
     );
     expect(result2.outputs).toBeDefined();
     expect(result2.outputs!['false-branch']).toBe('small');

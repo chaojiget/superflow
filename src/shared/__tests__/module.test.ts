@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Shared Module', () => {
@@ -23,33 +24,11 @@ describe('Shared Module', () => {
   });
 
   describe('存储适配器', () => {
-    beforeEach(() => {
-      // Mock IndexedDB
-      (globalThis as any).indexedDB = {
-        open: vi.fn().mockReturnValue({
-          result: {
-            createObjectStore: vi.fn(),
-            transaction: vi.fn().mockReturnValue({
-              objectStore: vi.fn().mockReturnValue({
-                add: vi.fn(),
-                get: vi.fn(),
-                put: vi.fn(),
-                delete: vi.fn(),
-                getAll: vi.fn(),
-              }),
-            }),
-          },
-          onsuccess: null,
-          onerror: null,
-        }),
-        deleteDatabase: vi.fn(),
-        cmp: vi.fn(),
-      } as any;
-    });
-
     it('应该创建存储实例', async () => {
-      const { createStorage } = await import('../db');
-      const storage = await createStorage('test-db');
+      const { createTestStorage } = await import(
+        '../../test/helpers/test-storage'
+      );
+      const storage = createTestStorage();
 
       expect(storage).toBeDefined();
       expect(typeof storage.get).toBe('function');
@@ -58,8 +37,10 @@ describe('Shared Module', () => {
     });
 
     it('应该支持 CRUD 操作', async () => {
-      const { createStorage } = await import('../db');
-      const storage = await createStorage('test-db');
+      const { createTestStorage } = await import(
+        '../../test/helpers/test-storage'
+      );
+      const storage = createTestStorage();
 
       const testData = { id: 'test-id', name: 'Test Item' };
 
@@ -70,8 +51,10 @@ describe('Shared Module', () => {
     });
 
     it('应该支持批量操作', async () => {
-      const { createStorage } = await import('../db');
-      const storage = await createStorage('test-db');
+      const { createTestStorage } = await import(
+        '../../test/helpers/test-storage'
+      );
+      const storage = createTestStorage();
 
       const items = [
         { id: '1', name: 'Item 1' },

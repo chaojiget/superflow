@@ -136,28 +136,32 @@ describe('Run Center Module', () => {
   });
 
   describe('实时监控', () => {
-    it('应该支持实时日志流', (done: any) => {
+    it('应该支持实时日志流', async () => {
       const runId = 'stream-test-run';
 
-      runCenter.streamLogs(runId, (log: any) => {
-        expect(log.event).toBe('stream_test');
-        done();
-      });
+      await new Promise<void>((resolve) => {
+        runCenter.streamLogs(runId, (log: any) => {
+          expect(log.event).toBe('stream_test');
+          resolve();
+        });
 
-      runCenter.log(runId, { level: 'info', event: 'stream_test' });
+        runCenter.log(runId, { level: 'info', event: 'stream_test' });
+      });
     });
 
-    it('应该支持运行状态订阅', async (done: any) => {
+    it('应该支持运行状态订阅', async () => {
       const flowId = 'status-test-flow';
       const runRecord = await runCenter.createRun(flowId);
 
-      runCenter.subscribeToRun(runRecord.id, (status: string) => {
-        if (status === 'completed') {
-          done();
-        }
-      });
+      await new Promise<void>((resolve) => {
+        runCenter.subscribeToRun(runRecord.id, (status: string) => {
+          if (status === 'completed') {
+            resolve();
+          }
+        });
 
-      await runCenter.updateRunStatus(runRecord.id, 'completed');
+        runCenter.updateRunStatus(runRecord.id, 'completed');
+      });
     });
   });
 });
