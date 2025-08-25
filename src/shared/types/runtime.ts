@@ -67,3 +67,26 @@ export interface WorkerResponse {
   id: string;
   payload?: unknown;
 }
+
+export const NodeRuntimeStatusSchema = z.enum([
+  'idle',
+  'running',
+  'success',
+  'error',
+]);
+
+export type NodeRuntimeStatus = z.infer<typeof NodeRuntimeStatusSchema>;
+
+export interface NodeExecutionEventHandlers {
+  onNodeStart?: (nodeId: string) => void;
+  onNodeSuccess?: (nodeId: string) => void;
+  onNodeError?: (nodeId: string) => void;
+}
+
+export interface NodeExecutionEventSource {
+  subscribeNodeEvents(
+    runId: string,
+    handlers: NodeExecutionEventHandlers
+  ): () => void;
+  retryNode(runId: string, nodeId: string): Promise<void>;
+}
