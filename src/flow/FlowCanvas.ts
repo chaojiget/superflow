@@ -12,7 +12,18 @@ import {
   type Connection,
 } from 'reactflow';
 import { generateId } from '@/shared/utils';
-import type { FlowNode, FlowEdge, NodePosition } from '@/shared/types';
+import type {
+  FlowNode,
+  FlowEdge,
+  NodePosition,
+  NodeRuntimeStatus,
+} from '@/shared/types';
+const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
+  idle: { border: '1px solid #d1d5db' },
+  running: { border: '2px solid #3b82f6' },
+  success: { border: '2px solid #22c55e' },
+  error: { border: '2px solid #ef4444' },
+};
 import type { ExecutionDAG } from '@/planner/types';
 
 /**
@@ -96,14 +107,19 @@ export class FlowCanvas {
       throw new Error('Canvas is readonly');
     }
 
+    const status = nodeData.runtimeStatus || 'idle';
+
     const node: Node = {
       id: nodeData.id || generateId(),
       type: nodeData.kind || 'default',
       position: nodeData.position,
       data: {
         label: nodeData.name || 'New Node',
+        runtimeStatus: status,
+        lastError: nodeData.lastError,
         ...nodeData.data,
       },
+      style: STATUS_STYLES[status],
     };
 
     this.nodes.push(node);
@@ -155,6 +171,33 @@ export class FlowCanvas {
         id: currentNode.id, // 确保 ID 存在
       };
     }
+
+    return true;
+  }
+
+  /**
+   * 更新节点运行状态并调整样式
+   */
+  updateNodeRuntimeStatus(
+    nodeId: string,
+    status: NodeRuntimeStatus,
+    lastError?: string
+  ): boolean {
+    if (this.config.readonly) {
+      throw new Error('Canvas is readonly');
+    }
+
+    const index = this.nodes.findIndex((node) => node.id === nodeId);
+    if (index === -1) {
+      return false;
+    }
+
+    const current = this.nodes[index]!;
+    this.nodes[index] = {
+      ...current,
+      data: { ...(current.data || {}), runtimeStatus: status, lastError },
+      style: { ...(current.style || {}), ...STATUS_STYLES[status] },
+    };
 
     return true;
   }

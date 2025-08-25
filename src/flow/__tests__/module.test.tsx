@@ -1,18 +1,34 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FlowCanvas } from '../FlowCanvas';
 import RenderFlow from '../RenderFlow';
 
 // Mock React Flow
 vi.mock('reactflow', () => ({
-  ReactFlow: ({ children }: { children: React.ReactNode }) =>
-    React.createElement('div', { 'data-testid': 'react-flow' }, children),
-  Controls: () =>
-    React.createElement('div', { 'data-testid': 'flow-controls' }),
-  Background: () =>
-    React.createElement('div', { 'data-testid': 'flow-background' }),
-  MiniMap: () => React.createElement('div', { 'data-testid': 'flow-minimap' }),
+  ReactFlow: ({
+    children,
+    nodes = [],
+    nodeTypes = {},
+  }: {
+    children: React.ReactNode;
+    nodes?: any[];
+    nodeTypes?: Record<string, React.FC<any>>;
+  }) => (
+    <div data-testid="react-flow">
+      {nodes.map((n) => {
+        const Comp =
+          nodeTypes[n.type || 'default'] ??
+          ((props: any) => <div>{props.data?.label}</div>);
+        return <Comp key={n.id} id={n.id} data={n.data} />;
+      })}
+      {children}
+    </div>
+  ),
+  Controls: () => <div data-testid="flow-controls" />,
+  Background: () => <div data-testid="flow-background" />,
+  MiniMap: () => <div data-testid="flow-minimap" />,
 }));
 
 describe('Flow Module', () => {
@@ -34,6 +50,18 @@ describe('Flow Module', () => {
       expect(typeof canvas.addEdge).toBe('function');
       expect(typeof canvas.deleteEdge).toBe('function');
     });
+
+    it('应该更新节点运行状态', () => {
+      const canvas = new FlowCanvas();
+      const node = canvas.addNode({ position: { x: 0, y: 0 }, name: 'n1' });
+      canvas.updateNodeRuntimeStatus(node.id, 'running');
+      let current = canvas.getNodes()[0]!;
+      expect(current.data.runtimeStatus).toBe('running');
+      canvas.updateNodeRuntimeStatus(node.id, 'error', 'boom');
+      current = canvas.getNodes()[0]!;
+      expect(current.data.runtimeStatus).toBe('error');
+      expect(current.data.lastError).toBe('boom');
+    });
   });
 
   describe('renderFlow', () => {
@@ -53,6 +81,33 @@ describe('Flow Module', () => {
     it('应该处理空节点数组', () => {
       render(<RenderFlow nodes={[]} edges={[]} />);
       expect(screen.getByTestId('react-flow')).toBeInTheDocument();
+    });
+
+    it('应该渲染错误信息并可关闭', async () => {
+      const nodes = [
+        {
+          id: '1',
+          type: 'default',
+          position: { x: 0, y: 0 },
+          data: {
+            label: 'Node 1',
+            runtimeStatus: 'error',
+            lastError: 'failed',
+          },
+        },
+      ];
+
+      render(<RenderFlow nodes={nodes} edges={[]} />);
+      const toggle = screen.getByTestId('error-toggle');
+      await act(async () => {
+        await userEvent.click(toggle);
+      });
+      expect(screen.getByTestId('error-detail')).toHaveTextContent('failed');
+      const closeBtn = screen.getByText('×');
+      await act(async () => {
+        await userEvent.click(closeBtn);
+      });
+      expect(screen.queryByTestId('error-detail')).toBeNull();
     });
   });
 });
