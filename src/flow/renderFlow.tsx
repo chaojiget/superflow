@@ -9,26 +9,16 @@ import {
   Controls,
   Background,
   MiniMap,
-  type Node,
-  type Edge,
-  type ReactFlowProps,
   type BackgroundVariant,
 } from 'reactflow';
+import type {
+  FlowRenderOptions,
+  RenderFlowProps,
+  FlowContainerProps,
+  FlowToolbarProps,
+  FlowStatusBarProps,
+} from './renderFlow.types';
 import 'reactflow/dist/style.css';
-
-/**
- * 流程渲染配置
- */
-export interface FlowRenderOptions {
-  showControls?: boolean;
-  showBackground?: boolean;
-  showMiniMap?: boolean;
-  backgroundVariant?: BackgroundVariant;
-  className?: string;
-  style?: React.CSSProperties;
-  readonly?: boolean;
-}
-
 /**
  * 默认配置
  */
@@ -41,12 +31,6 @@ const DEFAULT_OPTIONS: Required<FlowRenderOptions> = {
   style: {},
   readonly: false,
 };
-
-export interface RenderFlowProps extends FlowRenderOptions {
-  nodes: Node[];
-  edges: Edge[];
-  flowProps?: Partial<ReactFlowProps>;
-}
 
 /**
  * 渲染流程组件
@@ -100,22 +84,6 @@ export const RenderFlow: React.FC<RenderFlowProps> = ({
 /**
  * Flow 容器组件
  */
-export interface FlowContainerProps extends FlowRenderOptions {
-  nodes: Node[];
-  edges: Edge[];
-  onNodesChange?: ReactFlowProps['onNodesChange'];
-  onEdgesChange?: ReactFlowProps['onEdgesChange'];
-  onConnect?: ReactFlowProps['onConnect'];
-  onNodeClick?: ReactFlowProps['onNodeClick'];
-  onNodeDoubleClick?: ReactFlowProps['onNodeDoubleClick'];
-  onEdgeClick?: ReactFlowProps['onEdgeClick'];
-  onSelectionChange?: ReactFlowProps['onSelectionChange'];
-  onNodeDrag?: ReactFlowProps['onNodeDrag'];
-  onNodeDragStart?: ReactFlowProps['onNodeDragStart'];
-  onNodeDragStop?: ReactFlowProps['onNodeDragStop'];
-  children?: React.ReactNode;
-}
-
 /**
  * 流程容器组件
  */
@@ -162,20 +130,6 @@ export const FlowContainer: React.FC<FlowContainerProps> = ({
 /**
  * 流程工具栏组件
  */
-export interface FlowToolbarProps {
-  onAddNode?: (type: string) => void;
-  onDeleteSelected?: () => void;
-  onCopy?: () => void;
-  onPaste?: () => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onFitView?: () => void;
-  onZoomIn?: () => void;
-  onZoomOut?: () => void;
-  onToggleFullscreen?: () => void;
-  disabled?: boolean;
-}
-
 /**
  * 流程工具栏组件
  */
@@ -277,15 +231,6 @@ export const FlowToolbar: React.FC<FlowToolbarProps> = ({
 /**
  * 流程状态栏组件
  */
-export interface FlowStatusBarProps {
-  nodeCount: number;
-  edgeCount: number;
-  selectedCount: number;
-  zoomLevel: number;
-  readonly?: boolean;
-  className?: string;
-}
-
 /**
  * 流程状态栏组件
  */
