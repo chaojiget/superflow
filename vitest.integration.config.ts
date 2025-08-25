@@ -4,6 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   test: {
     name: '集成测试',
+    globals: true,
     include: ['**/*.integration.test.{js,ts}'],
     exclude: ['node_modules/**', 'dist/**'],
     environment: 'jsdom',
