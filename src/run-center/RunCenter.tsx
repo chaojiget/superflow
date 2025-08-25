@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
 import type { RunRecord, ExecutionSnapshot } from './types';
 import type { NodeExecutionEventHandlers } from '@/shared/types';
+import { PreviewRunner } from './PreviewRunner';
 
 /**
  * 运行中心属性
@@ -45,10 +46,8 @@ export class RunCenter {
   private logs = new Map<string, any[]>();
   private subscribers = new Map<string, ((...args: any[]) => void)[]>();
   private logStreamers = new Map<string, ((...args: any[]) => void)[]>();
-  private nodeEventSubscribers = new Map<
-    string,
-    NodeExecutionEventHandlers[]
-  >();
+  private nodeEventSubscribers = new Map<string, NodeExecutionEventHandlers[]>();
+  private previewRunner = new PreviewRunner();
 
   constructor(private props: RunCenterProps = {}) {}
 
@@ -522,12 +521,26 @@ export class RunCenter {
           setTimeout(resolve, Math.random() * 1000 + 500)
         );
 
+<<<<<<< HEAD
+=======
+        run.progress.running = 1;
+        const msg = (await this.previewRunner.run(
+          (index: number, total: number) => `执行节点 ${index}/${total}`,
+          i + 1,
+          nodeCount
+        )) as string;
+>>>>>>> 1da6d96 (feat(run-center): add preview runner worker)
         run.logs.push({
           id: generateId(),
           timestamp: Date.now(),
           level: 'info',
+<<<<<<< HEAD
           message: `执行节点 ${i + 1}/${nodeCount}`,
           nodeId,
+=======
+          message: msg,
+          nodeId: `node-${i + 1}`,
+>>>>>>> 1da6d96 (feat(run-center): add preview runner worker)
         });
 
         // 随机失败概率
