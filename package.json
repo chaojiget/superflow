@@ -48,7 +48,7 @@
     "vite": "^5.1.6",
     "vitest": "^1.4.0",
     "jsdom": "^24.0.0",
-    "wait-on": "^7.2.0",
+    "wait-on": "^8.0.4",
     "playwright": "^1.40.0",
     "@playwright/test": "^1.40.0"
   },
