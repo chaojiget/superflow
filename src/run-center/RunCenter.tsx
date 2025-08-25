@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateId } from '@/shared/utils';
 import type { RunRecord, ExecutionSnapshot } from './types';
+import { PreviewRunner } from './PreviewRunner';
 
 /**
  * 运行中心属性
@@ -44,6 +45,7 @@ export class RunCenter {
   private logs = new Map<string, any[]>();
   private subscribers = new Map<string, ((...args: any[]) => void)[]>();
   private logStreamers = new Map<string, ((...args: any[]) => void)[]>();
+  private previewRunner = new PreviewRunner();
 
   constructor(private props: RunCenterProps = {}) {}
 
@@ -447,11 +449,16 @@ export class RunCenter {
         );
 
         run.progress.running = 1;
+        const msg = (await this.previewRunner.run(
+          (index: number, total: number) => `执行节点 ${index}/${total}`,
+          i + 1,
+          nodeCount
+        )) as string;
         run.logs.push({
           id: generateId(),
           timestamp: Date.now(),
           level: 'info',
-          message: `执行节点 ${i + 1}/${nodeCount}`,
+          message: msg,
           nodeId: `node-${i + 1}`,
         });
 
