@@ -22,6 +22,8 @@ const App: React.FC = () => {
         <div className="welcome-message">
           <h2>欢迎使用 Superflow</h2>
           <p>项目骨架已创建完成，准备开始开发！</p>
+        </div>
+        <div>
           <input ref={inputRef} placeholder="输入要复制的文本" />
           <button onClick={handleCopy}>复制</button>
           {copyStatus && <p>{copyStatus}</p>}
