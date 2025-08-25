@@ -3,7 +3,7 @@
  * 流程执行监控和管理界面
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
 import type { RunRecord, ExecutionSnapshot } from './types';
 import type { NodeExecutionEventHandlers } from '@/shared/types';
