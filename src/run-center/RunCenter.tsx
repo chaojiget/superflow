@@ -5,10 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateId } from '@/shared/utils';
-import type {
-  RunRecord,
-  ExecutionSnapshot,
-} from './types';
+import type { RunRecord, ExecutionSnapshot } from './types';
 import type { NodeExecutionEventHandlers } from '@/shared/types';
 
 /**
