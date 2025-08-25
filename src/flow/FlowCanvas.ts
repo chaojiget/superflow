@@ -497,19 +497,25 @@ export class FlowCanvas {
    * 加载简化的节点和边到画布（用于测试）
    */
   async loadNodes(
-    nodes: Array<FlowNode | {
-      id: string;
-      type?: string;
-      data?: Record<string, unknown>;
-    }>,
-    edges: Array<FlowEdge | {
-      id: string;
-      source: string;
-      target: string;
-      type?: string;
-      animated?: boolean;
-      data?: Record<string, unknown>;
-    }>
+    nodes: Array<
+      | FlowNode
+      | {
+          id: string;
+          type?: string;
+          data?: Record<string, unknown>;
+        }
+    >,
+    edges: Array<
+      | FlowEdge
+      | {
+          id: string;
+          source: string;
+          target: string;
+          type?: string;
+          animated?: boolean;
+          data?: Record<string, unknown>;
+        }
+    >
   ): Promise<void> {
     if (this.config.readonly) {
       throw new Error('Canvas is readonly');
@@ -523,7 +529,7 @@ export class FlowCanvas {
       const isFlowNode = (n: typeof node): n is FlowNode => {
         return 'kind' in n && 'name' in n;
       };
-      
+
       if (isFlowNode(node)) {
         // 完整的 FlowNode 格式
         return {
@@ -584,10 +590,21 @@ export class FlowCanvas {
   /**
    * 执行流程
    */
-  async execute(runId?: string, input?: unknown, runCenter?: {
-    addLog: (runId: string, log: { level: string; message: string }) => Promise<void>;
-    updateRunStatus: (runId: string, status: string, data?: Record<string, unknown>) => Promise<void>;
-  }): Promise<{
+  async execute(
+    runId?: string,
+    input?: unknown,
+    runCenter?: {
+      addLog: (
+        runId: string,
+        log: { level: string; message: string }
+      ) => Promise<void>;
+      updateRunStatus: (
+        runId: string,
+        status: string,
+        data?: Record<string, unknown>
+      ) => Promise<void>;
+    }
+  ): Promise<{
     status: 'completed' | 'failed' | 'running';
     outputs?: Record<string, unknown>;
     error?: string;
@@ -596,11 +613,11 @@ export class FlowCanvas {
   }> {
     const startTime = Date.now();
     const executionId = runId || `exec-${Date.now()}`;
-    
+
     try {
       // 记录执行开始
       console.log(`[FlowCanvas] 开始执行流程: ${executionId}`);
-      
+
       // 如果有 RunCenter，记录日志
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
@@ -608,63 +625,89 @@ export class FlowCanvas {
           message: `流程开始执行: ${executionId}`,
         });
       }
-      
+
       // 执行节点逻辑
       const outputs: Record<string, unknown> = {};
       let currentData = input;
-      
+
       // 检查是否有错误节点（用于测试错误场景）
-      const errorNodes = this.nodes.filter(node => node.type === 'error' || node.data?.shouldFail);
+      const errorNodes = this.nodes.filter(
+        (node) => node.type === 'error' || node.data?.shouldFail
+      );
       for (const errorNode of errorNodes) {
-        if (errorNode.data?.handler && typeof errorNode.data.handler === 'function') {
+        if (
+          errorNode.data?.handler &&
+          typeof errorNode.data.handler === 'function'
+        ) {
           // 执行错误节点的 handler，这会抛出错误
           await errorNode.data.handler();
         } else {
           throw new Error('节点执行失败');
         }
       }
-      
+
       // 按拓扑顺序执行节点
-      const inputNodes = this.nodes.filter(node => node.type === 'input');
-      const transformNodes = this.nodes.filter(node => node.type === 'transform');
-      const outputNodes = this.nodes.filter(node => node.type === 'output');
-      
+      const inputNodes = this.nodes.filter((node) => node.type === 'input');
+      const transformNodes = this.nodes.filter(
+        (node) => node.type === 'transform'
+      );
+      const outputNodes = this.nodes.filter((node) => node.type === 'output');
+
       // 1. 处理输入节点
       for (const inputNode of inputNodes) {
         if (inputNode.data?.value) {
           currentData = inputNode.data.value;
         }
       }
-      
+
       // 2. 处理转换节点
       for (const transformNode of transformNodes) {
-        if (transformNode.data?.handler && typeof transformNode.data.handler === 'function') {
+        if (
+          transformNode.data?.handler &&
+          typeof transformNode.data.handler === 'function'
+        ) {
           currentData = await transformNode.data.handler(currentData);
-        } else if (transformNode.data?.operation === 'uppercase' && typeof currentData === 'string') {
+        } else if (
+          transformNode.data?.operation === 'uppercase' &&
+          typeof currentData === 'string'
+        ) {
           currentData = currentData.toUpperCase();
         }
       }
-      
+
       // 3. 处理条件分支
-      const conditionNodes = this.nodes.filter(node => node.type === 'condition');
-      const processNodes = this.nodes.filter(node => node.type === 'process');
-      
+      const conditionNodes = this.nodes.filter(
+        (node) => node.type === 'condition'
+      );
+      const processNodes = this.nodes.filter((node) => node.type === 'process');
+
       for (const conditionNode of conditionNodes) {
-        if (conditionNode.data?.condition && typeof input === 'object' && input !== null) {
+        if (
+          conditionNode.data?.condition &&
+          typeof input === 'object' &&
+          input !== null
+        ) {
           const inputValue = (input as Record<string, unknown>).input;
-          if (typeof inputValue === 'number' && typeof conditionNode.data.condition === 'function') {
+          if (
+            typeof inputValue === 'number' &&
+            typeof conditionNode.data.condition === 'function'
+          ) {
             const conditionResult = conditionNode.data.condition(inputValue);
-            
+
             // 根据条件结果执行对应的分支
             if (conditionResult) {
               // 找到 true 分支节点
-              const trueBranchNode = processNodes.find(node => node.id === 'true-branch');
+              const trueBranchNode = processNodes.find(
+                (node) => node.id === 'true-branch'
+              );
               if (trueBranchNode && trueBranchNode.data?.value) {
                 outputs['true-branch'] = trueBranchNode.data.value;
               }
             } else {
               // 找到 false 分支节点
-              const falseBranchNode = processNodes.find(node => node.id === 'false-branch');
+              const falseBranchNode = processNodes.find(
+                (node) => node.id === 'false-branch'
+              );
               if (falseBranchNode && falseBranchNode.data?.value) {
                 outputs['false-branch'] = falseBranchNode.data.value;
               }
@@ -672,10 +715,10 @@ export class FlowCanvas {
           }
         }
       }
-      
+
       // 4. 处理输出节点（仅当没有条件分支的情况下）
       if (outputNodes.length > 0 && Object.keys(outputs).length === 0) {
-        outputNodes.forEach(outputNode => {
+        outputNodes.forEach((outputNode) => {
           if (outputNode.data?.label) {
             outputs[outputNode.data.label] = currentData;
           } else {
@@ -685,7 +728,7 @@ export class FlowCanvas {
       } else if (Object.keys(outputs).length === 0) {
         outputs.output = currentData;
       }
-      
+
       // 如果有 RunCenter，记录完成日志
       if (runCenter && runId) {
         await runCenter.addLog(runId, {

@@ -210,7 +210,11 @@ export class Logger {
       timestamp: Date.now(),
       level,
       message,
-      context: { event: context.event || 'unknown', ...this.defaultContext, ...context },
+      context: {
+        event: context.event || 'unknown',
+        ...this.defaultContext,
+        ...context,
+      },
       ...(error && { error }),
     };
 

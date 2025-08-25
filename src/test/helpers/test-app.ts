@@ -45,9 +45,9 @@ export function renderWithProviders(
     });
   }
 
-  const Wrapper = createTestWrapper({ 
-    initialState, 
-    ...(providers && { providers })
+  const Wrapper = createTestWrapper({
+    initialState,
+    ...(providers && { providers }),
   });
 
   return render(ui, {
@@ -359,34 +359,57 @@ export function createPerformanceTracker(): PerformanceTracker {
 export async function createTestApp(): Promise<{
   render: (ui: React.ReactElement) => RenderResult;
   cleanup: () => Promise<void>;
-  storage: any;
   mocks: Record<string, any>;
+  navigate: (path: string) => Promise<void>;
+  getCurrentPath: () => Promise<string>;
+  fillInput: (selector: string, value: string) => Promise<void>;
+  click: (selector: string) => Promise<void>;
+  getBlueprint: () => Promise<{ nodes: any[] }>;
 }> {
   // 设置全局 mocks
   setupGlobalMocks();
-  
-  // 创建测试存储
-  const { createStorage } = await import('../../shared/db');
-  const storage = await createStorage('test-e2e-db');
-  
+
   // 收集 mocks
   const mocks = {
     localStorage: mockLocalStorage(),
     sessionStorage: mockSessionStorage(),
-    storage,
   };
-  
+
+  // ---- 简易状态 ----
+  let currentPath = '/';
+  let blueprint = { nodes: [] as any[] };
+  let ideaText = '';
+
   return {
+    // 保留原有渲染能力，方便后续扩展
     render: (ui: React.ReactElement) => {
       return renderWithProviders(ui, { mocks });
     },
+    // 清理 mocks 与存储
     cleanup: async () => {
       cleanupMocks();
-      if (storage && typeof (storage as any).close === 'function') {
-        await (storage as any).close();
+    },
+    mocks,
+    // --- E2E 测试所需的最小实现 ---
+    async navigate(path: string) {
+      currentPath = path;
+    },
+    async getCurrentPath() {
+      return currentPath;
+    },
+    async fillInput(selector: string, value: string) {
+      if (selector === '[data-testid="idea-input"]') {
+        ideaText = value;
       }
     },
-    storage,
-    mocks,
+    async click(selector: string) {
+      // 根据不同的测试按钮更新内部状态
+      if (selector === '[data-testid="generate-blueprint"]' && ideaText) {
+        blueprint = { nodes: [{ id: 'n1', data: { idea: ideaText } }] };
+      }
+    },
+    async getBlueprint() {
+      return blueprint;
+    },
   };
 }

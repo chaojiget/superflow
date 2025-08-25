@@ -5,12 +5,14 @@
 
 declare global {
   // Node.js globals for browser compatibility
-  var process: {
-    version?: string;
-    platform?: string;
-    env?: Record<string, string>;
-    memoryUsage?: () => object;
-  } | undefined;
+  var process:
+    | {
+        version?: string;
+        platform?: string;
+        env?: Record<string, string>;
+        memoryUsage?: () => object;
+      }
+    | undefined;
 }
 
 import React, { useState, useCallback } from 'react';
@@ -279,7 +281,10 @@ export class NodePage {
       const result = await nodeType.handler(input, {
         signal: new AbortController().signal,
         logger,
-        env: (typeof process !== 'undefined' ? process.env : {}) as Record<string, string>,
+        env: (typeof process !== 'undefined' ? process.env : {}) as Record<
+          string,
+          string
+        >,
       });
 
       const endTime = Date.now();
@@ -339,9 +344,11 @@ export class NodePage {
       outputSchema: nodeType.outputSchema,
       timestamp: Date.now(),
       environment: {
-        nodeVersion: typeof process !== 'undefined' ? process.version : 'unknown',
+        nodeVersion:
+          typeof process !== 'undefined' ? process.version : 'unknown',
         platform: typeof process !== 'undefined' ? process.platform : 'browser',
-        memory: typeof process !== 'undefined' ? process.memoryUsage?.() || {} : {},
+        memory:
+          typeof process !== 'undefined' ? process.memoryUsage?.() || {} : {},
       },
       status: 'pending',
     };
@@ -624,7 +631,9 @@ export const NodePageComponent: React.FC<NodePageProps> = ({
                   {debugResult.output ? (
                     <div className="output-data">
                       <h4>输出数据:</h4>
-                      <pre>{String(JSON.stringify(debugResult.output, null, 2))}</pre>
+                      <pre>
+                        {String(JSON.stringify(debugResult.output, null, 2))}
+                      </pre>
                     </div>
                   ) : null}
 
