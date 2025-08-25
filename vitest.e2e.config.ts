@@ -7,6 +7,7 @@ export default defineConfig({
     include: ['**/*.e2e.test.{js,ts}'],
     exclude: ['node_modules/**', 'dist/**'],
     environment: 'jsdom',
+    globals: true,
     setupFiles: ['./src/test/setup.ts'],
     timeout: 60000, // E2E测试需要更长时间
     testTimeout: 60000,
