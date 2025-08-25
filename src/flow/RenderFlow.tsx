@@ -49,10 +49,7 @@ const RenderFlow: React.FC<RenderFlowProps> = ({
             {showError && (
               <div data-testid="error-detail">
                 <span>{data.lastError}</span>
-                <button
-                  type="button"
-                  onClick={() => setShowError(false)}
-                >
+                <button type="button" onClick={() => setShowError(false)}>
                   ×
                 </button>
               </div>

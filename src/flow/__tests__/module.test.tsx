@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { FlowCanvas } from '../FlowCanvas';
@@ -18,16 +18,17 @@ vi.mock('reactflow', () => ({
   }) => (
     <div data-testid="react-flow">
       {nodes.map((n) => {
-        const Comp = nodeTypes[n.type || 'default'] ??
+        const Comp =
+          nodeTypes[n.type || 'default'] ??
           ((props: any) => <div>{props.data?.label}</div>);
         return <Comp key={n.id} id={n.id} data={n.data} />;
       })}
       {children}
     </div>
   ),
-  Controls: () => <div data-testid="flow-controls" />, 
-  Background: () => <div data-testid="flow-background" />, 
-  MiniMap: () => <div data-testid="flow-minimap" />, 
+  Controls: () => <div data-testid="flow-controls" />,
+  Background: () => <div data-testid="flow-background" />,
+  MiniMap: () => <div data-testid="flow-minimap" />,
 }));
 
 describe('Flow Module', () => {
@@ -98,10 +99,14 @@ describe('Flow Module', () => {
 
       render(<RenderFlow nodes={nodes} edges={[]} />);
       const toggle = screen.getByTestId('error-toggle');
-      await userEvent.click(toggle);
+      await act(async () => {
+        await userEvent.click(toggle);
+      });
       expect(screen.getByTestId('error-detail')).toHaveTextContent('failed');
       const closeBtn = screen.getByText('×');
-      await userEvent.click(closeBtn);
+      await act(async () => {
+        await userEvent.click(closeBtn);
+      });
       expect(screen.queryByTestId('error-detail')).toBeNull();
     });
   });
