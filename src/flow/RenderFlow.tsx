@@ -9,6 +9,7 @@ import {
   Background,
   MiniMap,
   type BackgroundVariant,
+  type NodeProps,
 } from 'reactflow';
 import type { RenderFlowProps, FlowRenderOptions } from './renderFlow.types';
 import 'reactflow/dist/style.css';
@@ -31,6 +32,37 @@ const RenderFlow: React.FC<RenderFlowProps> = ({
 }) => {
   const config = { ...DEFAULT_OPTIONS, ...options };
 
+  const StatusNode: React.FC<NodeProps> = ({ data }) => {
+    const [showError, setShowError] = React.useState(false);
+    return (
+      <div className={`status-node status-${data.runtimeStatus || 'idle'}`}>
+        <div>{data.label}</div>
+        {data.runtimeStatus === 'error' && data.lastError && (
+          <div>
+            <button
+              type="button"
+              data-testid="error-toggle"
+              onClick={() => setShowError((v) => !v)}
+            >
+              !
+            </button>
+            {showError && (
+              <div data-testid="error-detail">
+                <span>{data.lastError}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowError(false)}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
       className={`flow-container ${config.className}`}
@@ -42,6 +74,7 @@ const RenderFlow: React.FC<RenderFlowProps> = ({
         nodesDraggable={!config.readonly}
         nodesConnectable={!config.readonly}
         elementsSelectable={!config.readonly}
+        nodeTypes={{ default: StatusNode }}
         {...flowProps}
       >
         {config.showControls && (

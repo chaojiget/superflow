@@ -53,11 +53,15 @@ export interface NodePosition {
   y: number;
 }
 
+export type NodeRuntimeStatus = 'idle' | 'running' | 'success' | 'error';
+
 export interface FlowNode extends NodeMetadata {
   position: NodePosition;
   data?: Record<string, unknown>;
   selected?: boolean;
   dragging?: boolean;
+  runtimeStatus?: NodeRuntimeStatus;
+  lastError?: string;
 }
 
 export const EdgeTypeSchema = z.enum(['data', 'control']);
