@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { FlowCanvas } from '../FlowCanvas';
-import { renderFlow } from '../renderFlow';
+import { RenderFlow } from '../renderFlow';
 
 // Mock React Flow
 vi.mock('reactflow', () => ({
@@ -43,7 +43,7 @@ describe('Flow Module', () => {
       ];
       const edges = [{ id: 'e1-2', source: '1', target: '2' }];
 
-      render(renderFlow(nodes, edges));
+      render(<RenderFlow nodes={nodes} edges={edges} />);
 
       expect(screen.getByTestId('react-flow')).toBeInTheDocument();
       expect(screen.getByTestId('flow-controls')).toBeInTheDocument();
@@ -51,7 +51,7 @@ describe('Flow Module', () => {
     });
 
     it('应该处理空节点数组', () => {
-      render(renderFlow([], []));
+      render(<RenderFlow nodes={[]} edges={[]} />);
       expect(screen.getByTestId('react-flow')).toBeInTheDocument();
     });
   });

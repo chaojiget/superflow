@@ -1,5 +1,5 @@
 /**
- * Flow 渲染函数
+ * Flow 渲染组件
  * 提供 React Flow 组件的渲染功能
  */
 
@@ -42,15 +42,21 @@ const DEFAULT_OPTIONS: Required<FlowRenderOptions> = {
   readonly: false,
 };
 
+export interface RenderFlowProps extends FlowRenderOptions {
+  nodes: Node[];
+  edges: Edge[];
+  flowProps?: Partial<ReactFlowProps>;
+}
+
 /**
  * 渲染流程组件
  */
-export function renderFlow(
-  nodes: Node[],
-  edges: Edge[],
-  options: FlowRenderOptions = {},
-  flowProps: Partial<ReactFlowProps> = {}
-): React.ReactElement {
+export const RenderFlow: React.FC<RenderFlowProps> = ({
+  nodes,
+  edges,
+  flowProps = {},
+  ...options
+}) => {
   const config = { ...DEFAULT_OPTIONS, ...options };
 
   return (
@@ -89,7 +95,7 @@ export function renderFlow(
       </ReactFlow>
     </div>
   );
-}
+};
 
 /**
  * Flow 容器组件
@@ -131,94 +137,27 @@ export const FlowContainer: React.FC<FlowContainerProps> = ({
 }) => {
   return (
     <>
-      {renderFlow(nodes, edges, options, {
-        ...(onNodesChange && { onNodesChange }),
-        ...(onEdgesChange && { onEdgesChange }),
-        ...(onConnect && { onConnect }),
-        ...(onNodeClick && { onNodeClick }),
-        ...(onNodeDoubleClick && { onNodeDoubleClick }),
-        ...(onEdgeClick && { onEdgeClick }),
-        ...(onSelectionChange && { onSelectionChange }),
-        ...(onNodeDrag && { onNodeDrag }),
-        ...(onNodeDragStart && { onNodeDragStart }),
-        ...(onNodeDragStop && { onNodeDragStop }),
-      })}
+      <RenderFlow
+        nodes={nodes}
+        edges={edges}
+        {...options}
+        flowProps={{
+          ...(onNodesChange && { onNodesChange }),
+          ...(onEdgesChange && { onEdgesChange }),
+          ...(onConnect && { onConnect }),
+          ...(onNodeClick && { onNodeClick }),
+          ...(onNodeDoubleClick && { onNodeDoubleClick }),
+          ...(onEdgeClick && { onEdgeClick }),
+          ...(onSelectionChange && { onSelectionChange }),
+          ...(onNodeDrag && { onNodeDrag }),
+          ...(onNodeDragStart && { onNodeDragStart }),
+          ...(onNodeDragStop && { onNodeDragStop }),
+        }}
+      />
       {children}
     </>
   );
 };
-
-/**
- * 创建自定义节点类型
- */
-export function createCustomNodeType(
-  component: React.ComponentType<any>
-): React.ComponentType<any> {
-  return React.memo(component);
-}
-
-/**
- * 创建自定义边类型
- */
-export function createCustomEdgeType(
-  component: React.ComponentType<any>
-): React.ComponentType<any> {
-  return React.memo(component);
-}
-
-/**
- * 流程主题配置
- */
-export interface FlowTheme {
-  nodeBackground: string;
-  nodeBorder: string;
-  nodeText: string;
-  edgeColor: string;
-  edgeSelectedColor: string;
-  backgroundColor: string;
-  gridColor: string;
-}
-
-/**
- * 默认主题
- */
-export const defaultTheme: FlowTheme = {
-  nodeBackground: '#ffffff',
-  nodeBorder: '#e2e8f0',
-  nodeText: '#2d3748',
-  edgeColor: '#cbd5e0',
-  edgeSelectedColor: '#3182ce',
-  backgroundColor: '#f7fafc',
-  gridColor: '#e2e8f0',
-};
-
-/**
- * 暗色主题
- */
-export const darkTheme: FlowTheme = {
-  nodeBackground: '#2d3748',
-  nodeBorder: '#4a5568',
-  nodeText: '#e2e8f0',
-  edgeColor: '#4a5568',
-  edgeSelectedColor: '#63b3ed',
-  backgroundColor: '#1a202c',
-  gridColor: '#2d3748',
-};
-
-/**
- * 应用主题样式
- */
-export function applyTheme(theme: FlowTheme): React.CSSProperties {
-  return {
-    '--flow-node-bg': theme.nodeBackground,
-    '--flow-node-border': theme.nodeBorder,
-    '--flow-node-text': theme.nodeText,
-    '--flow-edge-color': theme.edgeColor,
-    '--flow-edge-selected': theme.edgeSelectedColor,
-    '--flow-bg': theme.backgroundColor,
-    '--flow-grid': theme.gridColor,
-  } as React.CSSProperties;
-}
 
 /**
  * 流程工具栏组件
@@ -369,5 +308,5 @@ export const FlowStatusBar: React.FC<FlowStatusBarProps> = ({
   );
 };
 
-// 导出默认渲染函数
-export default renderFlow;
+// 导出默认渲染组件
+export default RenderFlow;
