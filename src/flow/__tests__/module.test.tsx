@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { FlowCanvas } from '../FlowCanvas';
-import { RenderFlow } from '../renderFlow';
+import RenderFlow from '../RenderFlow';
 
 // Mock React Flow
 vi.mock('reactflow', () => ({

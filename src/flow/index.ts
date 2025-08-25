@@ -1,5 +1,8 @@
 export { FlowCanvas } from './FlowCanvas';
-export { RenderFlow } from './renderFlow';
+export { default as RenderFlow } from './RenderFlow';
+export { default as FlowContainer } from './FlowContainer';
+export { default as FlowToolbar } from './FlowToolbar';
+export { default as FlowStatusBar } from './FlowStatusBar';
 export {
   createCustomNodeType,
   createCustomEdgeType,

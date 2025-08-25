@@ -3,8 +3,25 @@
  * 仅包含组件暴露的外部类型，避免在组件文件中导出非组件实体
  */
 
-import type { ReactNode, CSSProperties } from 'react';
-import type { Node, Edge, ReactFlowProps, BackgroundVariant } from 'reactflow';
+import type {
+  ReactNode,
+  CSSProperties,
+  MouseEvent,
+  MouseEventHandler,
+} from 'react';
+import type {
+  Node,
+  Edge,
+  ReactFlowProps,
+  BackgroundVariant,
+  OnNodesChange,
+  OnEdgesChange,
+  OnConnect,
+  NodeMouseHandler,
+  EdgeMouseHandler,
+  OnSelectionChangeFunc,
+  NodeDragHandler,
+} from 'reactflow';
 
 /**
  * 流程渲染配置
@@ -44,16 +61,16 @@ export interface RenderFlowProps extends FlowRenderOptions {
 export interface FlowContainerProps extends FlowRenderOptions {
   nodes: Node[];
   edges: Edge[];
-  onNodesChange?: ReactFlowProps['onNodesChange'];
-  onEdgesChange?: ReactFlowProps['onEdgesChange'];
-  onConnect?: ReactFlowProps['onConnect'];
-  onNodeClick?: ReactFlowProps['onNodeClick'];
-  onNodeDoubleClick?: ReactFlowProps['onNodeDoubleClick'];
-  onEdgeClick?: ReactFlowProps['onEdgeClick'];
-  onSelectionChange?: ReactFlowProps['onSelectionChange'];
-  onNodeDrag?: ReactFlowProps['onNodeDrag'];
-  onNodeDragStart?: ReactFlowProps['onNodeDragStart'];
-  onNodeDragStop?: ReactFlowProps['onNodeDragStop'];
+  onNodesChange?: OnNodesChange;
+  onEdgesChange?: OnEdgesChange;
+  onConnect?: OnConnect;
+  onNodeClick?: NodeMouseHandler;
+  onNodeDoubleClick?: NodeMouseHandler;
+  onEdgeClick?: EdgeMouseHandler;
+  onSelectionChange?: OnSelectionChangeFunc;
+  onNodeDrag?: NodeDragHandler;
+  onNodeDragStart?: NodeDragHandler;
+  onNodeDragStop?: NodeDragHandler;
   children?: ReactNode;
 }
 
@@ -61,16 +78,16 @@ export interface FlowContainerProps extends FlowRenderOptions {
  * FlowToolbar 组件属性
  */
 export interface FlowToolbarProps {
-  onAddNode?: (type: string) => void;
-  onDeleteSelected?: () => void;
-  onCopy?: () => void;
-  onPaste?: () => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onFitView?: () => void;
-  onZoomIn?: () => void;
-  onZoomOut?: () => void;
-  onToggleFullscreen?: () => void;
+  onAddNode?: (type: string, event: MouseEvent<HTMLButtonElement>) => void;
+  onDeleteSelected?: MouseEventHandler<HTMLButtonElement>;
+  onCopy?: MouseEventHandler<HTMLButtonElement>;
+  onPaste?: MouseEventHandler<HTMLButtonElement>;
+  onUndo?: MouseEventHandler<HTMLButtonElement>;
+  onRedo?: MouseEventHandler<HTMLButtonElement>;
+  onFitView?: MouseEventHandler<HTMLButtonElement>;
+  onZoomIn?: MouseEventHandler<HTMLButtonElement>;
+  onZoomOut?: MouseEventHandler<HTMLButtonElement>;
+  onToggleFullscreen?: MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
 }
 
