@@ -140,32 +140,21 @@ export class RunCenterService {
     const set = this.clients.get(runId);
     if (!set) return;
     for (const ws of set) {
-<<<<<<< HEAD
-=======
       // MockWebSocket 提供 simulateMessage 方法
->>>>>>> pr-49
       if (typeof ws.simulateMessage === 'function') {
         ws.simulateMessage(JSON.stringify(message));
       } else if (typeof ws.send === 'function') {
         try {
           ws.send(JSON.stringify(message));
         } catch {
-<<<<<<< HEAD
-          /* ignore */
-=======
           /* 忽略发送错误 */
->>>>>>> pr-49
         }
       }
     }
   }
 
   /**
-<<<<<<< HEAD
    * 处理 REST 请求（用于测试集成）
-=======
-   * 处理 REST 请求
->>>>>>> pr-49
    */
   async handleRequest(method: string, path: string, body?: any): Promise<any> {
     if (method === 'POST' && path === '/runs') {

@@ -19,15 +19,9 @@ export async function copyText(
   inputRef?: HTMLInputElement | null
 ): Promise<CopyResult> {
   // 优先使用原生异步 Clipboard API
-<<<<<<< HEAD
-  if ((navigator as any).clipboard && (navigator as any).clipboard.writeText) {
-    try {
-      await (navigator as any).clipboard.writeText(text);
-=======
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
       await navigator.clipboard.writeText(text);
->>>>>>> pr-53
       return { success: true };
     } catch {
       // 忽略错误，转而使用 document.execCommand
@@ -42,15 +36,9 @@ export async function copyText(
     input = document.createElement('input');
     input.value = text;
     input.setAttribute('aria-hidden', 'true');
-<<<<<<< HEAD
-    (input.style as any).position = 'fixed';
-    (input.style as any).opacity = '0';
-    (input.style as any).pointerEvents = 'none';
-=======
     input.style.position = 'fixed';
     input.style.opacity = '0';
     input.style.pointerEvents = 'none';
->>>>>>> pr-53
     document.body.appendChild(input);
     cleanup = true;
   } else {
@@ -84,7 +72,3 @@ export async function copyText(
     };
   }
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> pr-53
