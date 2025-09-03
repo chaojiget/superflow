@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ExecRequestSchema, ExecEventSchema, NodeContext } from '../runtime';
+<<<<<<< HEAD
 import type { RunRecord, LogRecord } from '../runtime';
 import { VersionRecord } from '../storage';
+=======
+import { RunRecord, LogRecord, VersionRecord } from '../storage';
+>>>>>>> pr-44
 import { createError } from '../error';
 
 const ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
@@ -54,7 +58,11 @@ describe('类型校验与 JSON 序列化', () => {
         del: async () => {},
       },
       traceId: 'trace-1',
+<<<<<<< HEAD
     } as any;
+=======
+    };
+>>>>>>> pr-44
     expect(ctx.logger.info).toBeDefined();
   });
 
@@ -67,7 +75,11 @@ describe('类型校验与 JSON 序列化', () => {
       startedAt: 1,
       status: 'pending',
       traceId: 'trace-1',
+<<<<<<< HEAD
     } as any;
+=======
+    };
+>>>>>>> pr-44
     const json = JSON.stringify(run);
     const parsed = JSON.parse(json) as RunRecord;
     expect(parsed).toEqual(run);
@@ -83,7 +95,11 @@ describe('类型校验与 JSON 序列化', () => {
       level: 'info',
       event: 'test',
       traceId: 'trace-1',
+<<<<<<< HEAD
     } as any;
+=======
+    };
+>>>>>>> pr-44
     const json = JSON.stringify(log);
     const parsed = JSON.parse(json) as LogRecord;
     expect(parsed).toEqual(log);
@@ -98,7 +114,11 @@ describe('类型校验与 JSON 序列化', () => {
       author: 'me',
       message: 'msg',
       diff: 'diff',
+<<<<<<< HEAD
     } as any;
+=======
+    };
+>>>>>>> pr-44
     const json = JSON.stringify(version);
     const parsed = JSON.parse(json) as VersionRecord;
     expect(parsed).toEqual(version);
@@ -116,4 +136,7 @@ describe('类型校验与 JSON 序列化', () => {
     expect((parsed as any).cause.foo).toBe('bar');
   });
 });
+<<<<<<< HEAD
 
+=======
+>>>>>>> pr-44
