@@ -65,4 +65,3 @@ export class RunCenterClient {
     return [...this.logs];
   }
 }
-
