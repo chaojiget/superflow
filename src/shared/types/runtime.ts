@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { BaseEntity, TraceId, UlidSchema, TimestampSchema } from './base';
-import { ErrorCodeSchema } from './error';
 
 // 运行状态与日志级别
 export const RunStatusSchema = z.enum([
@@ -121,14 +120,6 @@ export const ExecEventSchema = z.union([
 export type NodeContext = WorkerContext;
 
 // 节点运行状态与运行中心事件（供 FlowCanvas 绑定）
-export const NodeRuntimeStatusSchema = z.enum([
-  'idle',
-  'running',
-  'success',
-  'error',
-]);
-export type NodeRuntimeStatus = z.infer<typeof NodeRuntimeStatusSchema>;
-
 export interface NodeExecutionEventHandlers {
   onNodeStart?: (nodeId: string) => void;
   onNodeSuccess?: (nodeId: string) => void;

@@ -18,6 +18,7 @@ import type {
   NodePosition,
   NodeRuntimeStatus,
 } from '@/shared/types';
+import type { RunCenter } from '@/run-center';
 const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   idle: { border: '1px solid #d1d5db' },
   running: { border: '2px solid #3b82f6' },
@@ -207,6 +208,45 @@ export class FlowCanvas {
    */
   getNode(nodeId: string): Node | undefined {
     return this.nodes.find((node) => node.id === nodeId);
+  }
+
+  /**
+   * 绑定运行中心事件到画布，实时同步节点运行状态
+   */
+  attachExecutionEvents(runCenter: RunCenter, runId: string): () => void {
+    const unsubscribe = (runCenter as any).subscribeNodeEvents?.(runId, {
+      onNodeStart: (nodeId: string) => {
+        const node = this.getNode(nodeId);
+        if (node) {
+          node.data = { ...(node.data || {}), runtimeStatus: 'running' };
+          node.style = { ...(node.style || {}), ...STATUS_STYLES['running'] };
+        }
+      },
+      onNodeSuccess: (nodeId: string) => {
+        const node = this.getNode(nodeId);
+        if (node) {
+          node.data = { ...(node.data || {}), runtimeStatus: 'success' };
+          node.style = { ...(node.style || {}), ...STATUS_STYLES['success'] };
+        }
+      },
+      onNodeError: (nodeId: string) => {
+        const node = this.getNode(nodeId);
+        if (node) {
+          node.data = { ...(node.data || {}), runtimeStatus: 'error' };
+          node.style = { ...(node.style || {}), ...STATUS_STYLES['error'] };
+        }
+      },
+    });
+    return typeof unsubscribe === 'function' ? unsubscribe : () => {};
+  }
+
+  /**
+   * 请求运行中心重试特定节点
+   */
+  async retryNode(runCenter: RunCenter, runId: string, nodeId: string) {
+    if (typeof (runCenter as any).retryNode === 'function') {
+      await (runCenter as any).retryNode(runId, nodeId);
+    }
   }
 
   /**
