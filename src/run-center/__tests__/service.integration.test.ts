@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { RunCenterService } from '../RunCenterService';
+<<<<<<< HEAD
 import { RunCenterClient } from '../RunCenterClient';
+=======
+import { RunCenterPage } from '../RunCenterPage';
+>>>>>>> pr-49
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 // 集成测试：验证前端与服务端实时通信
@@ -36,7 +40,11 @@ describe('RunCenter Service integration', () => {
     } as any;
     (globalThis.WebSocket as any).prototype = OriginalWS.prototype;
 
+<<<<<<< HEAD
     const page = new RunCenterClient({ baseUrl: 'http://localhost' });
+=======
+    const page = new RunCenterPage({ baseUrl: 'http://localhost' });
+>>>>>>> pr-49
     const runId = await page.startRun('flow1');
 
     await service.updateRunStatus(runId, 'running');
@@ -47,4 +55,7 @@ describe('RunCenter Service integration', () => {
     expect(page.getLogs()[0].message).toBe('started');
   });
 });
+<<<<<<< HEAD
 
+=======
+>>>>>>> pr-49
