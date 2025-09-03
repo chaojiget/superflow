@@ -3,9 +3,10 @@
  * 流程执行监控和管理界面
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
 import type { RunRecord, ExecutionSnapshot } from './types';
+import type { NodeExecutionEventHandlers } from '@/shared/types';
 
 /**
  * 运行中心属性
@@ -44,6 +45,7 @@ export class RunCenter {
   private logs = new Map<string, any[]>();
   private subscribers = new Map<string, ((...args: any[]) => void)[]>();
   private logStreamers = new Map<string, ((...args: any[]) => void)[]>();
+  private nodeEventSubscribers = new Map<string, NodeExecutionEventHandlers[]>();
 
   constructor(private props: RunCenterProps = {}) {}
 
@@ -123,6 +125,11 @@ export class RunCenter {
       finishedAt: run.endTime,
     };
   }
+
+  /**
+   * 订阅运行状态
+   */
+  // 注意：运行状态与节点事件的实现位于类后半部分，避免重复定义
 
   /**
    * 获取所有运行记录
@@ -407,6 +414,68 @@ export class RunCenter {
     };
   }
 
+  subscribeNodeEvents(
+    runId: string,
+    handlers: NodeExecutionEventHandlers
+  ): () => void {
+    if (!this.nodeEventSubscribers.has(runId)) {
+      this.nodeEventSubscribers.set(runId, []);
+    }
+    this.nodeEventSubscribers.get(runId)!.push(handlers);
+
+    return () => {
+      const subs = this.nodeEventSubscribers.get(runId);
+      if (!subs) return;
+      const index = subs.indexOf(handlers);
+      if (index > -1) {
+        subs.splice(index, 1);
+      }
+    };
+  }
+
+  private emitNodeEvent(
+    runId: string,
+    type: 'start' | 'success' | 'error',
+    nodeId: string
+  ): void {
+    const subs = this.nodeEventSubscribers.get(runId) || [];
+    for (const handler of subs) {
+      try {
+        switch (type) {
+          case 'start':
+            handler.onNodeStart?.(nodeId);
+            break;
+          case 'success':
+            handler.onNodeSuccess?.(nodeId);
+            break;
+          case 'error':
+            handler.onNodeError?.(nodeId);
+            break;
+        }
+      } catch (error) {
+        console.error('节点事件回调错误:', error);
+      }
+    }
+  }
+
+  publishNodeStart(runId: string, nodeId: string): void {
+    this.emitNodeEvent(runId, 'start', nodeId);
+  }
+
+  publishNodeSuccess(runId: string, nodeId: string): void {
+    this.emitNodeEvent(runId, 'success', nodeId);
+  }
+
+  publishNodeError(runId: string, nodeId: string): void {
+    this.emitNodeEvent(runId, 'error', nodeId);
+  }
+
+  async retryNode(runId: string, nodeId: string): Promise<void> {
+    this.publishNodeStart(runId, nodeId);
+    await Promise.resolve();
+    this.publishNodeSuccess(runId, nodeId);
+  }
+
   /**
    * 订阅日志流
    */
@@ -441,18 +510,21 @@ export class RunCenter {
       for (let i = 0; i < nodeCount; i++) {
         if (run.status !== 'running') break;
 
+        const nodeId = `node-${i + 1}`;
+        run.progress.running = 1;
+        this.publishNodeStart(runId, nodeId);
+
         // 模拟节点执行时间
         await new Promise((resolve) =>
           setTimeout(resolve, Math.random() * 1000 + 500)
         );
 
-        run.progress.running = 1;
         run.logs.push({
           id: generateId(),
           timestamp: Date.now(),
           level: 'info',
           message: `执行节点 ${i + 1}/${nodeCount}`,
-          nodeId: `node-${i + 1}`,
+          nodeId,
         });
 
         // 随机失败概率
@@ -464,11 +536,13 @@ export class RunCenter {
             timestamp: Date.now(),
             level: 'error',
             message: `节点 ${i + 1} 执行失败`,
-            nodeId: `node-${i + 1}`,
+            nodeId,
           });
+          this.publishNodeError(runId, nodeId);
         } else {
           run.progress.completed++;
           run.metrics.successCount = (run.metrics.successCount || 0) + 1;
+          this.publishNodeSuccess(runId, nodeId);
         }
 
         run.progress.running = 0;
