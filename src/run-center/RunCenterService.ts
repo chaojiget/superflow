@@ -9,6 +9,7 @@ import type { RunRecord, RunLog, RunStatus } from './types';
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();
   private logs = new Map<string, RunLog[]>();
+  private clients = new Map<string, Set<any>>();
 
   /**
    * 创建运行记录
@@ -77,6 +78,7 @@ export class RunCenterService {
     });
 
     this.runs.set(runId, run);
+    this.broadcast(runId, { type: 'status', status });
   }
 
   /**
@@ -101,6 +103,8 @@ export class RunCenterService {
     if (run) {
       run.logs = logs;
     }
+
+    this.broadcast(runId, { type: 'log', log: newLog });
   }
 
   /**
@@ -115,6 +119,60 @@ export class RunCenterService {
    */
   async getAllRuns(): Promise<RunRecord[]> {
     return Array.from(this.runs.values());
+  }
+
+  /**
+   * 注册 WebSocket 客户端
+   */
+  registerClient(runId: string, ws: any): void {
+    if (!this.clients.has(runId)) {
+      this.clients.set(runId, new Set());
+    }
+    const set = this.clients.get(runId)!;
+    set.add(ws);
+    ws.onclose = () => set.delete(ws);
+  }
+
+  /**
+   * 推送事件
+   */
+  private broadcast(runId: string, message: any): void {
+    const set = this.clients.get(runId);
+    if (!set) return;
+    for (const ws of set) {
+      if (typeof ws.simulateMessage === 'function') {
+        ws.simulateMessage(JSON.stringify(message));
+      } else if (typeof ws.send === 'function') {
+        try {
+          ws.send(JSON.stringify(message));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }
+
+  /**
+   * 处理 REST 请求（用于测试集成）
+   */
+  async handleRequest(method: string, path: string, body?: any): Promise<any> {
+    if (method === 'POST' && path === '/runs') {
+      const { flowId, input } = body || {};
+      return this.createRun(flowId, input);
+    }
+
+    const statusMatch = path.match(/^\/runs\/([^/]+)\/status$/);
+    if (method === 'GET' && statusMatch) {
+      const run = await this.getRun(statusMatch[1] as string);
+      return { status: run.status };
+    }
+
+    const logsMatch = path.match(/^\/runs\/([^/]+)\/logs$/);
+    if (method === 'GET' && logsMatch) {
+      return this.getLogs(logsMatch[1] as string);
+    }
+
+    throw new Error(`Unsupported route: ${method} ${path}`);
   }
 
   /**

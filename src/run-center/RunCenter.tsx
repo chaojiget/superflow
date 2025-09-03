@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { generateId } from '@/shared/utils';
 import type { RunRecord, ExecutionSnapshot } from './types';
+import type { NodeExecutionEventHandlers } from '@/shared/types';
 
 /**
  * 运行中心属性
@@ -44,6 +45,7 @@ export class RunCenter {
   private logs = new Map<string, any[]>();
   private subscribers = new Map<string, ((...args: any[]) => void)[]>();
   private logStreamers = new Map<string, ((...args: any[]) => void)[]>();
+  private nodeEventSubscribers = new Map<string, NodeExecutionEventHandlers[]>();
 
   constructor(private props: RunCenterProps = {}) {}
 
@@ -122,6 +124,89 @@ export class RunCenter {
       startedAt: run.startTime,
       finishedAt: run.endTime,
     };
+  }
+
+  /**
+   * 订阅运行状态
+   */
+  subscribeToRun(
+    runId: string,
+    callback: (status: string) => void
+  ): () => void {
+    if (!this.subscribers.has(runId)) {
+      this.subscribers.set(runId, []);
+    }
+    this.subscribers.get(runId)!.push(callback);
+
+    return () => {
+      const callbacks = this.subscribers.get(runId) || [];
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+      }
+    };
+  }
+
+  subscribeNodeEvents(
+    runId: string,
+    handlers: NodeExecutionEventHandlers
+  ): () => void {
+    if (!this.nodeEventSubscribers.has(runId)) {
+      this.nodeEventSubscribers.set(runId, []);
+    }
+    this.nodeEventSubscribers.get(runId)!.push(handlers);
+
+    return () => {
+      const subs = this.nodeEventSubscribers.get(runId);
+      if (!subs) return;
+      const index = subs.indexOf(handlers);
+      if (index > -1) {
+        subs.splice(index, 1);
+      }
+    };
+  }
+
+  private emitNodeEvent(
+    runId: string,
+    type: 'start' | 'success' | 'error',
+    nodeId: string
+  ): void {
+    const subs = this.nodeEventSubscribers.get(runId) || [];
+    for (const handler of subs) {
+      try {
+        switch (type) {
+          case 'start':
+            handler.onNodeStart?.(nodeId);
+            break;
+          case 'success':
+            handler.onNodeSuccess?.(nodeId);
+            break;
+          case 'error':
+            handler.onNodeError?.(nodeId);
+            break;
+        }
+      } catch (error) {
+        console.error('节点事件回调错误:', error);
+      }
+    }
+  }
+
+  publishNodeStart(runId: string, nodeId: string): void {
+    this.emitNodeEvent(runId, 'start', nodeId);
+  }
+
+  publishNodeSuccess(runId: string, nodeId: string): void {
+    this.emitNodeEvent(runId, 'success', nodeId);
+  }
+
+  publishNodeError(runId: string, nodeId: string): void {
+    this.emitNodeEvent(runId, 'error', nodeId);
+  }
+
+  async retryNode(runId: string, nodeId: string): Promise<void> {
+    this.publishNodeStart(runId, nodeId);
+    await Promise.resolve();
+    this.publishNodeSuccess(runId, nodeId);
   }
 
   /**

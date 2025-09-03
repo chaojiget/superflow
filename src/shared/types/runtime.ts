@@ -67,3 +67,56 @@ export interface WorkerResponse {
   id: string;
   payload?: unknown;
 }
+
+/**
+ * 以下为执行协议与事件的最小定义（来自 PR #44 用例）
+ */
+export const ExecRequestSchema = z.object({
+  kind: z.literal('EXEC'),
+  runId: z.string(),
+  nodeId: z.string(),
+  flowId: z.string(),
+  code: z.string(),
+  language: z.enum(['js', 'ts']),
+  input: z.unknown(),
+  controls: z
+    .object({
+      timeoutMs: z.number().int().positive().optional(),
+      retries: z.number().int().nonnegative().optional(),
+    })
+    .optional(),
+  env: z.record(z.string()).optional(),
+  capabilities: z.array(z.string()).optional(),
+});
+
+const StartedEventSchema = z.object({
+  kind: z.literal('STARTED'),
+  runId: z.string(),
+  ts: z.number().int().positive(),
+});
+
+const LogEventSchema = z.object({
+  kind: z.literal('LOG'),
+  runId: z.string(),
+  ts: z.number().int().positive(),
+  level: LogLevelSchema,
+  event: z.string(),
+  data: z.unknown().optional(),
+});
+
+const ResultEventSchema = z.object({
+  kind: z.literal('RESULT'),
+  runId: z.string(),
+  ts: z.number().int().positive(),
+  durationMs: z.number().int().nonnegative().optional(),
+  output: z.unknown().optional(),
+});
+
+export const ExecEventSchema = z.union([
+  StartedEventSchema,
+  LogEventSchema,
+  ResultEventSchema,
+]);
+
+// 兼容别名：NodeContext 等同于 WorkerContext
+export type NodeContext = WorkerContext;
