@@ -1,0 +1,1 @@
+- [ ] 可观察性与 Trace：可点击的 Trace 进度条、日志视图增强、OpenTelemetry 关联 id，实现日志-事件-节点联动。
