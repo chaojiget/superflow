@@ -1,3 +1,1 @@
-# agents相关文档查看 CLAUDE.md
-
-- [ ] 版本与分支：保存即新版本，支持版本备注、差异视图、草稿分支与发布分离，一键回滚。
+- [ ] 强类型与校验：维护 DSL 的 JSON Schema/TS 类型，Inspector 表单即时校验，outputs 变更兼容性判定。
