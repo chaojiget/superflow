@@ -1,0 +1,1 @@
+- [ ] 强类型与校验：维护 DSL 的 JSON Schema/TS 类型，Inspector 表单即时校验，outputs 变更兼容性判定。
