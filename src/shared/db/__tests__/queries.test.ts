@@ -27,7 +27,7 @@ describe('db queries', () => {
     });
     const logs = await getLogsByRunId(storage, 'run-1');
     expect(logs).toHaveLength(1);
-    expect(logs[0].id).toBe('1');
+    expect(logs[0]!.id).toBe('1');
   });
 
   it('getRunsByTraceId returns matching runs', async () => {
@@ -48,7 +48,7 @@ describe('db queries', () => {
     });
     const runs = await getRunsByTraceId(storage, 'trace-1');
     expect(runs).toHaveLength(1);
-    expect(runs[0].id).toBe('run-1');
+    expect(runs[0]!.id).toBe('run-1');
   });
 
   it('exportLogsAsNDJSON streams logs', async () => {

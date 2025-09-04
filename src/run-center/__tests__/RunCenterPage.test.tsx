@@ -91,7 +91,7 @@ describe('RunCenterPage', () => {
     );
 
     expect(screen.getAllByTestId('log-item')).toHaveLength(5);
-    fireEvent.click(screen.getAllByTestId('download-log')[0]);
+    fireEvent.click(screen.getAllByTestId('download-log')[0]!);
     expect(download).toHaveBeenCalledWith('run-1');
 
     fireEvent.click(screen.getByText('下一页'));
