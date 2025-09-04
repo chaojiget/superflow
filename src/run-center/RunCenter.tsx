@@ -521,26 +521,18 @@ export class RunCenter {
           setTimeout(resolve, Math.random() * 1000 + 500)
         );
 
-<<<<<<< HEAD
-=======
-        run.progress.running = 1;
+        // 使用 PreviewRunner 生成日志消息（避免主线程阻塞）
         const msg = (await this.previewRunner.run(
           (index: number, total: number) => `执行节点 ${index}/${total}`,
           i + 1,
           nodeCount
         )) as string;
->>>>>>> 1da6d96 (feat(run-center): add preview runner worker)
         run.logs.push({
           id: generateId(),
           timestamp: Date.now(),
           level: 'info',
-<<<<<<< HEAD
-          message: `执行节点 ${i + 1}/${nodeCount}`,
+          message: msg ?? `执行节点 ${i + 1}/${nodeCount}`,
           nodeId,
-=======
-          message: msg,
-          nodeId: `node-${i + 1}`,
->>>>>>> 1da6d96 (feat(run-center): add preview runner worker)
         });
 
         // 随机失败概率
