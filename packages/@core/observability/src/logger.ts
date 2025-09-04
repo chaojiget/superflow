@@ -1,6 +1,6 @@
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
-
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import type { LogLevel } from '@core/protocol';
 
 export interface LogEntry {
   ts: number;
@@ -86,3 +86,23 @@ export class Logger {
 }
 
 export const logger = new Logger();
+=======
+import type { LogLevel } from '../protocol/src';
+
+export interface LogRow {
+  ts: number;
+  level: LogLevel;
+  nodeId?: string | undefined;
+  runId?: string | undefined;
+  chainId?: string | undefined;
+  fields?: Record<string, unknown> | undefined;
+}
+
+export interface Logger {
+  log(row: LogRow): void;
+}
+
+export function createLogRow(row: LogRow): LogRow {
+  return row;
+}
+>>>>>>> origin/codex/define-execrequest-and-related-types

@@ -2,8 +2,8 @@ import { ulid } from 'ulid';
 
 export interface Trace {
   chainId: string;
-  parentId?: string;
   runId: string;
+  parentId?: string;
   nodeId?: string;
 }
 
@@ -14,8 +14,8 @@ export function createTrace(
 ): Trace {
   return {
     chainId: ulid(),
-    parentId,
     runId,
+    parentId,
     nodeId,
   };
 }

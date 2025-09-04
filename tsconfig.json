@@ -35,6 +35,7 @@
       "@core/*": ["packages/@core/src/*", "packages/@core/*"],
       "@data": ["packages/@data/src"],
       "@data/*": ["packages/@data/src/*"],
+      "@core/protocol": ["packages/@core/protocol/src"],
       "@app/services": ["packages/@app/services/src"],
       "@app/services/*": ["packages/@app/services/src/*"]
     },

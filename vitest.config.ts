@@ -43,6 +43,7 @@ export default defineConfig({
       // Core layered packages
       '@core/domain': resolve(__dirname, 'packages/@core/domain'),
       '@core/runtime': resolve(__dirname, 'packages/@core/runtime'),
+      '@core/protocol': resolve(__dirname, 'packages/@core/protocol/src'),
       '@core/observability': resolve(__dirname, 'packages/@core/observability/src'),
       '@core': resolve(__dirname, 'packages/@core/src'),
       // Data and App services
