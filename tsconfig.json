@@ -30,7 +30,9 @@
       "@/flow/*": ["src/flow/*"],
       "@/nodes/*": ["src/nodes/*"],
       "@/run-center/*": ["src/run-center/*"],
-      "@/utils/*": ["src/utils/*"]
+      "@/utils/*": ["src/utils/*"],
+      "@app/services": ["packages/@app/services/src/index.ts"],
+      "@app/services/*": ["packages/@app/services/src/*"]
     },
 
     /* Additional type checking */
@@ -38,6 +40,6 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
   },
-  "include": ["src"],
+  "include": ["src", "packages/@app/services/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
