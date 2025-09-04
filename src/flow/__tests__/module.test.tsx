@@ -22,7 +22,13 @@ vi.mock('reactflow', () => ({
           props
         ) => <div>{props.data?.label}</div>;
         const Comp = nodeTypes[n.type || 'default'] ?? Fallback;
-        return <Comp key={n.id} id={n.id} data={n.data} />;
+        return (
+          <Comp
+            key={n.id}
+            id={n.id}
+            {...(n.data !== undefined ? { data: n.data } : {})}
+          />
+        );
       })}
       {children}
     </div>
