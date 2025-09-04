@@ -27,6 +27,8 @@ const DEFAULT_OPTIONS: Required<FlowRenderOptions> = {
 const RenderFlow: React.FC<RenderFlowProps> = ({
   nodes,
   edges,
+  nodeTypes,
+  edgeTypes,
   flowProps = {},
   ...options
 }) => {
@@ -71,7 +73,8 @@ const RenderFlow: React.FC<RenderFlowProps> = ({
         nodesDraggable={!config.readonly}
         nodesConnectable={!config.readonly}
         elementsSelectable={!config.readonly}
-        nodeTypes={{ default: StatusNode }}
+        nodeTypes={nodeTypes ?? { default: StatusNode }}
+        edgeTypes={edgeTypes}
         {...flowProps}
       >
         {config.showControls && (
