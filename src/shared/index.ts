@@ -3,6 +3,9 @@ export {
   createStorage,
   exportData,
   importData,
+  getLogsByRunId,
+  getRunsByTraceId,
+  exportLogsAsNDJSON,
   KVStore,
   createKVStore,
 } from './db';

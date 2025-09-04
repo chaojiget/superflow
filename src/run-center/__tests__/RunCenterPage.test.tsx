@@ -12,12 +12,55 @@ import { RunCenterService } from '../RunCenterService';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 const logs: NodeLog[] = [
-  { id: '1', node: 'A', status: 'success', message: 'ok' },
-  { id: '2', node: 'B', status: 'failed', message: 'oops', error: 'detail' },
-  { id: '3', node: 'C', status: 'running', message: 'processing' },
-  { id: '4', node: 'D', status: 'success', message: 'done' },
-  { id: '5', node: 'E', status: 'success', message: 'done' },
-  { id: '6', node: 'F', status: 'success', message: 'done' },
+  {
+    id: '1',
+    node: 'A',
+    status: 'success',
+    message: 'ok',
+    runId: 'run-1',
+    traceId: 'trace-1',
+  },
+  {
+    id: '2',
+    node: 'B',
+    status: 'failed',
+    message: 'oops',
+    error: 'detail',
+    runId: 'run-1',
+    traceId: 'trace-1',
+  },
+  {
+    id: '3',
+    node: 'C',
+    status: 'running',
+    message: 'processing',
+    runId: 'run-2',
+    traceId: 'trace-2',
+  },
+  {
+    id: '4',
+    node: 'D',
+    status: 'success',
+    message: 'done',
+    runId: 'run-2',
+    traceId: 'trace-2',
+  },
+  {
+    id: '5',
+    node: 'E',
+    status: 'success',
+    message: 'done',
+    runId: 'run-3',
+    traceId: 'trace-3',
+  },
+  {
+    id: '6',
+    node: 'F',
+    status: 'success',
+    message: 'done',
+    runId: 'run-3',
+    traceId: 'trace-3',
+  },
 ];
 
 describe('RunCenterPage', () => {
@@ -42,9 +85,15 @@ describe('RunCenterPage', () => {
 
   it('支持分页和重新运行', () => {
     const retry = vi.fn();
-    render(<RunCenterPage logs={logs} onRetry={retry} />);
+    const download = vi.fn();
+    render(
+      <RunCenterPage logs={logs} onRetry={retry} onDownload={download} />
+    );
 
     expect(screen.getAllByTestId('log-item')).toHaveLength(5);
+    fireEvent.click(screen.getAllByTestId('download-log')[0]);
+    expect(download).toHaveBeenCalledWith('run-1');
+
     fireEvent.click(screen.getByText('下一页'));
     expect(screen.getAllByTestId('log-item')).toHaveLength(1);
 

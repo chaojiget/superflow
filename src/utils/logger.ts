@@ -18,12 +18,12 @@ export enum LogLevel {
  */
 export interface LogContext {
   event: string;
+  runId: string;
+  traceId: string;
   data?: unknown;
-  traceId?: string;
   userId?: string;
   flowId?: string;
   nodeId?: string;
-  runId?: string;
   [key: string]: unknown;
 }
 
@@ -207,14 +207,16 @@ export class Logger {
       return;
     }
 
+    const mergedContext = { ...this.defaultContext, ...context };
     const record: LogRecord = {
       timestamp: Date.now(),
       level,
       message,
       context: {
-        event: context.event || 'unknown',
-        ...this.defaultContext,
-        ...context,
+        event: mergedContext.event || 'unknown',
+        runId: mergedContext.runId || 'unknown',
+        traceId: mergedContext.traceId || 'unknown',
+        ...mergedContext,
       },
       ...(error && { error }),
     };
