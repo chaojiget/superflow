@@ -714,12 +714,106 @@ export function optimizeDAG(dag: ExecutionDAG): ExecutionDAG {
 /**
  * 合并兼容的节点
  */
-function mergeCompatibleNodes(nodes: DAGNode[], _edges: DAGEdge[]): DAGNode[] {
-  // 简单实现：找到可以合并的线性链条
-  const result = [...nodes];
+function mergeCompatibleNodes(nodes: DAGNode[], edges: DAGEdge[]): DAGNode[] {
+  // 构建入度和出度映射
+  const inMap = new Map<string, DAGEdge[]>();
+  const outMap = new Map<string, DAGEdge[]>();
+  for (const edge of edges) {
+    if (!outMap.has(edge.source)) {
+      outMap.set(edge.source, []);
+    }
+    outMap.get(edge.source)!.push(edge);
 
-  // TODO: 实现节点合并逻辑
-  // 这里需要更复杂的分析来确定哪些节点可以安全合并
+    if (!inMap.has(edge.target)) {
+      inMap.set(edge.target, []);
+    }
+    inMap.get(edge.target)!.push(edge);
+  }
 
-  return result;
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  const visited = new Set<string>();
+  const newNodes: DAGNode[] = [];
+
+  for (const node of nodes) {
+    if (visited.has(node.id)) continue;
+
+    const chain: DAGNode[] = [node];
+    let current = node;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const outs = outMap.get(current.id) || [];
+      if (outs.length !== 1) break;
+      const nextEdge = outs[0]!;
+      const nextNode = nodeMap.get(nextEdge.target);
+      if (!nextNode) break;
+      const ins = inMap.get(nextNode.id) || [];
+      if (ins.length !== 1) break;
+      if (nextNode.type !== node.type) break;
+      if (visited.has(nextNode.id)) break;
+
+      chain.push(nextNode);
+      current = nextNode;
+    }
+
+    if (chain.length > 1) {
+      // 标记已访问节点
+      for (const n of chain) visited.add(n.id);
+
+      const first = chain[0]!;
+      const last = chain[chain.length - 1]!;
+      const mergedId = generateId();
+      const merged: DAGNode = {
+        ...first,
+        id: mergedId,
+        name: chain.map((n) => n.name).join('+'),
+        description: chain
+          .map((n) => n.description)
+          .filter(Boolean)
+          .join('\n'),
+        inputs: first.inputs,
+        outputs: last.outputs,
+        dependencies: [],
+        dependents: [],
+      };
+
+      // 更新边：内部边移除，外部边指向合并节点
+      const chainIds = new Set(chain.map((n) => n.id));
+      const newEdges: DAGEdge[] = [];
+      for (const e of edges) {
+        const sourceIn = chainIds.has(e.source);
+        const targetIn = chainIds.has(e.target);
+        if (sourceIn && targetIn) {
+          continue; // 跳过链内部的边
+        }
+        const updated = { ...e };
+        if (sourceIn) updated.source = mergedId;
+        if (targetIn) updated.target = mergedId;
+        newEdges.push(updated);
+      }
+      edges.splice(0, edges.length, ...newEdges);
+
+      newNodes.push(merged);
+    } else {
+      visited.add(node.id);
+      newNodes.push(node);
+    }
+  }
+
+  // 重新计算依赖关系
+  const idMap = new Map(newNodes.map((n) => [n.id, n]));
+  for (const n of newNodes) {
+    n.dependencies = [];
+    n.dependents = [];
+  }
+  for (const e of edges) {
+    const src = idMap.get(e.source);
+    const tgt = idMap.get(e.target);
+    if (src && tgt) {
+      src.dependents.push(tgt.id);
+      tgt.dependencies.push(src.id);
+    }
+  }
+
+  return newNodes;
 }
