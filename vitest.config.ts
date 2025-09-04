@@ -40,6 +40,10 @@ export default defineConfig({
       '@/nodes': resolve(__dirname, 'src/nodes'),
       '@/run-center': resolve(__dirname, 'src/run-center'),
       '@/utils': resolve(__dirname, 'src/utils'),
+      '@app/services': resolve(
+        __dirname,
+        'packages/@app/services/src'
+      ),
     },
   },
 });

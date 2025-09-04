@@ -27,6 +27,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@app/services': resolve(
+        __dirname,
+        'packages/@app/services/src'
+      ),
     },
   },
 });
