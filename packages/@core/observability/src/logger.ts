@@ -4,6 +4,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
 import type { LogLevel } from '@core/protocol';
 
@@ -124,10 +125,14 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 =======
 export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 >>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
+=======
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+>>>>>>> origin/codex/add-planner-and-repairer-to-orchestrator
 
 export interface LogRow {
   ts: number;
   level: LogLevel;
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -226,3 +231,31 @@ export function createLog(row: LogRow): LogRow {
   return row;
 }
 >>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
+=======
+  nodeId: string | undefined;
+  runId: string | undefined;
+  chainId: string | undefined;
+  fields: Record<string, unknown> | undefined;
+}
+
+export interface LoggerContext {
+  nodeId?: string;
+  runId?: string;
+  chainId?: string;
+}
+
+export function createLog(
+  level: LogLevel,
+  ctx: LoggerContext,
+  fields?: Record<string, unknown>
+): LogRow {
+  return {
+    ts: Date.now(),
+    level,
+    nodeId: ctx.nodeId,
+    runId: ctx.runId,
+    chainId: ctx.chainId,
+    fields,
+  };
+}
+>>>>>>> origin/codex/add-planner-and-repairer-to-orchestrator

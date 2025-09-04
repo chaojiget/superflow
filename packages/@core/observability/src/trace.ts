@@ -3,6 +3,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { ulid } from 'ulid';
 
 =======
@@ -80,9 +81,19 @@ export interface Trace {
   parentId?: string | undefined;
   runId: string;
   nodeId?: string | undefined;
+=======
+export interface Trace {
+  chainId: string | undefined;
+  parentId: string | undefined;
+  runId: string | undefined;
+  nodeId: string | undefined;
+>>>>>>> origin/codex/add-planner-and-repairer-to-orchestrator
 }
 
 export function createTrace(trace: Trace): Trace {
   return trace;
+<<<<<<< HEAD
 >>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
+=======
+>>>>>>> origin/codex/add-planner-and-repairer-to-orchestrator
 }
