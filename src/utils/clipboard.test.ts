@@ -4,6 +4,7 @@ import { copyText } from './clipboard';
 describe('copyText', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     // @ts-expect-error - restore clipboard
     delete navigator.clipboard;
     // @ts-expect-error - restore execCommand
@@ -63,5 +64,23 @@ describe('copyText', () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/手动复制/);
+  });
+
+  it('returns error when navigator is undefined', async () => {
+    vi.stubGlobal('navigator', undefined as any);
+
+    const result = await copyText('text');
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/环境不支持/);
+  });
+
+  it('returns error when document is undefined', async () => {
+    vi.stubGlobal('document', undefined as any);
+
+    const result = await copyText('text');
+
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/环境不支持/);
   });
 });
