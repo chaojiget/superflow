@@ -31,20 +31,14 @@
       "@/nodes/*": ["src/nodes/*"],
       "@/run-center/*": ["src/run-center/*"],
       "@/utils/*": ["src/utils/*"],
-<<<<<<< HEAD
-<<<<<<< HEAD
       "@core": ["packages/@core/src"],
       "@core/*": ["packages/@core/src/*", "packages/@core/*"],
+      "@core/protocol": ["packages/@core/protocol/src"],
+      "@core/observability": ["packages/@core/observability/src"],
+      "@core/observability/*": ["packages/@core/observability/src/*"],
       "@data": ["packages/@data/src"],
       "@data/*": ["packages/@data/src/*"],
-      "@core/protocol": ["packages/@core/protocol/src"],
       "@app/services": ["packages/@app/services/src"],
-=======
-      "@app/services": ["packages/@app/services/src/index.ts"],
->>>>>>> origin/codex/structure-services-into-commands-and-queries-29bxfo
-=======
-      "@app/services": ["packages/@app/services/src/index.ts"],
->>>>>>> origin/codex/structure-services-into-commands-and-queries
       "@app/services/*": ["packages/@app/services/src/*"]
     },
 
@@ -53,14 +47,6 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
   },
-<<<<<<< HEAD
-<<<<<<< HEAD
   "include": ["src", "packages"],
-=======
-  "include": ["src", "packages/@app/services/src"],
->>>>>>> origin/codex/structure-services-into-commands-and-queries-29bxfo
-=======
-  "include": ["src", "packages/@app/services/src"],
->>>>>>> origin/codex/structure-services-into-commands-and-queries
   "references": [{ "path": "./tsconfig.node.json" }]
 }

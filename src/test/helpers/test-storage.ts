@@ -69,6 +69,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
     this.data.delete(table);
   }
 
+  async addEvent(event: any & { id: string }): Promise<void> {
+    await this.put('events', event);
+  }
+
   async transaction<T>(
     _tables: string[],
     _mode: 'readonly' | 'readwrite',
@@ -79,6 +83,7 @@ export class MemoryStorageAdapter implements StorageAdapter {
       get: this.get.bind(this),
       put: this.put.bind(this),
       delete: this.delete.bind(this),
+      addEvent: this.addEvent.bind(this),
     };
 
     return await callback(transaction);
@@ -366,7 +371,7 @@ export async function seedTestData(
  * 清空测试数据
  */
 export async function clearTestData(storage: StorageAdapter): Promise<void> {
-  const tables = ['flows', 'runs', 'nodes', 'logs', 'versions', 'kv'];
+  const tables = ['flows', 'runs', 'nodes', 'logs', 'versions', 'kv', 'events'];
   for (const table of tables) {
     await storage.clear(table);
   }

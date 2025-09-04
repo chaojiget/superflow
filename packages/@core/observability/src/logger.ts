@@ -2,6 +2,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
 import type { LogLevel } from '@core/protocol';
 
@@ -16,6 +17,16 @@ export enum LogLevel {
 
 export interface LogRow {
 >>>>>>> origin/codex/define-capabilities-in-capabilities.ts
+=======
+export enum LogLevel {
+  DEBUG = 0,
+  INFO = 1,
+  WARN = 2,
+  ERROR = 3,
+}
+
+export interface LogRow {
+>>>>>>> origin/codex/add-events-table-to-dexie-schema
   ts: number;
   level: LogLevel;
   nodeId?: string;
@@ -24,6 +35,7 @@ export interface LogRow {
   fields?: Record<string, unknown>;
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 interface LogRow extends LogEntry {
   id?: number;
@@ -180,3 +192,24 @@ export function createLog(row: LogRow): LogRow {
   return row;
 }
 >>>>>>> origin/codex/define-log-structure-and-export-functionality
+=======
+export function createLogRow(
+  level: LogLevel,
+  options: {
+    nodeId?: string;
+    runId?: string;
+    chainId?: string;
+    fields?: Record<string, unknown>;
+  } = {}
+): LogRow {
+  const { nodeId, runId, chainId, fields } = options;
+  return {
+    ts: Date.now(),
+    level,
+    ...(nodeId !== undefined ? { nodeId } : {}),
+    ...(runId !== undefined ? { runId } : {}),
+    ...(chainId !== undefined ? { chainId } : {}),
+    ...(fields !== undefined ? { fields } : {}),
+  };
+}
+>>>>>>> origin/codex/add-events-table-to-dexie-schema

@@ -67,6 +67,24 @@ describe('Shared Module', () => {
 
       expect(allItems.length).toBe(3);
     });
+
+    it('应该记录事件日志', async () => {
+      const { createTestStorage } = await import(
+        '../../test/helpers/test-storage'
+      );
+      const storage = createTestStorage();
+      const event = {
+        id: 'evt-1',
+        type: 'test',
+        payload: { msg: 'hello' },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await storage.addEvent(event);
+      const events = await storage.getAll('events');
+      expect(events).toHaveLength(1);
+      expect((events[0] as any).type).toBe('test');
+    });
   });
 
   describe('工具函数', () => {

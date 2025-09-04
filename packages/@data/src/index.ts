@@ -1,5 +1,9 @@
 import Dexie, { type Transaction } from 'dexie';
-import type { StorageAdapter, StorageTransaction } from '@core/storage';
+import type {
+  StorageAdapter,
+  StorageTransaction,
+  EventRecord,
+} from '@core/storage';
 
 /**
  * 数据库版本
@@ -34,15 +38,9 @@ export interface LogRecord {
   runId: string;
   ts: number;
   level: 'debug' | 'info' | 'warn' | 'error';
-<<<<<<< HEAD:packages/@data/src/index.ts
   event: string;
   data?: unknown;
   traceId?: string;
-=======
-  nodeId?: string;
-  chainId: string;
-  fields: Record<string, unknown>;
->>>>>>> origin/codex/define-log-structure-and-export-functionality:src/shared/db/index.ts
 }
 
 /**
@@ -102,6 +100,11 @@ export interface KVRecord {
 }
 
 /**
+ * 事件日志记录（追加写）
+ */
+export interface LocalEventRecord extends EventRecord {}
+
+/**
  * Superflow 数据库类
  */
 class SuperflowDB extends Dexie {
@@ -111,6 +114,7 @@ class SuperflowDB extends Dexie {
   flows!: Dexie.Table<FlowRecord, string>;
   nodes!: Dexie.Table<NodeRecord, string>;
   kv!: Dexie.Table<KVRecord, string>;
+  events!: Dexie.Table<LocalEventRecord, string>;
 
   constructor(name: string) {
     super(name);
@@ -144,11 +148,19 @@ class SuperflowDB extends Dexie {
 
     this.version(4).stores({
       runs: 'id, flowId, startedAt, finishedAt, status, traceId',
+<<<<<<< HEAD:packages/@data/src/index.ts
       logs: 'id, runId, chainId, nodeId, ts, level',
+=======
+      logs: 'id, runId, ts, level, event, traceId',
+>>>>>>> origin/codex/add-events-table-to-dexie-schema:src/shared/db/index.ts
       versions: 'id, nodeId, createdAt, author, version',
       flows: 'id, name, createdAt, updatedAt, version',
       nodes: 'id, kind, name, version, createdAt, updatedAt, author',
       kv: 'key, createdAt, updatedAt, expiresAt, namespace',
+<<<<<<< HEAD:packages/@data/src/index.ts
+=======
+      events: 'id, createdAt, type',
+>>>>>>> origin/codex/add-events-table-to-dexie-schema:src/shared/db/index.ts
     });
 
     // 数据迁移逻辑
@@ -172,6 +184,10 @@ class SuperflowDB extends Dexie {
             node.author = 'system';
           }
         });
+    });
+
+    this.version(4).upgrade(() => {
+      // 新增 events 表，无需迁移现有数据
     });
   }
 }
@@ -230,6 +246,10 @@ class DexieStorageAdapter implements StorageAdapter {
     await dbTable.clear();
   }
 
+  async addEvent(event: LocalEventRecord): Promise<void> {
+    await this.db.events.add(event);
+  }
+
   async transaction<T>(
     tables: string[],
     mode: 'readonly' | 'readwrite',
@@ -256,6 +276,10 @@ class DexieStorageAdapter implements StorageAdapter {
             const dbTable = tx.table(table);
             await dbTable.delete(key);
           },
+          addEvent: async (event: LocalEventRecord) => {
+            const table = tx.table('events');
+            await table.add(event);
+          },
         };
         return await callback(storageTransaction);
       }
@@ -276,6 +300,8 @@ class DexieStorageAdapter implements StorageAdapter {
         return this.db.nodes;
       case 'kv':
         return this.db.kv;
+      case 'events':
+        return this.db.events;
       case 'items': // 用于测试
         return this.db.kv; // 复用 kv 表
       default:
@@ -307,6 +333,7 @@ export async function exportData(storage: StorageAdapter): Promise<string> {
       flows: await storage.getAll('flows'),
       nodes: await storage.getAll('nodes'),
       kv: await storage.getAll('kv'),
+      events: await storage.getAll('events'),
     },
   };
   return JSON.stringify(data, null, 2);
