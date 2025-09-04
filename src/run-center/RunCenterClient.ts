@@ -13,6 +13,8 @@ export class RunCenterClient {
   private status: string | null = null;
   private logs: any[] = [];
   private ws: WebSocket | null = null;
+  private reconnectAttempts = 0;
+  private statusCallbacks = new Set<(state: string) => void>();
 
   constructor(options: RunCenterClientOptions) {
     this.baseUrl = options.baseUrl;
@@ -40,19 +42,37 @@ export class RunCenterClient {
   private connectWebSocket(): void {
     if (!this.runId) return;
     const wsUrl = this.baseUrl.replace('http', 'ws') + `/runs/${this.runId}`;
-    this.ws = new WebSocket(wsUrl);
-    this.ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'status') {
-          this.status = msg.status;
-        } else if (msg.type === 'log') {
-          this.logs.push(msg.log);
+    const connect = () => {
+      this.notifyStatus('connecting');
+      this.ws = new WebSocket(wsUrl);
+      this.ws.onopen = () => {
+        this.reconnectAttempts = 0;
+        this.notifyStatus('open');
+      };
+      this.ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'status') {
+            this.status = msg.status;
+          } else if (msg.type === 'log') {
+            this.logs.push(msg.log);
+          }
+        } catch {
+          // ignore parse errors
         }
-      } catch {
-        // ignore parse errors
-      }
+      };
+      this.ws.onerror = () => {
+        this.notifyStatus('error');
+        this.ws?.close();
+      };
+      this.ws.onclose = () => {
+        this.notifyStatus('closed');
+        const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+        this.reconnectAttempts++;
+        setTimeout(connect, delay);
+      };
     };
+    connect();
   }
 
   /** 获取当前运行状态 */
@@ -63,5 +83,15 @@ export class RunCenterClient {
   /** 获取日志列表 */
   getLogs(): any[] {
     return [...this.logs];
+  }
+
+  /** 注册连接状态回调 */
+  onConnectionStatus(callback: (state: string) => void): () => void {
+    this.statusCallbacks.add(callback);
+    return () => this.statusCallbacks.delete(callback);
+  }
+
+  private notifyStatus(state: string): void {
+    for (const cb of this.statusCallbacks) cb(state);
   }
 }
