@@ -1,6 +1,12 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { RunCenterPage, NodeLog } from '../RunCenterPage';
 import { RunCenterService } from '../RunCenterService';
 import { mockWebSocket } from '@/test/helpers/test-server';
@@ -92,8 +98,16 @@ describe('RunCenterPage', () => {
 
       await act(async () => {
         await service.updateRunStatus(run.id, 'running');
-        await service.addLog(run.id, { level: 'info', message: 'started', nodeId: 'A' });
-        await service.addLog(run.id, { level: 'error', message: 'boom', nodeId: 'B' });
+        await service.addLog(run.id, {
+          level: 'info',
+          message: 'started',
+          nodeId: 'A',
+        });
+        await service.addLog(run.id, {
+          level: 'error',
+          message: 'boom',
+          nodeId: 'B',
+        });
         await service.updateRunStatus(run.id, 'failed');
       });
 
