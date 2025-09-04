@@ -27,13 +27,13 @@ export class RunnerClient {
     });
 
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       const cleanup = () => {
         if (timeoutId) clearTimeout(timeoutId);
         worker.terminate();
       };
       timeoutId = setTimeout(() => {
-        worker.terminate();
+        cleanup();
         onEvent({
           kind: 'LOG',
           runId: req.runId,
@@ -45,18 +45,19 @@ export class RunnerClient {
       }, hardTimeout);
 
       options?.signal?.addEventListener('abort', () => {
-        worker.terminate();
+        cleanup();
         reject(new DOMException('Aborted', 'AbortError'));
       });
 
-      try {
-        await api.exec(req, cb);
-        resolve();
-      } catch (err) {
-        reject(err);
-      } finally {
-        cleanup();
-      }
+      api.exec(req, cb)
+        .then(() => {
+          cleanup();
+          resolve();
+        })
+        .catch((err) => {
+          cleanup();
+          reject(err);
+        });
     });
   }
 }
