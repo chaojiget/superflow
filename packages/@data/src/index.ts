@@ -393,7 +393,11 @@ export async function exportLogsAsNDJSON(
 ): Promise<void> {
   const logs = await getLogsByRunId(storage, runId);
   for (const log of logs) {
-    writer.write(JSON.stringify(log) + '\n');
+    const hasData = typeof (log as any).data === 'object' && (log as any).data !== null;
+    const withFields = hasData
+      ? ({ ...log, fields: (log as any).data } as any)
+      : (log as any);
+    writer.write(JSON.stringify(withFields) + '\n');
   }
 }
 

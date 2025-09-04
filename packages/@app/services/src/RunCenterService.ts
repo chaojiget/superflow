@@ -226,7 +226,15 @@ export class RunCenterService {
     const logs = runId
       ? await this.db.logs.where('runId').equals(runId).toArray()
       : await this.db.logs.toArray();
-    return logs.map((l) => JSON.stringify(l)).join('\n');
+    return logs
+      .map((l: any) =>
+        JSON.stringify(
+          typeof l.data === 'object' && l.data !== null
+            ? { ...l, fields: l.data }
+            : l
+        )
+      )
+      .join('\n');
   }
 
   /** 兼容旧命名 */

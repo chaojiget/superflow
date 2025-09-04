@@ -1,1 +1,1 @@
-export type { ExecRequest, ExecEvent } from '@core/runtime';
+export type { ExecRequest, ExecEvent } from '@core';

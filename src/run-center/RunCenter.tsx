@@ -305,22 +305,24 @@ export class RunCenter {
   ): Promise<void> {
     const timestamp = Date.now();
     const logEntry = {
-      ...entry,
+      level: entry.level,
       ts: timestamp,
-      timestamp,
       runId,
-    };
+      fields: { message: entry.event, ...(entry.data || {}) },
+    } as any;
 
     // 存储到运行记录中
     const run = this.state.runs.get(runId);
     if (run) {
       run.logs.push({
         id: generateId(),
-        timestamp,
+        ts: timestamp,
         level: entry.level,
-        message: entry.event,
-        nodeId: entry.data?.nodeId as string,
-      });
+        runId,
+        chainId: run.chainId,
+        fields: { message: entry.event, ...(entry.data || {}) },
+        ...(entry.data?.nodeId ? { nodeId: entry.data?.nodeId as string } : {}),
+      } as any);
     }
 
     // 存储到日志集合中
@@ -562,11 +564,13 @@ export class RunCenter {
         )) as string;
         run.logs.push({
           id: generateId(),
-          timestamp: Date.now(),
+          ts: Date.now(),
           level: 'info',
-          message: msg ?? `执行节点 ${i + 1}/${nodeCount}`,
+          runId,
+          chainId: run.chainId,
+          fields: { message: msg ?? `执行节点 ${i + 1}/${nodeCount}` },
           nodeId,
-        });
+        } as any);
 
         // 随机失败概率
         if (Math.random() < 0.1) {
@@ -574,11 +578,13 @@ export class RunCenter {
           run.metrics.failureCount = (run.metrics.failureCount || 0) + 1;
           run.logs.push({
             id: generateId(),
-            timestamp: Date.now(),
+            ts: Date.now(),
             level: 'error',
-            message: `节点 ${i + 1} 执行失败`,
+            runId,
+            chainId: run.chainId,
+            fields: { message: `节点 ${i + 1} 执行失败` },
             nodeId,
-          });
+          } as any);
           this.publishNodeError(runId, nodeId);
         } else {
           run.progress.completed++;

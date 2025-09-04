@@ -49,6 +49,7 @@ export default defineConfig({
       // Data and App services
       '@data': resolve(__dirname, 'packages/@data/src'),
       '@app/services': resolve(__dirname, 'packages/@app/services/src'),
+      '@ai/orchestrator': resolve(__dirname, 'packages/@ai/orchestrator/src'),
     },
   },
 });
