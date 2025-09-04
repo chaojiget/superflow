@@ -78,7 +78,9 @@ describe('RunCenterPage', () => {
                 node: l.nodeId || 'N',
                 status: l.level === 'error' ? 'failed' : 'success',
                 message: l.fields.message as string,
-                error: l.level === 'error' ? (l.fields.message as string) : undefined,
+                ...(l.level === 'error'
+                  ? { error: l.fields.message as string }
+                  : {}),
               },
             ]);
           }
@@ -102,11 +104,13 @@ describe('RunCenterPage', () => {
         await service.addLog(run.id, {
           level: 'info',
           nodeId: 'A',
+          chainId: run.id,
           fields: { message: 'started' },
         });
         await service.addLog(run.id, {
           level: 'error',
           nodeId: 'B',
+          chainId: run.id,
           fields: { message: 'boom' },
         });
         await service.updateRunStatus(run.id, 'failed');

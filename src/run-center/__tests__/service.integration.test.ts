@@ -43,6 +43,7 @@ describe('RunCenter Service integration', () => {
     await service.updateRunStatus(runId, 'running');
     await service.addLog(runId, {
       level: 'info',
+      chainId: runId,
       fields: { message: 'started' },
     });
 
@@ -53,7 +54,7 @@ describe('RunCenter Service integration', () => {
     const exported = await service.exportLogs(runId);
     const lines = exported.trim().split('\n');
     expect(lines.length).toBe(1);
-    const obj = JSON.parse(lines[0]);
+    const obj = JSON.parse(lines[0]!);
     expect(obj.fields.message).toBe('started');
   });
 });

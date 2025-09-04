@@ -102,7 +102,7 @@ export class RunCenterService {
       runId,
       chainId: log.chainId ?? runId,
       level: log.level,
-      nodeId: log.nodeId,
+      ...(log.nodeId ? { nodeId: log.nodeId } : {}),
       fields: log.fields || {},
     };
 

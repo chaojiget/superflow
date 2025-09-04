@@ -700,7 +700,12 @@ export class FlowCanvas {
     runCenter?: {
       addLog: (
         runId: string,
-        log: { level: string; message: string }
+        log: {
+          level: string;
+          chainId: string;
+          fields: Record<string, unknown>;
+          nodeId?: string;
+        }
       ) => Promise<void>;
       updateRunStatus: (
         runId: string,
