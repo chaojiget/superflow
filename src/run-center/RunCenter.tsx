@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
 import { logger } from '@/utils/logger';
-import type { RunRecord, ExecutionSnapshot } from './types';
+import type { RunRecord, ExecutionSnapshot, RunLog } from './types';
 import type { NodeExecutionEventHandlers } from '@/shared/types';
 import { PreviewRunner } from './PreviewRunner';
 
@@ -301,36 +301,30 @@ export class RunCenter {
     entry: { level: 'info' | 'warn' | 'error'; event: string; data?: any }
   ): Promise<void> {
     const timestamp = Date.now();
-    const logEntry = {
-      ...entry,
+    const newLog = {
+      id: generateId(),
       ts: timestamp,
-      timestamp,
+      level: entry.level,
+      nodeId: entry.data?.nodeId as string,
       runId,
+      chainId: runId,
+      fields: { message: entry.event, ...(entry.data || {}) },
     };
 
-    // 存储到运行记录中
     const run = this.state.runs.get(runId);
     if (run) {
-      run.logs.push({
-        id: generateId(),
-        timestamp,
-        level: entry.level,
-        message: entry.event,
-        nodeId: entry.data?.nodeId as string,
-      });
+      run.logs.push(newLog);
     }
 
-    // 存储到日志集合中
     if (!this.logs.has(runId)) {
       this.logs.set(runId, []);
     }
-    this.logs.get(runId)!.push(logEntry);
+    this.logs.get(runId)!.push(newLog);
 
-    // 通知日志流订阅者
     const streamers = this.logStreamers.get(runId) || [];
     streamers.forEach((callback) => {
       try {
-        callback(logEntry);
+        callback(newLog);
       } catch (error) {
         logger.error(
           '日志流回调错误',
@@ -559,10 +553,12 @@ export class RunCenter {
         )) as string;
         run.logs.push({
           id: generateId(),
-          timestamp: Date.now(),
+          ts: Date.now(),
           level: 'info',
-          message: msg ?? `执行节点 ${i + 1}/${nodeCount}`,
           nodeId,
+          runId,
+          chainId: runId,
+          fields: { message: msg ?? `执行节点 ${i + 1}/${nodeCount}` },
         });
 
         // 随机失败概率
@@ -571,10 +567,12 @@ export class RunCenter {
           run.metrics.failureCount = (run.metrics.failureCount || 0) + 1;
           run.logs.push({
             id: generateId(),
-            timestamp: Date.now(),
+            ts: Date.now(),
             level: 'error',
-            message: `节点 ${i + 1} 执行失败`,
             nodeId,
+            runId,
+            chainId: runId,
+            fields: { message: `节点 ${i + 1} 执行失败` },
           });
           this.publishNodeError(runId, nodeId);
         } else {
@@ -924,29 +922,18 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
             <div className="run-logs">
               <h3>执行日志</h3>
               <div className="logs-container">
-                {selectedRunData.logs.map(
-                  (
-                    log: {
-                      id?: string;
-                      timestamp: number;
-                      level: string;
-                      message: string;
-                      nodeId?: string;
-                    },
-                    index: number
-                  ) => (
-                    <div key={index} className={`log-entry ${log.level}`}>
-                      <span className="timestamp">
-                        {new Date(log.timestamp).toLocaleTimeString()}
-                      </span>
-                      <span className="level">{log.level.toUpperCase()}</span>
-                      <span className="message">{log.message}</span>
-                      {log.nodeId && (
-                        <span className="node-id">[{log.nodeId}]</span>
-                      )}
-                    </div>
-                  )
-                )}
+                {selectedRunData.logs.map((log: RunLog, index: number) => (
+                  <div key={index} className={`log-entry ${log.level}`}>
+                    <span className="timestamp">
+                      {new Date(log.ts).toLocaleTimeString()}
+                    </span>
+                    <span className="level">{log.level.toUpperCase()}</span>
+                    <span className="message">{String(log.fields.message)} </span>
+                    {log.nodeId && (
+                      <span className="node-id">[{log.nodeId}]</span>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </section>

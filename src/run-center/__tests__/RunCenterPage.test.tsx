@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import {
@@ -76,8 +77,8 @@ describe('RunCenterPage', () => {
                 id: l.id,
                 node: l.nodeId || 'N',
                 status: l.level === 'error' ? 'failed' : 'success',
-                message: l.message,
-                error: l.level === 'error' ? l.message : undefined,
+                message: l.fields.message as string,
+                error: l.level === 'error' ? (l.fields.message as string) : undefined,
               },
             ]);
           }
@@ -100,13 +101,13 @@ describe('RunCenterPage', () => {
         await service.updateRunStatus(run.id, 'running');
         await service.addLog(run.id, {
           level: 'info',
-          message: 'started',
           nodeId: 'A',
+          fields: { message: 'started' },
         });
         await service.addLog(run.id, {
           level: 'error',
-          message: 'boom',
           nodeId: 'B',
+          fields: { message: 'boom' },
         });
         await service.updateRunStatus(run.id, 'failed');
       });

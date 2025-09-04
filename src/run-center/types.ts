@@ -50,12 +50,12 @@ export interface RunProgress {
  */
 export interface RunLog {
   id: string;
-  timestamp: number;
+  ts: number;
   level: 'debug' | 'info' | 'warn' | 'error';
-  message: string;
   nodeId?: string;
-  data?: unknown;
-  traceId?: string;
+  runId: string;
+  chainId: string;
+  fields: Record<string, unknown>;
 }
 
 /**

@@ -5,7 +5,7 @@ import type { StorageAdapter, StorageTransaction } from '../types/storage';
  * 数据库版本
  * 修改表结构时请增加版本号并添加迁移逻辑
  */
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;
 
 /**
  * 运行记录表结构
@@ -28,10 +28,10 @@ export interface LogRecord {
   id: string;
   runId: string;
   ts: number;
-  level: 'info' | 'warn' | 'error';
-  event: string;
-  data?: unknown;
-  traceId?: string;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  nodeId?: string;
+  chainId: string;
+  fields: Record<string, unknown>;
 }
 
 /**
@@ -125,6 +125,15 @@ class SuperflowDB extends Dexie {
     this.version(3).stores({
       runs: 'id, flowId, startedAt, finishedAt, status, traceId',
       logs: 'id, runId, ts, level, event, traceId',
+      versions: 'id, nodeId, createdAt, author, version',
+      flows: 'id, name, createdAt, updatedAt, version',
+      nodes: 'id, kind, name, version, createdAt, updatedAt, author',
+      kv: 'key, createdAt, updatedAt, expiresAt, namespace',
+    });
+
+    this.version(4).stores({
+      runs: 'id, flowId, startedAt, finishedAt, status, traceId',
+      logs: 'id, runId, chainId, nodeId, ts, level',
       versions: 'id, nodeId, createdAt, author, version',
       flows: 'id, name, createdAt, updatedAt, version',
       nodes: 'id, kind, name, version, createdAt, updatedAt, author',

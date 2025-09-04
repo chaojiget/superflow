@@ -5,11 +5,18 @@
 
 import { generateId } from '@/shared/utils';
 import type { RunRecord, RunLog, RunStatus } from './types';
+import { createStorage } from '@/shared/db';
+import type { StorageAdapter } from '@/shared/types/storage';
 
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();
   private logs = new Map<string, RunLog[]>();
   private clients = new Map<string, Set<any>>();
+  private storagePromise: Promise<StorageAdapter>;
+
+  constructor() {
+    this.storagePromise = createStorage('run-center');
+  }
 
   /**
    * 创建运行记录
@@ -86,23 +93,29 @@ export class RunCenterService {
    */
   async addLog(
     runId: string,
-    log: Omit<RunLog, 'id' | 'timestamp'>
+    log: Omit<RunLog, 'id' | 'ts' | 'runId'>
   ): Promise<void> {
     const logs = this.logs.get(runId) || [];
     const newLog: RunLog = {
       id: generateId(),
-      timestamp: Date.now(),
-      ...log,
+      ts: Date.now(),
+      runId,
+      chainId: log.chainId ?? runId,
+      level: log.level,
+      nodeId: log.nodeId,
+      fields: log.fields || {},
     };
 
     logs.push(newLog);
     this.logs.set(runId, logs);
 
-    // 同时更新运行记录中的日志
     const run = this.runs.get(runId);
     if (run) {
       run.logs = logs;
     }
+
+    const storage = await this.storagePromise;
+    await storage.put('logs', newLog);
 
     this.broadcast(runId, { type: 'log', log: newLog });
   }
@@ -111,7 +124,9 @@ export class RunCenterService {
    * 获取日志
    */
   async getLogs(runId: string): Promise<RunLog[]> {
-    return this.logs.get(runId) || [];
+    const storage = await this.storagePromise;
+    const all = await storage.getAll<RunLog>('logs');
+    return all.filter((l) => l.runId === runId).sort((a, b) => a.ts - b.ts);
   }
 
   /**
@@ -182,5 +197,16 @@ export class RunCenterService {
   async cleanup(): Promise<void> {
     this.runs.clear();
     this.logs.clear();
+    const storage = await this.storagePromise;
+    await storage.clear('logs');
+    await storage.clear('runs');
+  }
+
+  /**
+   * 导出指定运行的日志为 NDJSON
+   */
+  async exportLogs(runId: string): Promise<string> {
+    const logs = await this.getLogs(runId);
+    return logs.map((l) => JSON.stringify(l)).join('\n');
   }
 }
