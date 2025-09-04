@@ -13,14 +13,15 @@ vi.mock('reactflow', () => ({
     nodeTypes = {},
   }: {
     children: React.ReactNode;
-    nodes?: any[];
-    nodeTypes?: Record<string, React.FC<any>>;
+    nodes?: Array<{ id: string; type?: string; data?: { label?: string } }>;
+    nodeTypes?: Record<string, React.FC<{ id: string; data?: unknown }>>;
   }) => (
     <div data-testid="react-flow">
       {nodes.map((n) => {
-        const Comp =
-          nodeTypes[n.type || 'default'] ??
-          ((props: any) => <div>{props.data?.label}</div>);
+        const Fallback: React.FC<{ id: string; data?: { label?: string } }> = (
+          props
+        ) => <div>{props.data?.label}</div>;
+        const Comp = nodeTypes[n.type || 'default'] ?? Fallback;
         return <Comp key={n.id} id={n.id} data={n.data} />;
       })}
       {children}
@@ -55,10 +56,14 @@ describe('Flow Module', () => {
       const canvas = new FlowCanvas();
       const node = canvas.addNode({ position: { x: 0, y: 0 }, name: 'n1' });
       canvas.updateNodeRuntimeStatus(node.id, 'running');
-      let current = canvas.getNodes()[0]!;
+      const first = canvas.getNodes()[0];
+      if (!first) throw new Error('no node');
+      let current = first;
       expect(current.data.runtimeStatus).toBe('running');
       canvas.updateNodeRuntimeStatus(node.id, 'error', 'boom');
-      current = canvas.getNodes()[0]!;
+      const again = canvas.getNodes()[0];
+      if (!again) throw new Error('no node');
+      current = again;
       expect(current.data.runtimeStatus).toBe('error');
       expect(current.data.lastError).toBe('boom');
     });

@@ -19,6 +19,7 @@ import type {
   NodeRuntimeStatus,
 } from '@/shared/types';
 import type { RunCenter } from '@/run-center';
+import type { NodeExecutionEventSource } from '@/shared/types';
 const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   idle: { border: '1px solid #d1d5db' },
   running: { border: '2px solid #3b82f6' },
@@ -193,7 +194,10 @@ export class FlowCanvas {
       return false;
     }
 
-    const current = this.nodes[index]!;
+    const current = this.nodes[index];
+    if (!current) {
+      return false;
+    }
     this.nodes[index] = {
       ...current,
       data: { ...(current.data || {}), runtimeStatus: status, lastError },
@@ -213,8 +217,12 @@ export class FlowCanvas {
   /**
    * 绑定运行中心事件到画布，实时同步节点运行状态
    */
-  attachExecutionEvents(runCenter: RunCenter, runId: string): () => void {
-    const unsubscribe = (runCenter as any).subscribeNodeEvents?.(runId, {
+  attachExecutionEvents(
+    runCenter: RunCenter | NodeExecutionEventSource,
+    runId: string
+  ): () => void {
+    const source = runCenter as NodeExecutionEventSource;
+    const unsubscribe = source.subscribeNodeEvents?.(runId, {
       onNodeStart: (nodeId: string) => {
         const node = this.getNode(nodeId);
         if (node) {
@@ -243,9 +251,14 @@ export class FlowCanvas {
   /**
    * 请求运行中心重试特定节点
    */
-  async retryNode(runCenter: RunCenter, runId: string, nodeId: string) {
-    if (typeof (runCenter as any).retryNode === 'function') {
-      await (runCenter as any).retryNode(runId, nodeId);
+  async retryNode(
+    runCenter: RunCenter | NodeExecutionEventSource,
+    runId: string,
+    nodeId: string
+  ) {
+    const source = runCenter as NodeExecutionEventSource;
+    if (typeof source.retryNode === 'function') {
+      await source.retryNode(runId, nodeId);
     }
   }
 

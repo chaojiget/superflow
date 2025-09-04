@@ -16,7 +16,8 @@ const PreviewRunner: React.FC<RunnerProps> = ({ nodes, onResult }) => {
     copy
       .filter((n) => n.type === 'transform')
       .forEach((n) => {
-        if (n.data && (n.data as any).operation === 'uppercase') {
+        const data = n.data as { operation?: string } | undefined;
+        if (data?.operation === 'uppercase') {
           current = String(current).toUpperCase();
         }
       });
