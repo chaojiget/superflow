@@ -1,3 +1,8 @@
 export { IdeasPage } from './IdeasPage';
-export { generateBlueprint } from './generateBlueprint';
-export type { IdeaInput, BlueprintOutput } from './types';
+export {
+  generateBlueprint,
+  analyzeIdea,
+  createBlueprintFromAnalysis,
+  validateBlueprint,
+} from './generateBlueprint';
+export type { IdeaInput, BlueprintOutput, AnalysisConfig } from './types';
