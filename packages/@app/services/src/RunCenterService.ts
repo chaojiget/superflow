@@ -107,31 +107,33 @@ export class RunCenterService {
    */
   async addLog(
     runId: string,
-    log: Omit<RunLog, 'id' | 'timestamp'>
+    log: Partial<Omit<RunLog, 'id'>> & { level: RunLog['level']; fields?: Record<string, unknown> }
   ): Promise<void> {
     const logs = this.logs.get(runId) || [];
+    const run = this.runs.get(runId);
     const newLog: RunLog = {
       id: generateId(),
-      timestamp: Date.now(),
-      ...log,
-    };
+      ts: Date.now(),
+      level: log.level,
+      runId,
+      chainId: run?.chainId ?? generateId(),
+      fields: log.fields ?? {},
+      ...(log.nodeId ? { nodeId: log.nodeId } : {}),
+    } as RunLog;
 
     logs.push(newLog);
     this.logs.set(runId, logs);
 
     // 同时更新运行记录中的日志
-    const run = this.runs.get(runId);
-    if (run) {
-      run.logs = logs;
-    }
+    if (run) run.logs = logs;
 
     await this.db.logs.put({
       id: newLog.id,
       runId,
-      ts: newLog.timestamp,
+      ts: newLog.ts,
       level: newLog.level,
-      event: newLog.message,
-      data: newLog.data,
+      event: (newLog.fields as any)?.message ?? '',
+      data: newLog.fields,
       ...(run?.chainId ? { traceId: run.chainId } : {}),
     });
 
@@ -225,5 +227,10 @@ export class RunCenterService {
       ? await this.db.logs.where('runId').equals(runId).toArray()
       : await this.db.logs.toArray();
     return logs.map((l) => JSON.stringify(l)).join('\n');
+  }
+
+  /** 兼容旧命名 */
+  async exportLogs(runId?: string): Promise<string> {
+    return this.exportLogsNDJSON(runId);
   }
 }

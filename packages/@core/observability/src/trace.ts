@@ -12,10 +12,8 @@ export function createTrace(
   nodeId?: string,
   parentId?: string
 ): Trace {
-  return {
-    chainId: ulid(),
-    runId,
-    parentId,
-    nodeId,
-  };
+  const trace: Trace = { chainId: ulid(), runId };
+  if (parentId !== undefined) trace.parentId = parentId;
+  if (nodeId !== undefined) trace.nodeId = nodeId;
+  return trace;
 }

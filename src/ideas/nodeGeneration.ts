@@ -128,7 +128,7 @@ function generatePortsForNodeType(
 
 function getCapabilitiesForNodeType(
   nodeType: NodeKind
-): import('').NodeCapability[] {
+): import('@core').NodeCapability[] {
   switch (nodeType) {
     case 'input':
     case 'output':

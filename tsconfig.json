@@ -36,8 +36,10 @@
       "@core/protocol": ["packages/@core/protocol/src"],
       "@core/observability": ["packages/@core/observability/src"],
       "@core/observability/*": ["packages/@core/observability/src/*"],
+      "@core/runtime": ["packages/@core/runtime"],
       "@data": ["packages/@data/src"],
       "@data/*": ["packages/@data/src/*"],
+      "@ai/orchestrator": ["packages/@ai/orchestrator/src"],
       "@app/services": ["packages/@app/services/src"],
       "@app/services/*": ["packages/@app/services/src/*"]
     },

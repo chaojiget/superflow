@@ -46,6 +46,7 @@ export interface FlowCanvasConfig {
   defaultZoom?: number;
   minZoom?: number;
   maxZoom?: number;
+  virtualization?: boolean;
 }
 
 /**
@@ -77,6 +78,7 @@ export class FlowCanvas {
       defaultZoom: 1,
       minZoom: 0.1,
       maxZoom: 2,
+      virtualization: true,
       ...config,
     };
   }
@@ -93,6 +95,29 @@ export class FlowCanvas {
    */
   getEdges(): Edge[] {
     return [...this.edges];
+  }
+
+  /**
+   * 获取可见节点与边（简单实现：若开启虚拟化则按视窗范围过滤，否则返回全部）
+   */
+  getVisibleElements(rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): { nodes: Node[]; edges: Edge[] } {
+    if (!this.config.virtualization) {
+      return { nodes: this.getNodes(), edges: this.getEdges() };
+    }
+    const inView = (n: Node) => {
+      const x = n.position?.x ?? 0;
+      const y = n.position?.y ?? 0;
+      return x >= rect.x && y >= rect.y && x <= rect.x + rect.width && y <= rect.y + rect.height;
+    };
+    const nodes = this.nodes.filter(inView);
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const edges = this.edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+    return { nodes, edges };
   }
 
   /**

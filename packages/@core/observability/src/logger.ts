@@ -51,11 +51,17 @@ export class Logger {
     const log: LogRow = {
       ts: entry.ts ?? Date.now(),
       level,
-      nodeId: entry.nodeId ?? this.context.nodeId,
-      runId: entry.runId ?? this.context.runId,
-      chainId: entry.chainId ?? this.context.chainId,
-      fields: entry.fields,
-    };
+      ...(entry.nodeId ?? this.context.nodeId
+        ? { nodeId: (entry.nodeId ?? this.context.nodeId)! }
+        : {}),
+      ...(entry.runId ?? this.context.runId
+        ? { runId: (entry.runId ?? this.context.runId)! }
+        : {}),
+      ...(entry.chainId ?? this.context.chainId
+        ? { chainId: (entry.chainId ?? this.context.chainId)! }
+        : {}),
+      ...(entry.fields ? { fields: entry.fields } : {}),
+    } as LogRow;
     await db.logs.add(log);
   }
 
@@ -77,4 +83,3 @@ export class Logger {
 }
 
 export const logger = new Logger();
-
