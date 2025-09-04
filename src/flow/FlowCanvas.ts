@@ -27,6 +27,13 @@ const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   error: { border: '2px solid #ef4444' },
 };
 import type { ExecutionDAG } from '@/planner/types';
+import {
+  processErrorNodes,
+  processInputNodes,
+  processTransformNodes,
+  processConditionalBranches,
+  processOutputNodes,
+} from './executor';
 
 /**
  * 流程画布配置
@@ -724,106 +731,11 @@ export class FlowCanvas {
 
       // 执行节点逻辑
       const outputs: Record<string, unknown> = {};
-      let currentData = input;
-
-      // 检查是否有错误节点（用于测试错误场景）
-      const errorNodes = this.nodes.filter(
-        (node) => node.type === 'error' || node.data?.shouldFail
-      );
-      for (const errorNode of errorNodes) {
-        if (
-          errorNode.data?.handler &&
-          typeof errorNode.data.handler === 'function'
-        ) {
-          // 执行错误节点的 handler，这会抛出错误
-          await errorNode.data.handler();
-        } else {
-          throw new Error('节点执行失败');
-        }
-      }
-
-      // 按拓扑顺序执行节点
-      const inputNodes = this.nodes.filter((node) => node.type === 'input');
-      const transformNodes = this.nodes.filter(
-        (node) => node.type === 'transform'
-      );
-      const outputNodes = this.nodes.filter((node) => node.type === 'output');
-
-      // 1. 处理输入节点
-      for (const inputNode of inputNodes) {
-        if (inputNode.data?.value) {
-          currentData = inputNode.data.value;
-        }
-      }
-
-      // 2. 处理转换节点
-      for (const transformNode of transformNodes) {
-        if (
-          transformNode.data?.handler &&
-          typeof transformNode.data.handler === 'function'
-        ) {
-          currentData = await transformNode.data.handler(currentData);
-        } else if (
-          transformNode.data?.operation === 'uppercase' &&
-          typeof currentData === 'string'
-        ) {
-          currentData = currentData.toUpperCase();
-        }
-      }
-
-      // 3. 处理条件分支
-      const conditionNodes = this.nodes.filter(
-        (node) => node.type === 'condition'
-      );
-      const processNodes = this.nodes.filter((node) => node.type === 'process');
-
-      for (const conditionNode of conditionNodes) {
-        if (
-          conditionNode.data?.condition &&
-          typeof input === 'object' &&
-          input !== null
-        ) {
-          const inputValue = (input as Record<string, unknown>).input;
-          if (
-            typeof inputValue === 'number' &&
-            typeof conditionNode.data.condition === 'function'
-          ) {
-            const conditionResult = conditionNode.data.condition(inputValue);
-
-            // 根据条件结果执行对应的分支
-            if (conditionResult) {
-              // 找到 true 分支节点
-              const trueBranchNode = processNodes.find(
-                (node) => node.id === 'true-branch'
-              );
-              if (trueBranchNode && trueBranchNode.data?.value) {
-                outputs['true-branch'] = trueBranchNode.data.value;
-              }
-            } else {
-              // 找到 false 分支节点
-              const falseBranchNode = processNodes.find(
-                (node) => node.id === 'false-branch'
-              );
-              if (falseBranchNode && falseBranchNode.data?.value) {
-                outputs['false-branch'] = falseBranchNode.data.value;
-              }
-            }
-          }
-        }
-      }
-
-      // 4. 处理输出节点（仅当没有条件分支的情况下）
-      if (outputNodes.length > 0 && Object.keys(outputs).length === 0) {
-        outputNodes.forEach((outputNode) => {
-          if (outputNode.data?.label) {
-            outputs[outputNode.data.label] = currentData;
-          } else {
-            outputs.output = currentData;
-          }
-        });
-      } else if (Object.keys(outputs).length === 0) {
-        outputs.output = currentData;
-      }
+      await processErrorNodes(this.nodes);
+      let currentData = processInputNodes(this.nodes, input);
+      currentData = await processTransformNodes(this.nodes, currentData);
+      processConditionalBranches(this.nodes, input, outputs);
+      processOutputNodes(this.nodes, currentData, outputs);
 
       // 如果有 RunCenter，记录完成日志
       if (runCenter && runId) {
