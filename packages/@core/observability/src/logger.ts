@@ -1,9 +1,20 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
 import type { LogLevel } from '@core/protocol';
 
 export interface LogEntry {
+=======
+export enum LogLevel {
+  DEBUG = 'debug',
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+}
+
+export interface LogRow {
+>>>>>>> origin/codex/define-capabilities-in-capabilities.ts
   ts: number;
   level: LogLevel;
   nodeId?: string;
@@ -12,6 +23,7 @@ export interface LogEntry {
   fields?: Record<string, unknown>;
 }
 
+<<<<<<< HEAD
 interface LogRow extends LogEntry {
   id?: number;
 }
@@ -103,10 +115,13 @@ export interface LogRow {
   fields?: Record<string, unknown> | undefined;
 }
 
+=======
+>>>>>>> origin/codex/define-capabilities-in-capabilities.ts
 export interface Logger {
   log(row: LogRow): void;
 }
 
+<<<<<<< HEAD
 export function createLogRow(row: LogRow): LogRow {
   return row;
 }
@@ -142,3 +157,10 @@ export function createLogger(transport: LogTransport) {
   };
 }
 >>>>>>> origin/codex/integrate-superflowdb-in-runcenterservice
+=======
+export function createLogger(writer: (row: LogRow) => void): Logger {
+  return {
+    log: writer,
+  };
+}
+>>>>>>> origin/codex/define-capabilities-in-capabilities.ts

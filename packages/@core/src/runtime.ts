@@ -50,6 +50,7 @@ export interface WorkerContext {
     put: (key: string, value: unknown) => Promise<void>;
     del: (key: string) => Promise<void>;
   };
+  capabilities?: string[];
   traceId: TraceId;
 }
 
@@ -85,8 +86,12 @@ export const ExecRequestSchema = z.object({
       retries: z.number().int().nonnegative().optional(),
     })
     .optional(),
-  env: z.record(z.string()).optional(),
-  capabilities: z.array(z.string()).optional(),
+  env: z
+    .object({
+      capabilities: z.array(z.string()).optional(),
+    })
+    .catchall(z.string())
+    .optional(),
 });
 export type ExecRequest = z.infer<typeof ExecRequestSchema>;
 

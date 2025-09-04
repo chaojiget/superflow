@@ -1,8 +1,11 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { ulid } from 'ulid';
 
 =======
 >>>>>>> origin/codex/integrate-superflowdb-in-runcenterservice
+=======
+>>>>>>> origin/codex/define-capabilities-in-capabilities.ts
 export interface Trace {
   chainId: string;
   runId: string;
@@ -10,6 +13,7 @@ export interface Trace {
   nodeId?: string;
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 export function createTrace(
   runId: string,
@@ -30,4 +34,13 @@ export function createTrace(input: Trace): Trace {
     ...(input.nodeId && { nodeId: input.nodeId }),
 >>>>>>> origin/codex/integrate-superflowdb-in-runcenterservice
   };
+=======
+export function createTrace(
+  chainId: string,
+  runId: string,
+  parentId?: string,
+  nodeId?: string
+): Trace {
+  return { chainId, runId, parentId, nodeId };
+>>>>>>> origin/codex/define-capabilities-in-capabilities.ts
 }
