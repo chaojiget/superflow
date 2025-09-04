@@ -1,4 +1,4 @@
-import { generateId } from '../../shared/utils';
+import { generateId } from '@/shared/utils';
 
 export interface TestFlow {
   id: string;
@@ -19,7 +19,7 @@ export async function createTestFlow(name = '测试流程'): Promise<TestFlow> {
     cleanup: async () => {
       // 清理测试数据
       const { clearTestData } = await import('./test-storage');
-      const { createStorage } = await import('../../shared/db');
+      const { createStorage } = await import('@data');
       const storage = await createStorage('test-db');
       await clearTestData(storage);
     },

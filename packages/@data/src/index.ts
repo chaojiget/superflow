@@ -1,5 +1,5 @@
 import Dexie, { type Transaction } from 'dexie';
-import type { StorageAdapter, StorageTransaction } from '../types/storage';
+import type { StorageAdapter, StorageTransaction } from '@core/storage';
 
 /**
  * 数据库版本

@@ -31,7 +31,12 @@
       "@/nodes/*": ["src/nodes/*"],
       "@/run-center/*": ["src/run-center/*"],
       "@/utils/*": ["src/utils/*"],
-      "@core/*": ["packages/@core/*"]
+      "@core": ["packages/@core/src"],
+      "@core/*": ["packages/@core/src/*", "packages/@core/*"],
+      "@data": ["packages/@data/src"],
+      "@data/*": ["packages/@data/src/*"],
+      "@app/services": ["packages/@app/services/src"],
+      "@app/services/*": ["packages/@app/services/src/*"]
     },
 
     /* Additional type checking */

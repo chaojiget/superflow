@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { RunCenterService } from '../RunCenterService';
+import { RunCenterService } from '@app/services';
 import { RunCenterClient } from '../RunCenterClient';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
