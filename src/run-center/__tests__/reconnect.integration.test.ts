@@ -14,7 +14,7 @@ describe('RunCenterClient reconnect', () => {
       const result = await service.handleRequest(
         (options.method || 'GET').toUpperCase(),
         u.pathname,
-        options.body ? JSON.parse(options.body) : undefined,
+        options.body ? JSON.parse(options.body) : undefined
       );
       return {
         ok: true,
@@ -57,7 +57,13 @@ describe('RunCenterClient reconnect', () => {
     timer.tick(1);
     expect(states).toEqual(['connecting', 'open', 'closed', 'connecting']);
     timer.tick(10);
-    expect(states).toEqual(['connecting', 'open', 'closed', 'connecting', 'open']);
+    expect(states).toEqual([
+      'connecting',
+      'open',
+      'closed',
+      'connecting',
+      'open',
+    ]);
   });
 
   it('应在发生错误后重连', async () => {
@@ -68,7 +74,7 @@ describe('RunCenterClient reconnect', () => {
       const result = await service.handleRequest(
         (options.method || 'GET').toUpperCase(),
         u.pathname,
-        options.body ? JSON.parse(options.body) : undefined,
+        options.body ? JSON.parse(options.body) : undefined
       );
       return {
         ok: true,
@@ -101,8 +107,21 @@ describe('RunCenterClient reconnect', () => {
     expect(states).toEqual(['connecting', 'open', 'error', 'closed']);
 
     timer.tick(1000);
-    expect(states).toEqual(['connecting', 'open', 'error', 'closed', 'connecting']);
+    expect(states).toEqual([
+      'connecting',
+      'open',
+      'error',
+      'closed',
+      'connecting',
+    ]);
     timer.tick(10);
-    expect(states).toEqual(['connecting', 'open', 'error', 'closed', 'connecting', 'open']);
+    expect(states).toEqual([
+      'connecting',
+      'open',
+      'error',
+      'closed',
+      'connecting',
+      'open',
+    ]);
   });
 });
