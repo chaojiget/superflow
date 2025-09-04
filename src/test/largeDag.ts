@@ -1,6 +1,4 @@
-export function createLargeDag(
-  size = 100
-): {
+export function createLargeDag(size = 100): {
   nodes: Array<{ id: string; type?: string; data?: Record<string, unknown> }>;
   edges: Array<{ id: string; source: string; target: string; type?: string }>;
 } {

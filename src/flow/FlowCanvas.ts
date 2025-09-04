@@ -921,7 +921,7 @@ export class FlowCanvas {
         timestamp: Date.now(),
       };
     }
-  } 
+  }
 }
 
 /**
