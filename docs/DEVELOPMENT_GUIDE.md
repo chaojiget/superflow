@@ -399,7 +399,7 @@ describe('NodeExecutor', () => {
 
 ```typescript
 // 优先使用 vi.mock 进行模块 mock
-vi.mock('../../shared/db', () => ({
+vi.mock('@data', () => ({
   createStorage: vi.fn().mockResolvedValue({
     get: vi.fn(),
     put: vi.fn(),

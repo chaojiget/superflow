@@ -6,8 +6,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
 import { logger } from '@/utils/logger';
-import type { RunRecord, ExecutionSnapshot } from './types';
-import type { NodeExecutionEventHandlers } from '@/shared/types';
+import type { RunRecord, ExecutionSnapshot } from '@core/run';
+import type { NodeExecutionEventHandlers } from '@core';
 import { PreviewRunner } from './PreviewRunner';
 
 /**

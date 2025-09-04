@@ -18,9 +18,9 @@ import type {
   FlowEdge,
   NodePosition,
   NodeRuntimeStatus,
-} from '@/shared/types';
+} from '@core';
 import type { RunCenter } from '@/run-center';
-import type { NodeExecutionEventSource } from '@/shared/types';
+import type { NodeExecutionEventSource } from '@core';
 const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   idle: { border: '1px solid #d1d5db' },
   running: { border: '2px solid #3b82f6' },

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 describe('Shared Module', () => {
   describe('类型系统', () => {
     it('应该导出基础类型', async () => {
-      const types = await import('../types');
+      const types = await import('@core');
 
       expect(types).toBeDefined();
       // NodeType 是 TypeScript 类型，在运行时不存在
@@ -12,7 +12,7 @@ describe('Shared Module', () => {
     });
 
     it('应该有错误类型定义', async () => {
-      const { createError } = await import('../types/error');
+      const { createError } = await import('@core/error');
 
       const error = createError('VALIDATION_ERROR', '验证失败', {
         cause: { field: 'email' },

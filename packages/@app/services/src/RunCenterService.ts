@@ -4,7 +4,7 @@
  */
 
 import { generateId } from '@/shared/utils';
-import type { RunRecord, RunLog, RunStatus } from './types';
+import type { RunRecord, RunLog, RunStatus } from '@core';
 
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();

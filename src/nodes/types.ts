@@ -3,7 +3,7 @@
  * 节点定义和执行相关类型
  */
 
-import type { Port, NodeCapability } from '@/shared/types';
+import type { Port, NodeCapability } from '@core';
 import React from 'react';
 import type { WorkerContext } from '@/shared/runtime/worker';
 
