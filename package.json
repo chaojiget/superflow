@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --project tsconfig.build.json && vite build",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "node scripts/test-coverage.mjs",
     "test:ui": "vitest --ui",
