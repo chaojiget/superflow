@@ -1,14 +1,14 @@
-export { FlowCanvas } from './FlowCanvas';
-export { default as RenderFlow } from './RenderFlow';
-export { default as FlowContainer } from './FlowContainer';
-export { default as FlowToolbar } from './FlowToolbar';
-export { default as FlowStatusBar } from './FlowStatusBar';
+export { FlowCanvas } from './src/FlowCanvas';
+export { default as RenderFlow } from './src/RenderFlow';
+export { default as FlowContainer } from './src/FlowContainer';
+export { default as FlowToolbar } from './src/FlowToolbar';
+export { default as FlowStatusBar } from './src/FlowStatusBar';
 export {
   createCustomNodeType,
   createCustomEdgeType,
   defaultTheme,
   darkTheme,
   applyTheme,
-} from './utils';
-export type { FlowTheme } from './utils';
-export type { FlowCanvasProps, FlowRenderer } from './types';
+} from './src/utils';
+export type { FlowTheme } from './src/utils';
+export type { FlowCanvasProps, FlowRenderer } from './src/types';

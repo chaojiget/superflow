@@ -48,6 +48,9 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+      - name: Check module dependencies
+        run: npm run dep:check
+
   # 多版本矩阵测试
   test:
     name: Test (Node ${{ matrix.node-version }})

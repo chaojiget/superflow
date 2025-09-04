@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blueprintToDag, optimizeDAG } from '../blueprintToDag';
+import { blueprintToDag, optimizeDAG } from '../src/blueprintToDag';
 
 describe('mergeCompatibleNodes', () => {
   it('应该合并线性链并更新拓扑与执行计划', () => {

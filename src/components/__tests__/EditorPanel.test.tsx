@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import EditorPanel from '@/components/EditorPanel';
+import { EditorPanel } from '@/components';
 
 describe('EditorPanel', () => {
   it('触发 onChange', () => {

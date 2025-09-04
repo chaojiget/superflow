@@ -7,8 +7,8 @@ import {
   waitFor,
   act,
 } from '@testing-library/react';
-import { RunCenterPage, NodeLog } from '../RunCenterPage';
-import { RunCenterService } from '../RunCenterService';
+import { RunCenterPage, type NodeLog } from '../src/RunCenterPage';
+import { RunCenterService } from '../src/RunCenterService';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 const logs: NodeLog[] = [

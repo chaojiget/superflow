@@ -5,7 +5,7 @@
 
 declare global {
   // Node.js globals for browser compatibility
-  var process:
+  const process:
     | {
         version?: string;
         platform?: string;
@@ -16,8 +16,8 @@ declare global {
 }
 
 import React, { useState, useCallback } from 'react';
-import { generateId } from '@/shared/utils';
-import { logger } from '@/utils/logger';
+import { generateId } from '@/shared';
+import { logger } from '@/utils';
 import type {
   NodeDefinition,
   NodeExecutionResult,
@@ -284,12 +284,13 @@ export class NodePage {
       // 执行节点处理函数
       const result = await nodeType.handler(input, {
         signal: new AbortController().signal,
-        logger,
+        logger: logger as any,
         env: (typeof process !== 'undefined' ? process.env : {}) as Record<
           string,
           string
         >,
-      });
+        traceId: '',
+      } as any);
 
       const endTime = Date.now();
       const execution: NodeExecutionResult = {

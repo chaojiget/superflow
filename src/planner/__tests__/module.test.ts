@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blueprintToDag } from '../blueprintToDag';
+import { blueprintToDag } from '../src/blueprintToDag';
 
 describe('Planner Module', () => {
   describe('blueprintToDag', () => {

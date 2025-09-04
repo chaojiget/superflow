@@ -3,7 +3,7 @@
  */
 
 import { vi } from 'vitest';
-import type { StorageAdapter, StorageTransaction } from '@/shared/types';
+import type { StorageAdapter, StorageTransaction } from '@/shared';
 
 /**
  * 内存存储适配器（用于测试）

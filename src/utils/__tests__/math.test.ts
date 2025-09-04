@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clamp, lerp, distance } from '@/utils/math';
+import { clamp, lerp, distance } from '../src/math';
 
 describe('math 工具函数', () => {
   describe('clamp', () => {

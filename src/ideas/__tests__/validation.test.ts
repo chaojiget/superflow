@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeIdea } from '../analysis';
-import { createBlueprintFromAnalysis } from '../nodeGeneration';
-import { validateBlueprint } from '../validation';
+import { analyzeIdea } from '../src/analysis';
+import { createBlueprintFromAnalysis } from '../src/nodeGeneration';
+import { validateBlueprint } from '../src/validation';
 
 describe('校验模块', () => {
   it('合法蓝图应通过校验', () => {

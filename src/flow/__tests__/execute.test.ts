@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { FlowCanvas } from '../FlowCanvas';
+import { FlowCanvas } from '../src/FlowCanvas';
 
 // 单元测试：验证执行逻辑
 

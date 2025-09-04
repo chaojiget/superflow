@@ -3,8 +3,7 @@
  * 提供类型安全的 Worker 通信和生命周期管理
  */
 
-import type { Logger } from '@/utils/logger';
-import { logger } from '@/utils/logger';
+import { logger, type Logger } from '@/utils';
 import { withTimeout } from './index';
 
 /**

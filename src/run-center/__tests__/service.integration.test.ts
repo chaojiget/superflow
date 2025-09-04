@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { RunCenterService } from '../RunCenterService';
-import { RunCenterClient } from '../RunCenterClient';
+import { RunCenterService } from '../src/RunCenterService';
+import { RunCenterClient } from '../src/RunCenterClient';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 // 集成测试：验证前端与服务端实时通信

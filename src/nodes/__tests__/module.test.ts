@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { NodePage } from '../NodePage';
+import { NodePage } from '../src/NodePage';
 
 // 声明 global 对象类型
 declare const global: typeof globalThis;

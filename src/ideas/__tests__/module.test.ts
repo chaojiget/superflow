@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { generateBlueprint } from '../generateBlueprint';
-import { IdeasPage } from '../IdeasPage';
+import { generateBlueprint } from '../src/generateBlueprint';
+import { IdeasPage } from '../src/IdeasPage';
 
 describe('Ideas Module', () => {
   describe('generateBlueprint', () => {

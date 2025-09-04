@@ -1,5 +1,5 @@
-import { generateId } from '@/shared/utils';
-import type { FlowNode, FlowEdge, NodeKind, Port } from '@/shared/types';
+import { generateId } from '@/shared';
+import type { FlowNode, FlowEdge, NodeKind, Port } from '@/shared';
 import type {
   Blueprint,
   IdeaAnalysis,
@@ -128,7 +128,7 @@ function generatePortsForNodeType(
 
 function getCapabilitiesForNodeType(
   nodeType: NodeKind
-): import('@/shared/types').NodeCapability[] {
+): import('@/shared').NodeCapability[] {
   switch (nodeType) {
     case 'input':
     case 'output':

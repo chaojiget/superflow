@@ -5,7 +5,7 @@ import ReactFlow, {
   type Node,
   type Edge,
 } from 'reactflow';
-import { InputNode, TransformNode, OutputNode } from './nodes';
+import { InputNode, TransformNode, OutputNode } from '../nodes';
 import EditorPanel from './EditorPanel';
 import PreviewRunner from './PreviewRunner';
 

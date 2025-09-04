@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FlowCanvas } from '../FlowCanvas';
+import { FlowCanvas } from '../src/FlowCanvas';
 import { RunCenter } from '@/run-center';
 
 // Mock IndexedDB for RunCenter

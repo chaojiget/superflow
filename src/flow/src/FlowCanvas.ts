@@ -11,23 +11,23 @@ import {
   type EdgeChange,
   type Connection,
 } from 'reactflow';
-import { generateId } from '@/shared/utils';
-import { logger } from '@/utils/logger';
+import { generateId } from '@/shared';
+import { logger } from '@/utils';
 import type {
   FlowNode,
   FlowEdge,
   NodePosition,
   NodeRuntimeStatus,
-} from '@/shared/types';
+  NodeExecutionEventSource,
+} from '@/shared';
 import type { RunCenter } from '@/run-center';
-import type { NodeExecutionEventSource } from '@/shared/types';
 const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   idle: { border: '1px solid #d1d5db' },
   running: { border: '2px solid #3b82f6' },
   success: { border: '2px solid #22c55e' },
   error: { border: '2px solid #ef4444' },
 };
-import type { ExecutionDAG } from '@/planner/types';
+import type { ExecutionDAG } from '@/planner';
 import {
   processErrorNodes,
   processInputNodes,

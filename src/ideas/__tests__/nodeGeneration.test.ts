@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeIdea } from '../analysis';
-import { createBlueprintFromAnalysis } from '../nodeGeneration';
+import { analyzeIdea } from '../src/analysis';
+import { createBlueprintFromAnalysis } from '../src/nodeGeneration';
 
 describe('节点生成模块', () => {
   it('能够根据分析结果生成节点和边', () => {

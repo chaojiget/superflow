@@ -4,10 +4,10 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { generateId } from '@/shared/utils';
-import { logger } from '@/utils/logger';
+import { generateId } from '@/shared';
+import { logger } from '@/utils';
 import type { RunRecord, ExecutionSnapshot } from './types';
-import type { NodeExecutionEventHandlers } from '@/shared/types';
+import type { NodeExecutionEventHandlers } from '@/shared';
 import { PreviewRunner } from './PreviewRunner';
 
 /**
