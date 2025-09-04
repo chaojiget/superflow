@@ -4,12 +4,19 @@
  */
 
 import { generateId } from '@/shared/utils';
-import type { RunRecord, RunLog, RunStatus } from './types';
+import { SuperflowDB } from '@data';
+import type { RunRecord, RunLog, RunStatus } from '@core/run';
 
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();
   private logs = new Map<string, RunLog[]>();
   private clients = new Map<string, Set<any>>();
+  private db: SuperflowDB;
+
+  constructor() {
+    this.db = new SuperflowDB(generateId());
+    this.db.open();
+  }
 
   /**
    * 创建运行记录
@@ -17,6 +24,7 @@ export class RunCenterService {
   async createRun(flowId: string, input?: unknown): Promise<RunRecord> {
     const runRecord: RunRecord = {
       id: generateId(),
+      chainId: generateId(),
       flowId,
       status: 'pending',
       startTime: Date.now(),
@@ -41,6 +49,14 @@ export class RunCenterService {
 
     this.runs.set(runRecord.id, runRecord);
     this.logs.set(runRecord.id, []);
+
+    await this.db.runs.put({
+      id: runRecord.id,
+      flowId,
+      startedAt: runRecord.startTime,
+      status: 'pending',
+      traceId: runRecord.chainId,
+    });
 
     return runRecord;
   }
@@ -78,6 +94,11 @@ export class RunCenterService {
     });
 
     this.runs.set(runId, run);
+    await this.db.runs.update(runId, {
+      status,
+      ...(run.endTime ? { finishedAt: run.endTime } : {}),
+      ...(run.error ? { error: run.error } : {}),
+    });
     this.broadcast(runId, { type: 'status', status });
   }
 
@@ -86,23 +107,35 @@ export class RunCenterService {
    */
   async addLog(
     runId: string,
-    log: Omit<RunLog, 'id' | 'timestamp'>
+    log: Partial<Omit<RunLog, 'id'>> & { level: RunLog['level']; fields?: Record<string, unknown> }
   ): Promise<void> {
     const logs = this.logs.get(runId) || [];
+    const run = this.runs.get(runId);
     const newLog: RunLog = {
       id: generateId(),
-      timestamp: Date.now(),
-      ...log,
-    };
+      ts: Date.now(),
+      level: log.level,
+      runId,
+      chainId: run?.chainId ?? generateId(),
+      fields: log.fields ?? {},
+      ...(log.nodeId ? { nodeId: log.nodeId } : {}),
+    } as RunLog;
 
     logs.push(newLog);
     this.logs.set(runId, logs);
 
     // 同时更新运行记录中的日志
-    const run = this.runs.get(runId);
-    if (run) {
-      run.logs = logs;
-    }
+    if (run) run.logs = logs;
+
+    await this.db.logs.put({
+      id: newLog.id,
+      runId,
+      ts: newLog.ts,
+      level: newLog.level,
+      event: (newLog.fields as any)?.message ?? '',
+      data: newLog.fields,
+      ...(run?.chainId ? { traceId: run.chainId } : {}),
+    });
 
     this.broadcast(runId, { type: 'log', log: newLog });
   }
@@ -182,5 +215,30 @@ export class RunCenterService {
   async cleanup(): Promise<void> {
     this.runs.clear();
     this.logs.clear();
+    await this.db.runs.clear();
+    await this.db.logs.clear();
+  }
+
+  /**
+   * 导出日志为 NDJSON
+   */
+  async exportLogsNDJSON(runId?: string): Promise<string> {
+    const logs = runId
+      ? await this.db.logs.where('runId').equals(runId).toArray()
+      : await this.db.logs.toArray();
+    return logs
+      .map((l: any) =>
+        JSON.stringify(
+          typeof l.data === 'object' && l.data !== null
+            ? { ...l, fields: l.data }
+            : l
+        )
+      )
+      .join('\n');
+  }
+
+  /** 兼容旧命名 */
+  async exportLogs(runId?: string): Promise<string> {
+    return this.exportLogsNDJSON(runId);
   }
 }

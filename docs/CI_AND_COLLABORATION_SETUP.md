@@ -221,7 +221,7 @@ vitest.e2e.config.ts       # E2E测试配置
 ```typescript
 // 模块级 Mock
 vi.mock('reactflow');
-vi.mock('../../shared/db');
+vi.mock('@data');
 
 // 环境变量 Mock
 process.env.NODE_ENV = 'test';

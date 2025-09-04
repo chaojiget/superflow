@@ -17,6 +17,7 @@ declare global {
 
 import React, { useState, useCallback } from 'react';
 import { generateId } from '@/shared/utils';
+import { validateSchema } from '@/shared/schema';
 import { logger } from '@/utils/logger';
 import type {
   NodeDefinition,
@@ -270,19 +271,34 @@ export class NodePage {
    * 执行节点
    */
   async executeNode(nodeId: string, input: unknown): Promise<unknown> {
+    let result: unknown;
+    const startTime = Date.now();
+    let nodeType: NodeDefinition | undefined;
+
     try {
-      // 查找节点类型
-      const nodeType =
+      nodeType =
         this.findNodeTypeById(nodeId) || this.state.registeredTypes.get(nodeId);
       if (!nodeType) {
         throw new Error(`找不到节点: ${nodeId}`);
       }
 
-      this.setNodeStatus(nodeId, 'running');
-      const startTime = Date.now();
+      if (nodeType.inputSchema) {
+        const { valid, errors } = validateSchema(
+          nodeType.inputSchema as object,
+          input
+        );
+        if (!valid) {
+          const message =
+            '输入验证失败: ' +
+            errors.map((e) => `${e.instancePath} ${e.message}`).join('; ');
+          logger.error(message);
+          throw new Error(message);
+        }
+      }
 
-      // 执行节点处理函数
-      const result = await nodeType.handler(input, {
+      this.setNodeStatus(nodeId, 'running');
+
+      result = await nodeType.handler(input, {
         signal: new AbortController().signal,
         logger,
         env: (typeof process !== 'undefined' ? process.env : {}) as Record<
@@ -290,6 +306,20 @@ export class NodePage {
           string
         >,
       });
+
+      if (nodeType.outputSchema) {
+        const { valid, errors } = validateSchema(
+          nodeType.outputSchema as object,
+          result
+        );
+        if (!valid) {
+          const message =
+            '输出验证失败: ' +
+            errors.map((e) => `${e.instancePath} ${e.message}`).join('; ');
+          logger.error(message);
+          throw new Error(message);
+        }
+      }
 
       const endTime = Date.now();
       const execution: NodeExecutionResult = {
@@ -310,13 +340,14 @@ export class NodePage {
     } catch (error) {
       const errorObj =
         error instanceof Error ? error : new Error(String(error));
-
+      const endTime = Date.now();
       const execution: NodeExecutionResult = {
         nodeId,
         input,
-        startTime: Date.now(),
-        endTime: Date.now(),
-        duration: 0,
+        output: result,
+        startTime,
+        endTime,
+        duration: endTime - startTime,
         status: 'error',
         error: errorObj.message,
         timestamp: Date.now(),
@@ -324,6 +355,11 @@ export class NodePage {
 
       this.state.executions.set(nodeId, execution);
       this.setNodeStatus(nodeId, 'failed');
+      logger.error(
+        '节点执行失败',
+        { event: 'nodePage.executeNode', nodeId },
+        errorObj
+      );
       this.handleError(errorObj);
 
       throw errorObj;

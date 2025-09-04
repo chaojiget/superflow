@@ -8,6 +8,7 @@
  */
 export interface RunRecord {
   id: string;
+  chainId: string;
   flowId: string;
   status: RunStatus;
   startTime: number;
@@ -50,12 +51,12 @@ export interface RunProgress {
  */
 export interface RunLog {
   id: string;
-  timestamp: number;
+  ts: number;
   level: 'debug' | 'info' | 'warn' | 'error';
-  message: string;
   nodeId?: string;
-  data?: unknown;
-  traceId?: string;
+  runId: string;
+  chainId: string;
+  fields: Record<string, unknown>;
 }
 
 /**

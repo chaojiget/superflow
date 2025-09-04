@@ -24,6 +24,16 @@ export interface KVRecord extends BaseEntity {
   expiresAt?: number;
 }
 
+/**
+ * 事件记录表结构
+ */
+export interface EventRecord extends BaseEntity {
+  /** 事件类型，例如 run.created */
+  type: string;
+  /** 事件携带的数据 */
+  payload: unknown;
+}
+
 export interface ImportExportSchema {
   version: number;
   timestamp: number;
@@ -63,6 +73,8 @@ export interface StorageAdapter {
   deleteMany(table: string, keys: string[]): Promise<void>;
   count(table: string): Promise<number>;
   clear(table: string): Promise<void>;
+  /** 追加事件日志 */
+  addEvent(event: EventRecord): Promise<void>;
   transaction<T>(
     tables: string[],
     mode: 'readonly' | 'readwrite',
@@ -77,4 +89,5 @@ export interface StorageTransaction {
   get<T = unknown>(table: string, key: string): Promise<T | undefined>;
   put<T = unknown>(table: string, value: T & { id: string }): Promise<void>;
   delete(table: string, key: string): Promise<void>;
+  addEvent(event: EventRecord): Promise<void>;
 }

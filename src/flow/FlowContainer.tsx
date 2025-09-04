@@ -9,6 +9,8 @@ import RenderFlow from './RenderFlow';
 const FlowContainer: React.FC<FlowContainerProps> = ({
   nodes,
   edges,
+  nodeTypes,
+  edgeTypes,
   onNodesChange,
   onEdgesChange,
   onConnect,
@@ -26,6 +28,8 @@ const FlowContainer: React.FC<FlowContainerProps> = ({
     <RenderFlow
       nodes={nodes}
       edges={edges}
+      {...(nodeTypes ? { nodeTypes } : {})}
+      {...(edgeTypes ? { edgeTypes } : {})}
       {...options}
       flowProps={{
         ...(onNodesChange && { onNodesChange }),

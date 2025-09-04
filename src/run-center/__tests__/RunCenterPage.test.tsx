@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import {
@@ -8,7 +9,7 @@ import {
   act,
 } from '@testing-library/react';
 import { RunCenterPage, NodeLog } from '../RunCenterPage';
-import { RunCenterService } from '../RunCenterService';
+import { RunCenterService } from '@app/services';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 const logs: NodeLog[] = [
@@ -125,8 +126,10 @@ describe('RunCenterPage', () => {
                 id: l.id,
                 node: l.nodeId || 'N',
                 status: l.level === 'error' ? 'failed' : 'success',
-                message: l.message,
-                error: l.level === 'error' ? l.message : undefined,
+                message: l.fields.message as string,
+                ...(l.level === 'error'
+                  ? { error: l.fields.message as string }
+                  : {}),
               },
             ]);
           }
@@ -149,13 +152,15 @@ describe('RunCenterPage', () => {
         await service.updateRunStatus(run.id, 'running');
         await service.addLog(run.id, {
           level: 'info',
-          message: 'started',
           nodeId: 'A',
+          chainId: run.id,
+          fields: { message: 'started' },
         });
         await service.addLog(run.id, {
           level: 'error',
-          message: 'boom',
           nodeId: 'B',
+          chainId: run.id,
+          fields: { message: 'boom' },
         });
         await service.updateRunStatus(run.id, 'failed');
       });

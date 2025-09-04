@@ -1,6 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+import type { LogLevel } from '@core/protocol';
 
 export interface LogEntry {
   ts: number;
@@ -52,35 +51,33 @@ export class Logger {
     const log: LogRow = {
       ts: entry.ts ?? Date.now(),
       level,
-      nodeId: entry.nodeId ?? this.context.nodeId,
-      runId: entry.runId ?? this.context.runId,
-      chainId: entry.chainId ?? this.context.chainId,
-      fields: entry.fields,
-    };
+      ...(entry.nodeId ?? this.context.nodeId
+        ? { nodeId: (entry.nodeId ?? this.context.nodeId)! }
+        : {}),
+      ...(entry.runId ?? this.context.runId
+        ? { runId: (entry.runId ?? this.context.runId)! }
+        : {}),
+      ...(entry.chainId ?? this.context.chainId
+        ? { chainId: (entry.chainId ?? this.context.chainId)! }
+        : {}),
+      ...(entry.fields ? { fields: entry.fields } : {}),
+    } as LogRow;
     await db.logs.add(log);
   }
 
-  debug(
-    entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}
-  ): Promise<void> {
+  debug(entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}): Promise<void> {
     return this.write('debug', entry);
   }
 
-  info(
-    entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}
-  ): Promise<void> {
+  info(entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}): Promise<void> {
     return this.write('info', entry);
   }
 
-  warn(
-    entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}
-  ): Promise<void> {
+  warn(entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}): Promise<void> {
     return this.write('warn', entry);
   }
 
-  error(
-    entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}
-  ): Promise<void> {
+  error(entry: Omit<LogEntry, 'level' | 'ts'> & { ts?: number } = {}): Promise<void> {
     return this.write('error', entry);
   }
 }
