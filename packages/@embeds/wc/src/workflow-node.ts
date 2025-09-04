@@ -14,7 +14,11 @@ export class WorkflowNode extends HTMLElement {
     this.render();
   }
 
-  attributeChangedCallback(name: string, _old: string | null, value: string | null) {
+  attributeChangedCallback(
+    name: string,
+    _old: string | null,
+    value: string | null
+  ) {
     if (name === 'readonly' && this.runBtn) {
       this.runBtn.disabled = value !== null;
     }
@@ -33,10 +37,14 @@ export class WorkflowNode extends HTMLElement {
       this.dispatchEvent(
         new CustomEvent('run', {
           detail: { nodeId: this.getAttribute('node-id') },
-        }),
+        })
       );
     });
-    this.attributeChangedCallback('readonly', null, this.getAttribute('readonly'));
+    this.attributeChangedCallback(
+      'readonly',
+      null,
+      this.getAttribute('readonly')
+    );
   }
 
   appendLog(line: string) {

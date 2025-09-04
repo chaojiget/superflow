@@ -18,9 +18,15 @@ const node = document.querySelector('workflow-node');
 
 if (node) {
   node.addEventListener('run', (ev) => {
-    window.parent.postMessage({ type: 'run', detail: (ev as CustomEvent).detail }, '*');
+    window.parent.postMessage(
+      { type: 'run', detail: (ev as CustomEvent).detail },
+      '*'
+    );
   });
   node.addEventListener('log', (ev) => {
-    window.parent.postMessage({ type: 'log', detail: (ev as CustomEvent).detail }, '*');
+    window.parent.postMessage(
+      { type: 'log', detail: (ev as CustomEvent).detail },
+      '*'
+    );
   });
 }
