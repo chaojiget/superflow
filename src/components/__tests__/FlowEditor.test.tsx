@@ -38,7 +38,9 @@ describe('FlowEditor', () => {
 
     expect(screen.getByText('hello')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('输入'), { target: { value: 'world' } });
+    fireEvent.change(screen.getByLabelText('输入'), {
+      target: { value: 'world' },
+    });
 
     expect(screen.getByText('world')).toBeInTheDocument();
 
@@ -47,4 +49,3 @@ describe('FlowEditor', () => {
     expect(screen.getByText('结果: WORLD')).toBeInTheDocument();
   });
 });
-
