@@ -1,0 +1,9 @@
+{
+  "name": "@app/services",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@ai/orchestrator": "0.0.0"
+  }
+}
