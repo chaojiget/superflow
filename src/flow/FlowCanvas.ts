@@ -10,6 +10,10 @@ import {
   type NodeChange,
   type EdgeChange,
   type Connection,
+  useReactFlow,
+  type Viewport,
+  type NodeTypes,
+  type EdgeTypes,
 } from 'reactflow';
 import { generateId } from '@/shared/utils';
 import type {
@@ -27,6 +31,10 @@ const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   error: { border: '2px solid #ef4444' },
 };
 import type { ExecutionDAG } from '@/planner/types';
+import { autoLayout } from './utils';
+
+const NODE_WIDTH = 180;
+const NODE_HEIGHT = 60;
 
 /**
  * 流程画布配置
@@ -38,6 +46,10 @@ export interface FlowCanvasConfig {
   defaultZoom?: number;
   minZoom?: number;
   maxZoom?: number;
+  nodeTypes?: NodeTypes;
+  edgeTypes?: EdgeTypes;
+  virtualization?: boolean;
+  autoLayout?: boolean;
 }
 
 /**
@@ -69,6 +81,10 @@ export class FlowCanvas {
       defaultZoom: 1,
       minZoom: 0.1,
       maxZoom: 2,
+      nodeTypes: {},
+      edgeTypes: {},
+      virtualization: true,
+      autoLayout: true,
       ...config,
     };
   }
@@ -85,6 +101,34 @@ export class FlowCanvas {
    */
   getEdges(): Edge[] {
     return [...this.edges];
+  }
+
+  /**
+   * 获取可见节点和边（用于虚拟化）
+   */
+  getVisibleElements(rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): { nodes: Node[]; edges: Edge[] } {
+    if (!this.config.virtualization) {
+      return { nodes: this.getNodes(), edges: this.getEdges() };
+    }
+    const visibleNodes = this.nodes.filter((n) => {
+      const { x, y } = n.position;
+      return (
+        x + NODE_WIDTH >= rect.x &&
+        x <= rect.x + rect.width &&
+        y + NODE_HEIGHT >= rect.y &&
+        y <= rect.y + rect.height
+      );
+    });
+    const ids = new Set(visibleNodes.map((n) => n.id));
+    const visibleEdges = this.edges.filter(
+      (e) => ids.has(e.source) && ids.has(e.target)
+    );
+    return { nodes: visibleNodes, edges: visibleEdges };
   }
 
   /**
@@ -566,7 +610,7 @@ export class FlowCanvas {
     this.clear();
 
     // 转换 DAG 节点为 React Flow 节点
-    const nodes: Node[] = dag.nodes.map((dagNode, index) => ({
+    let nodes: Node[] = dag.nodes.map((dagNode, index) => ({
       id: dagNode.id,
       type: (dagNode as unknown as FlowNode).kind || 'default',
       position: { x: index * 200, y: 0 },
@@ -577,13 +621,19 @@ export class FlowCanvas {
     }));
 
     // 转换 DAG 边为 React Flow 边
-    const edges: Edge[] = dag.edges.map((dagEdge) => ({
+    let edges: Edge[] = dag.edges.map((dagEdge) => ({
       id: dagEdge.id,
       source: dagEdge.source,
       target: dagEdge.target,
       type: dagEdge.type || 'default',
       animated: false,
     }));
+
+    if (this.config.autoLayout) {
+      const layout = await autoLayout(nodes, edges);
+      nodes = layout.nodes;
+      edges = layout.edges;
+    }
 
     this.setNodes(nodes);
     this.setEdges(edges);
@@ -620,7 +670,7 @@ export class FlowCanvas {
     this.clear();
 
     // 转换节点为 React Flow 节点（支持简化格式）
-    const reactFlowNodes: Node[] = nodes.map((node, index) => {
+    let reactFlowNodes: Node[] = nodes.map((node, index) => {
       // 类型守卫：检查是否是完整的 FlowNode
       const isFlowNode = (n: typeof node): n is FlowNode => {
         return 'kind' in n && 'name' in n;
@@ -652,7 +702,7 @@ export class FlowCanvas {
     });
 
     // 转换边为 React Flow 边
-    const reactFlowEdges: Edge[] = edges.map((edge) => {
+    let reactFlowEdges: Edge[] = edges.map((edge) => {
       // 类型守卫：检查是否是完整的 FlowEdge
       const isFlowEdge = (e: typeof edge): e is FlowEdge => {
         return 'sourceHandle' in e || 'targetHandle' in e;
@@ -678,6 +728,12 @@ export class FlowCanvas {
         };
       }
     });
+
+    if (this.config.autoLayout) {
+      const layout = await autoLayout(reactFlowNodes, reactFlowEdges);
+      reactFlowNodes = layout.nodes;
+      reactFlowEdges = layout.edges;
+    }
 
     this.setNodes(reactFlowNodes);
     this.setEdges(reactFlowEdges);
@@ -865,5 +921,58 @@ export class FlowCanvas {
         timestamp: Date.now(),
       };
     }
-  }
+  } 
+}
+
+/**
+ * React Flow 视口驱动的惰性渲染 Hook
+ */
+export function useVirtualizedFlow(canvas: FlowCanvas) {
+  const instance = useReactFlow();
+  const onViewportChange = (
+    instance as unknown as {
+      onViewportChange?: (fn: (v: Viewport) => void) => () => void;
+    }
+  ).onViewportChange;
+  const getViewport = instance.getViewport;
+  const [state, setState] = React.useState(() => {
+    const vp = getViewport();
+    const rect = {
+      x: -vp.x / vp.zoom,
+      y: -vp.y / vp.zoom,
+      width: window.innerWidth / vp.zoom,
+      height: window.innerHeight / vp.zoom,
+    };
+    return canvas.getVisibleElements(rect);
+  });
+
+  React.useEffect(() => {
+    if (!canvas.getConfig().virtualization) {
+      setState({ nodes: canvas.getNodes(), edges: canvas.getEdges() });
+      return;
+    }
+
+    const update = (vp: Viewport) => {
+      const rect = {
+        x: -vp.x / vp.zoom,
+        y: -vp.y / vp.zoom,
+        width: window.innerWidth / vp.zoom,
+        height: window.innerHeight / vp.zoom,
+      };
+      setState(canvas.getVisibleElements(rect));
+    };
+    const unsub = onViewportChange ? onViewportChange(update) : undefined;
+    update(getViewport());
+    return () => {
+      if (typeof unsub === 'function') {
+        unsub();
+      }
+    };
+  }, [canvas, onViewportChange, getViewport]);
+
+  return {
+    ...state,
+    nodeTypes: canvas.getConfig().nodeTypes,
+    edgeTypes: canvas.getConfig().edgeTypes,
+  };
 }

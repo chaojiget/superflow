@@ -21,6 +21,8 @@ import type {
   EdgeMouseHandler,
   OnSelectionChangeFunc,
   NodeDragHandler,
+  NodeTypes,
+  EdgeTypes,
 } from 'reactflow';
 
 /**
@@ -51,6 +53,10 @@ export interface RenderFlowProps extends FlowRenderOptions {
   nodes: Node[];
   /** 流程边 */
   edges: Edge[];
+  /** 自定义节点类型 */
+  nodeTypes?: NodeTypes;
+  /** 自定义边类型 */
+  edgeTypes?: EdgeTypes;
   /** 透传给 ReactFlow 的属性 */
   flowProps?: Partial<ReactFlowProps>;
 }
@@ -61,6 +67,8 @@ export interface RenderFlowProps extends FlowRenderOptions {
 export interface FlowContainerProps extends FlowRenderOptions {
   nodes: Node[];
   edges: Edge[];
+  nodeTypes?: NodeTypes;
+  edgeTypes?: EdgeTypes;
   onNodesChange?: OnNodesChange;
   onEdgesChange?: OnEdgesChange;
   onConnect?: OnConnect;
