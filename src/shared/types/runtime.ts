@@ -115,6 +115,7 @@ export const ExecEventSchema = z.union([
   LogEventSchema,
   ResultEventSchema,
 ]);
+export type ExecEvent = z.infer<typeof ExecEventSchema>;
 
 // 别名：NodeContext 等同 WorkerContext
 export type NodeContext = WorkerContext;
