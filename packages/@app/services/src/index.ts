@@ -1,8 +1,11 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 export { RunCenterService } from './RunCenterService';
 export * as Commands from './commands';
 export * as Queries from './queries';
 =======
+=======
+>>>>>>> origin/codex/structure-services-into-commands-and-queries
 import { startRun as startRunCmd } from './commands/startRun';
 import { getRun as getRunQuery } from './queries/getRun';
 import { dexieStorage } from './adapters/dexie';
@@ -23,4 +26,7 @@ export function getRun(id: string) {
 export type { StoragePort, RunRecord } from './ports/storage';
 export type { RuntimePort } from './ports/runtime';
 export type { LogPort } from './ports/log';
+<<<<<<< HEAD
 >>>>>>> origin/codex/structure-services-into-commands-and-queries-29bxfo
+=======
+>>>>>>> origin/codex/structure-services-into-commands-and-queries
