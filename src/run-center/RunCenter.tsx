@@ -62,6 +62,7 @@ export class RunCenter {
     const runId = generateId();
     const run: RunRecord = {
       id: runId,
+      chainId: generateId(),
       flowId,
       status: 'running',
       startTime: Date.now(),

@@ -4,12 +4,19 @@
  */
 
 import { generateId } from '@/shared/utils';
+import { SuperflowDB } from '@/shared/db';
 import type { RunRecord, RunLog, RunStatus } from './types';
 
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();
   private logs = new Map<string, RunLog[]>();
   private clients = new Map<string, Set<any>>();
+  private db: SuperflowDB;
+
+  constructor() {
+    this.db = new SuperflowDB(generateId());
+    this.db.open();
+  }
 
   /**
    * 创建运行记录
@@ -17,6 +24,7 @@ export class RunCenterService {
   async createRun(flowId: string, input?: unknown): Promise<RunRecord> {
     const runRecord: RunRecord = {
       id: generateId(),
+      chainId: generateId(),
       flowId,
       status: 'pending',
       startTime: Date.now(),
@@ -41,6 +49,14 @@ export class RunCenterService {
 
     this.runs.set(runRecord.id, runRecord);
     this.logs.set(runRecord.id, []);
+
+    await this.db.runs.put({
+      id: runRecord.id,
+      flowId,
+      startedAt: runRecord.startTime,
+      status: 'pending',
+      traceId: runRecord.chainId,
+    });
 
     return runRecord;
   }
@@ -78,6 +94,11 @@ export class RunCenterService {
     });
 
     this.runs.set(runId, run);
+    await this.db.runs.update(runId, {
+      status,
+      ...(run.endTime ? { finishedAt: run.endTime } : {}),
+      ...(run.error ? { error: run.error } : {}),
+    });
     this.broadcast(runId, { type: 'status', status });
   }
 
@@ -103,6 +124,16 @@ export class RunCenterService {
     if (run) {
       run.logs = logs;
     }
+
+    await this.db.logs.put({
+      id: newLog.id,
+      runId,
+      ts: newLog.timestamp,
+      level: newLog.level,
+      event: newLog.message,
+      data: newLog.data,
+      traceId: run?.chainId,
+    });
 
     this.broadcast(runId, { type: 'log', log: newLog });
   }
@@ -182,5 +213,17 @@ export class RunCenterService {
   async cleanup(): Promise<void> {
     this.runs.clear();
     this.logs.clear();
+    await this.db.runs.clear();
+    await this.db.logs.clear();
+  }
+
+  /**
+   * 导出日志为 NDJSON
+   */
+  async exportLogsNDJSON(runId?: string): Promise<string> {
+    const logs = runId
+      ? await this.db.logs.where('runId').equals(runId).toArray()
+      : await this.db.logs.toArray();
+    return logs.map((l) => JSON.stringify(l)).join('\n');
   }
 }

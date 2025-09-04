@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, vi } from 'vitest';
 import { RunCenterService } from '../RunCenterService';
 import { RunCenterClient } from '../RunCenterClient';

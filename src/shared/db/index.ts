@@ -322,6 +322,19 @@ export async function importData(
 }
 
 /**
+ * 导出日志为 NDJSON
+ */
+export async function exportLogsNDJSON(
+  db: SuperflowDB,
+  runId?: string
+): Promise<string> {
+  const logs = runId
+    ? await db.logs.where('runId').equals(runId).toArray()
+    : await db.logs.toArray();
+  return logs.map((log) => JSON.stringify(log)).join('\n');
+}
+
+/**
  * 键值存储封装
  */
 export class KVStore {

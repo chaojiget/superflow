@@ -8,6 +8,7 @@
  */
 export interface RunRecord {
   id: string;
+  chainId: string;
   flowId: string;
   status: RunStatus;
   startTime: number;
