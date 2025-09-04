@@ -767,7 +767,10 @@ function mergeCompatibleNodes(nodes: DAGNode[], edges: DAGEdge[]): DAGNode[] {
         ...first,
         id: mergedId,
         name: chain.map((n) => n.name).join('+'),
-        description: chain.map((n) => n.description).filter(Boolean).join('\n'),
+        description: chain
+          .map((n) => n.description)
+          .filter(Boolean)
+          .join('\n'),
         inputs: first.inputs,
         outputs: last.outputs,
         dependencies: [],
