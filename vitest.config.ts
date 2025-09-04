@@ -40,7 +40,6 @@ export default defineConfig({
       '@/nodes': resolve(__dirname, 'src/nodes'),
       '@/run-center': resolve(__dirname, 'src/run-center'),
       '@/utils': resolve(__dirname, 'src/utils'),
-<<<<<<< HEAD
       // Core layered packages
       '@core/domain': resolve(__dirname, 'packages/@core/domain'),
       '@core/runtime': resolve(__dirname, 'packages/@core/runtime'),
@@ -50,12 +49,6 @@ export default defineConfig({
       // Data and App services
       '@data': resolve(__dirname, 'packages/@data/src'),
       '@app/services': resolve(__dirname, 'packages/@app/services/src'),
-=======
-      '@app/services': resolve(
-        __dirname,
-        'packages/@app/services/src'
-      ),
->>>>>>> origin/codex/structure-services-into-commands-and-queries
     },
   },
 });

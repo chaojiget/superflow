@@ -31,8 +31,6 @@
       "@/nodes/*": ["src/nodes/*"],
       "@/run-center/*": ["src/run-center/*"],
       "@/utils/*": ["src/utils/*"],
-<<<<<<< HEAD
-<<<<<<< HEAD
       "@core": ["packages/@core/src"],
       "@core/*": ["packages/@core/src/*", "packages/@core/*"],
       "@core/protocol": ["packages/@core/protocol/src"],
@@ -42,17 +40,6 @@
       "@data/*": ["packages/@data/src/*"],
       "@app/services": ["packages/@app/services/src"],
       "@app/services/*": ["packages/@app/services/src/*"]
-=======
-      "@core/observability": ["packages/@core/observability/src"]
->>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
-=======
-      "@ai/orchestrator": ["packages/@ai/orchestrator/src"],
-      "@ai/orchestrator/*": ["packages/@ai/orchestrator/src/*"],
-      "@app/services": ["packages/@app/services/src"],
-      "@app/services/*": ["packages/@app/services/src/*"],
-      "@core/observability": ["packages/@core/observability/src"],
-      "@core/observability/*": ["packages/@core/observability/src/*"]
->>>>>>> origin/codex/add-planner-and-repairer-to-orchestrator
     },
 
     /* Additional type checking */

@@ -148,19 +148,12 @@ class SuperflowDB extends Dexie {
 
     this.version(4).stores({
       runs: 'id, flowId, startedAt, finishedAt, status, traceId',
-<<<<<<< HEAD:packages/@data/src/index.ts
-      logs: 'id, runId, chainId, nodeId, ts, level',
-=======
       logs: 'id, runId, ts, level, event, traceId',
->>>>>>> origin/codex/add-events-table-to-dexie-schema:src/shared/db/index.ts
       versions: 'id, nodeId, createdAt, author, version',
       flows: 'id, name, createdAt, updatedAt, version',
       nodes: 'id, kind, name, version, createdAt, updatedAt, author',
       kv: 'key, createdAt, updatedAt, expiresAt, namespace',
-<<<<<<< HEAD:packages/@data/src/index.ts
-=======
       events: 'id, createdAt, type',
->>>>>>> origin/codex/add-events-table-to-dexie-schema:src/shared/db/index.ts
     });
 
     // 数据迁移逻辑

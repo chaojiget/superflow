@@ -25,16 +25,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-<<<<<<< HEAD
       '@core': resolve(__dirname, 'packages/@core/src'),
       '@data': resolve(__dirname, 'packages/@data/src'),
       '@app/services': resolve(__dirname, 'packages/@app/services/src'),
-=======
-      '@app/services': resolve(
-        __dirname,
-        'packages/@app/services/src'
-      ),
->>>>>>> origin/codex/structure-services-into-commands-and-queries
     },
   },
 });
