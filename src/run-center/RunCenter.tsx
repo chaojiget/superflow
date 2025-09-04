@@ -6,6 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
 import { logger } from '@/utils/logger';
+import { startRun as startRunService } from '@app/services';
 import type { RunRecord, ExecutionSnapshot } from '@core/run';
 import type { NodeExecutionEventHandlers } from '@core';
 import { PreviewRunner } from './PreviewRunner';
@@ -59,7 +60,7 @@ export class RunCenter {
    * 开始运行
    */
   async startRun(flowId: string, input?: unknown): Promise<string> {
-    const runId = generateId();
+    const runId = await startRunService(flowId, input);
     const run: RunRecord = {
       id: runId,
       flowId,
