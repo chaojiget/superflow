@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { generateBlueprint, type AnalysisConfig } from './generateBlueprint';
-import type { Blueprint, IdeaHistory } from './types';
+import { generateBlueprint } from './generateBlueprint';
+import type { AnalysisConfig, Blueprint, IdeaHistory } from './types';
 import { generateId } from '@/shared/utils';
 
 /**

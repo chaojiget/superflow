@@ -3,8 +3,37 @@
  * 想法分析和蓝图生成相关类型
  */
 
+import { z } from 'zod';
 import type { FlowNode, FlowEdge, NodeKind } from '@/shared/types';
-import type { AnalysisConfig } from './generateBlueprint';
+import {
+  NodeKindSchema,
+  NodeCapabilitySchema,
+  PortTypeSchema,
+  PortDirectionSchema,
+  EdgeTypeSchema,
+} from '@/shared/types';
+
+/**
+ * 想法分析配置
+ */
+export interface AnalysisConfig {
+  language?: 'zh' | 'en';
+  complexity?: 'simple' | 'medium' | 'complex';
+  domain?: string;
+  includeValidation?: boolean;
+  includeErrorHandling?: boolean;
+}
+
+/**
+ * 默认分析配置
+ */
+export const DEFAULT_ANALYSIS_CONFIG: Required<AnalysisConfig> = {
+  language: 'zh',
+  complexity: 'medium',
+  domain: 'general',
+  includeValidation: true,
+  includeErrorHandling: true,
+};
 
 /**
  * 想法输入
@@ -448,6 +477,61 @@ export interface IdeaMetrics {
   confidence: number;
   qualityScore: number;
 }
+
+// Zod 模式定义
+export const PortSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: PortTypeSchema,
+  direction: PortDirectionSchema,
+  dataType: z.string().optional(),
+  required: z.boolean().optional(),
+  description: z.string().optional(),
+});
+
+export const FlowNodeSchema = z.object({
+  id: z.string(),
+  kind: NodeKindSchema,
+  name: z.string(),
+  description: z.string(),
+  version: z.string(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  inputs: z.array(PortSchema),
+  outputs: z.array(PortSchema),
+  capabilities: z.array(NodeCapabilitySchema),
+  position: z.object({ x: z.number(), y: z.number() }),
+  data: z.record(z.unknown()).optional(),
+  selected: z.boolean().optional(),
+  dragging: z.boolean().optional(),
+  runtimeStatus: z.enum(['idle', 'running', 'success', 'error']).optional(),
+  lastError: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+export const FlowEdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  sourceHandle: z.string(),
+  targetHandle: z.string(),
+  type: EdgeTypeSchema,
+  animated: z.boolean().optional(),
+  selected: z.boolean().optional(),
+});
+
+export const BlueprintSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  version: z.string(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  nodes: z.array(FlowNodeSchema),
+  edges: z.array(FlowEdgeSchema),
+  metadata: z.record(z.unknown()).optional(),
+  tags: z.array(z.string()).optional(),
+});
 
 // 导出常用的枚举类型
 export type IdeaStatus = 'draft' | 'review' | 'approved' | 'implemented';
