@@ -3,7 +3,8 @@
  * 提供类型安全的 Worker 通信和生命周期管理
  */
 
-import type { Logger } from '../utils';
+import type { Logger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
 import { withTimeout } from './index';
 
 /**
@@ -184,7 +185,10 @@ export class WorkerClient {
       const pending = this.pendingMessages.get(response.id);
 
       if (!pending) {
-        console.warn('收到未知消息 ID:', response.id);
+        logger.warn('收到未知消息 ID', {
+          event: 'worker.unknownMessage',
+          messageId: response.id,
+        });
         return;
       }
 

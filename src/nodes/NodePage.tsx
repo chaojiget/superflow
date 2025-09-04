@@ -16,7 +16,8 @@ declare global {
 }
 
 import React, { useState, useCallback } from 'react';
-import { generateId, logger } from '@/shared/utils';
+import { generateId } from '@/shared/utils';
+import { logger } from '@/utils/logger';
 import type {
   NodeDefinition,
   NodeExecutionResult,
@@ -163,7 +164,10 @@ export class NodePage {
       ],
       outputs: [],
       handler: async (input) => {
-        console.log('输出:', input);
+        logger.info('输出节点接收到数据', {
+          event: 'node.output',
+          input,
+        });
         return input;
       },
       icon: '📤',
@@ -406,7 +410,9 @@ export class NodePage {
       try {
         handler(error);
       } catch (handlerError) {
-        console.error('错误处理器异常:', handlerError);
+        logger.error('错误处理器异常', {
+          event: 'nodePage.handleError',
+        }, handlerError as Error);
       }
     });
   }

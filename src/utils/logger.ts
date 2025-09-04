@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * 日志工具
  */
