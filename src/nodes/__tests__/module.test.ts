@@ -63,6 +63,67 @@ describe('Nodes Module', () => {
       await expect(page.executeNode('invalid-node', {})).rejects.toThrow();
       expect(errorHandler).toHaveBeenCalled();
     });
+
+    it('应该校验节点输入输出的 schema', async () => {
+      const page = new NodePage();
+      page.registerNodeType({
+        id: 'schema-node',
+        name: 'schema 节点',
+        description: '',
+        category: 'test',
+        inputs: [],
+        outputs: [],
+        handler: async (input) => ({ foo: (input as any).foo }),
+        inputSchema: {
+          type: 'object',
+          properties: { foo: { type: 'number' } },
+          required: ['foo'],
+          additionalProperties: false,
+        },
+        outputSchema: {
+          type: 'object',
+          properties: { foo: { type: 'number' } },
+          required: ['foo'],
+          additionalProperties: false,
+        },
+      });
+
+      await expect(
+        page.executeNode('schema-node', { foo: 1 })
+      ).resolves.toEqual({ foo: 1 });
+
+      await expect(
+        page.executeNode('schema-node', { foo: 'bar' })
+      ).rejects.toThrow();
+      expect(page.getNodeStatus('schema-node')).toBe('failed');
+
+      page.registerNodeType({
+        id: 'schema-node-invalid',
+        name: 'schema 输出错误节点',
+        description: '',
+        category: 'test',
+        inputs: [],
+        outputs: [],
+        handler: async () => ({ foo: 'bar' }),
+        inputSchema: {
+          type: 'object',
+          properties: { foo: { type: 'number' } },
+          required: ['foo'],
+          additionalProperties: false,
+        },
+        outputSchema: {
+          type: 'object',
+          properties: { foo: { type: 'number' } },
+          required: ['foo'],
+          additionalProperties: false,
+        },
+      });
+
+      await expect(
+        page.executeNode('schema-node-invalid', { foo: 1 })
+      ).rejects.toThrow();
+      expect(page.getNodeStatus('schema-node-invalid')).toBe('failed');
+    });
   });
 
   describe('节点生命周期管理', () => {
