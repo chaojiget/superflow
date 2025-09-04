@@ -410,9 +410,13 @@ export class NodePage {
       try {
         handler(error);
       } catch (handlerError) {
-        logger.error('错误处理器异常', {
-          event: 'nodePage.handleError',
-        }, handlerError as Error);
+        logger.error(
+          '错误处理器异常',
+          {
+            event: 'nodePage.handleError',
+          },
+          handlerError as Error
+        );
       }
     });
   }

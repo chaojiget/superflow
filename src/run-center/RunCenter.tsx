@@ -264,11 +264,15 @@ export class RunCenter {
       try {
         callback(status);
       } catch (error) {
-        logger.error('订阅回调错误', {
-          event: 'runCenter.updateRunStatus',
-          runId,
-          status,
-        }, error as Error);
+        logger.error(
+          '订阅回调错误',
+          {
+            event: 'runCenter.updateRunStatus',
+            runId,
+            status,
+          },
+          error as Error
+        );
       }
     });
   }
@@ -328,10 +332,14 @@ export class RunCenter {
       try {
         callback(logEntry);
       } catch (error) {
-        logger.error('日志流回调错误', {
-          event: 'runCenter.logStream',
-          runId,
-        }, error as Error);
+        logger.error(
+          '日志流回调错误',
+          {
+            event: 'runCenter.logStream',
+            runId,
+          },
+          error as Error
+        );
       }
     });
   }
@@ -466,12 +474,16 @@ export class RunCenter {
             break;
         }
       } catch (error) {
-        logger.error('节点事件回调错误', {
-          event: 'runCenter.emitNodeEvent',
-          runId,
-          nodeId,
-          type,
-        }, error as Error);
+        logger.error(
+          '节点事件回调错误',
+          {
+            event: 'runCenter.emitNodeEvent',
+            runId,
+            nodeId,
+            type,
+          },
+          error as Error
+        );
       }
     }
   }
@@ -650,9 +662,13 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
       await runCenter.startRun('demo-flow', { test: 'data' });
       refreshRuns();
     } catch (error) {
-      logger.error('启动运行失败', {
-        event: 'runCenter.handleStartRun',
-      }, error as Error);
+      logger.error(
+        '启动运行失败',
+        {
+          event: 'runCenter.handleStartRun',
+        },
+        error as Error
+      );
     }
   }, [readonly, runCenter, refreshRuns]);
 
@@ -667,10 +683,14 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
         await runCenter.stopRun(runId);
         refreshRuns();
       } catch (error) {
-        logger.error('停止运行失败', {
-          event: 'runCenter.handleStopRun',
-          runId,
-        }, error as Error);
+        logger.error(
+          '停止运行失败',
+          {
+            event: 'runCenter.handleStopRun',
+            runId,
+          },
+          error as Error
+        );
       }
     },
     [readonly, runCenter, refreshRuns]
