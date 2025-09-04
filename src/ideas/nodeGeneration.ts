@@ -1,10 +1,5 @@
 import { generateId } from '@/shared/utils';
-import type {
-  FlowNode,
-  FlowEdge,
-  NodeKind,
-  Port,
-} from '@/shared/types';
+import type { FlowNode, FlowEdge, NodeKind, Port } from '@/shared/types';
 import type {
   Blueprint,
   IdeaAnalysis,
@@ -16,7 +11,7 @@ import { COMMON_PATTERNS } from './analysis';
 
 export function createBlueprintFromAnalysis(
   analysis: IdeaAnalysis,
-  config: AnalysisConfig = {},
+  config: AnalysisConfig = {}
 ): Blueprint {
   const conf = { ...DEFAULT_ANALYSIS_CONFIG, ...config };
 
@@ -99,7 +94,7 @@ function generateCustomSteps(analysis: IdeaAnalysis): ProcessStep[] {
 
 function generatePortsForNodeType(
   nodeType: NodeKind,
-  direction: 'input' | 'output',
+  direction: 'input' | 'output'
 ): Port[] {
   const basePort: Omit<Port, 'id' | 'name'> = {
     type: 'data',
@@ -132,7 +127,7 @@ function generatePortsForNodeType(
 }
 
 function getCapabilitiesForNodeType(
-  nodeType: NodeKind,
+  nodeType: NodeKind
 ): import('@/shared/types').NodeCapability[] {
   switch (nodeType) {
     case 'input':

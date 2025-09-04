@@ -7,7 +7,7 @@ export { analyzeIdea, createBlueprintFromAnalysis, validateBlueprint };
 
 export async function generateBlueprint(
   idea: string,
-  config: AnalysisConfig = {},
+  config: AnalysisConfig = {}
 ): Promise<Blueprint> {
   if (!idea || idea.trim().length === 0) {
     throw new Error('想法内容不能为空');

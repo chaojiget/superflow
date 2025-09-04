@@ -45,34 +45,124 @@ export const KEYWORD_TO_NODE_TYPE: Record<string, NodeKind> = {
 
 export const COMMON_PATTERNS: Record<string, ProcessStep[]> = {
   用户注册: [
-    { type: 'input', name: '用户输入注册信息', description: '收集用户姓名、邮箱、密码等信息', order: 0 },
-    { type: 'condition', name: '验证输入格式', description: '检查邮箱格式、密码强度等', order: 1 },
-    { type: 'http-request', name: '检查邮箱是否已存在', description: '调用用户服务检查邮箱唯一性', order: 2 },
-    { type: 'condition', name: '判断邮箱可用性', description: '根据检查结果决定是否继续', order: 3 },
-    { type: 'transform', name: '加密密码', description: '对用户密码进行哈希加密', order: 4 },
-    { type: 'http-request', name: '创建用户账户', description: '调用用户服务创建新账户', order: 5 },
-    { type: 'http-request', name: '发送验证邮件', description: '发送邮箱验证链接', order: 6 },
-    { type: 'output', name: '返回注册结果', description: '提示用户注册成功，需要验证邮箱', order: 7 },
+    {
+      type: 'input',
+      name: '用户输入注册信息',
+      description: '收集用户姓名、邮箱、密码等信息',
+      order: 0,
+    },
+    {
+      type: 'condition',
+      name: '验证输入格式',
+      description: '检查邮箱格式、密码强度等',
+      order: 1,
+    },
+    {
+      type: 'http-request',
+      name: '检查邮箱是否已存在',
+      description: '调用用户服务检查邮箱唯一性',
+      order: 2,
+    },
+    {
+      type: 'condition',
+      name: '判断邮箱可用性',
+      description: '根据检查结果决定是否继续',
+      order: 3,
+    },
+    {
+      type: 'transform',
+      name: '加密密码',
+      description: '对用户密码进行哈希加密',
+      order: 4,
+    },
+    {
+      type: 'http-request',
+      name: '创建用户账户',
+      description: '调用用户服务创建新账户',
+      order: 5,
+    },
+    {
+      type: 'http-request',
+      name: '发送验证邮件',
+      description: '发送邮箱验证链接',
+      order: 6,
+    },
+    {
+      type: 'output',
+      name: '返回注册结果',
+      description: '提示用户注册成功，需要验证邮箱',
+      order: 7,
+    },
   ],
   数据处理: [
-    { type: 'input', name: '接收数据', description: '获取需要处理的原始数据', order: 0 },
-    { type: 'condition', name: '验证数据格式', description: '检查数据结构和必填字段', order: 1 },
-    { type: 'transform', name: '清洗数据', description: '去除无效数据，标准化格式', order: 2 },
-    { type: 'transform', name: '转换数据', description: '按照业务规则转换数据结构', order: 3 },
-    { type: 'output', name: '输出处理结果', description: '返回处理后的数据', order: 4 },
+    {
+      type: 'input',
+      name: '接收数据',
+      description: '获取需要处理的原始数据',
+      order: 0,
+    },
+    {
+      type: 'condition',
+      name: '验证数据格式',
+      description: '检查数据结构和必填字段',
+      order: 1,
+    },
+    {
+      type: 'transform',
+      name: '清洗数据',
+      description: '去除无效数据，标准化格式',
+      order: 2,
+    },
+    {
+      type: 'transform',
+      name: '转换数据',
+      description: '按照业务规则转换数据结构',
+      order: 3,
+    },
+    {
+      type: 'output',
+      name: '输出处理结果',
+      description: '返回处理后的数据',
+      order: 4,
+    },
   ],
   文件上传: [
-    { type: 'input', name: '选择文件', description: '用户选择要上传的文件', order: 0 },
-    { type: 'condition', name: '验证文件', description: '检查文件类型、大小等限制', order: 1 },
-    { type: 'transform', name: '处理文件', description: '压缩、格式转换等预处理', order: 2 },
-    { type: 'http-request', name: '上传文件', description: '将文件上传到存储服务', order: 3 },
-    { type: 'output', name: '返回文件信息', description: '返回文件URL和元数据', order: 4 },
+    {
+      type: 'input',
+      name: '选择文件',
+      description: '用户选择要上传的文件',
+      order: 0,
+    },
+    {
+      type: 'condition',
+      name: '验证文件',
+      description: '检查文件类型、大小等限制',
+      order: 1,
+    },
+    {
+      type: 'transform',
+      name: '处理文件',
+      description: '压缩、格式转换等预处理',
+      order: 2,
+    },
+    {
+      type: 'http-request',
+      name: '上传文件',
+      description: '将文件上传到存储服务',
+      order: 3,
+    },
+    {
+      type: 'output',
+      name: '返回文件信息',
+      description: '返回文件URL和元数据',
+      order: 4,
+    },
   ],
 };
 
 export function analyzeIdea(
   idea: string,
-  config: AnalysisConfig = {},
+  config: AnalysisConfig = {}
 ): IdeaAnalysis {
   const conf = { ...DEFAULT_ANALYSIS_CONFIG, ...config };
 
@@ -152,7 +242,7 @@ function identifyProcessType(text: string): string | undefined {
 
 function estimateComplexity(
   text: string,
-  keywords: string[],
+  keywords: string[]
 ): 'simple' | 'medium' | 'complex' {
   const complexityIndicators = {
     simple: ['简单', '基础', '单一'],
@@ -196,9 +286,24 @@ function extractSteps(text: string, processType?: string): ProcessStep[] {
   });
   if (steps.length === 0) {
     return [
-      { type: 'input', name: '输入数据', description: '接收输入数据', order: 0 },
-      { type: 'transform', name: '处理数据', description: '处理和转换数据', order: 1 },
-      { type: 'output', name: '输出结果', description: '返回处理结果', order: 2 },
+      {
+        type: 'input',
+        name: '输入数据',
+        description: '接收输入数据',
+        order: 0,
+      },
+      {
+        type: 'transform',
+        name: '处理数据',
+        description: '处理和转换数据',
+        order: 1,
+      },
+      {
+        type: 'output',
+        name: '输出结果',
+        description: '返回处理结果',
+        order: 2,
+      },
     ];
   }
   return steps;
@@ -225,7 +330,7 @@ function extractEntities(text: string): string[] {
 function calculateConfidence(
   keywords: string[],
   steps: ProcessStep[],
-  entities: string[],
+  entities: string[]
 ): number {
   let confidence = 0.5;
   if (keywords.length > 0) confidence += 0.1;
