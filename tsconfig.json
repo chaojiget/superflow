@@ -31,6 +31,7 @@
       "@/nodes/*": ["src/nodes/*"],
       "@/run-center/*": ["src/run-center/*"],
       "@/utils/*": ["src/utils/*"],
+<<<<<<< HEAD
       "@core": ["packages/@core/src"],
       "@core/*": ["packages/@core/src/*", "packages/@core/*"],
       "@core/protocol": ["packages/@core/protocol/src"],
@@ -40,6 +41,9 @@
       "@data/*": ["packages/@data/src/*"],
       "@app/services": ["packages/@app/services/src"],
       "@app/services/*": ["packages/@app/services/src/*"]
+=======
+      "@core/observability": ["packages/@core/observability/src"]
+>>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
     },
 
     /* Additional type checking */

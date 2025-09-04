@@ -3,6 +3,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
 import type { LogLevel } from '@core/protocol';
 
@@ -120,18 +121,25 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 =======
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 >>>>>>> origin/codex/define-log-structure-and-export-functionality
+=======
+export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
+>>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
 
 export interface LogRow {
   ts: number;
   level: LogLevel;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
   nodeId?: string | undefined;
   runId?: string | undefined;
   chainId?: string | undefined;
   fields?: Record<string, unknown> | undefined;
 }
 
+<<<<<<< HEAD
 =======
 >>>>>>> origin/codex/define-capabilities-in-capabilities.ts
 export interface Logger {
@@ -213,3 +221,8 @@ export function createLogRow(
   };
 }
 >>>>>>> origin/codex/add-events-table-to-dexie-schema
+=======
+export function createLog(row: LogRow): LogRow {
+  return row;
+}
+>>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support

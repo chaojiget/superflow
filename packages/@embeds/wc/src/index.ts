@@ -1,3 +1,7 @@
-export function registerEmbeds() {
-  // TODO: Web Components 占位
-}
+<<<<<<< HEAD
+export * from './workflow-node';
+export * from './workflow-flow';
+=======
+export * from './workflow-node';
+export * from './workflow-flow';
+>>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support

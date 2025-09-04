@@ -2,6 +2,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { ulid } from 'ulid';
 
 =======
@@ -73,4 +74,15 @@ export function createTrace(
     ...(nodeId !== undefined ? { nodeId } : {}),
   };
 >>>>>>> origin/codex/add-events-table-to-dexie-schema
+=======
+export interface Trace {
+  chainId: string;
+  parentId?: string | undefined;
+  runId: string;
+  nodeId?: string | undefined;
+}
+
+export function createTrace(trace: Trace): Trace {
+  return trace;
+>>>>>>> origin/codex/implement-workflow-node-and-workflow-flow-support
 }
