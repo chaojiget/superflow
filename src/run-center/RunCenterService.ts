@@ -132,7 +132,7 @@ export class RunCenterService {
       level: newLog.level,
       event: newLog.message,
       data: newLog.data,
-      traceId: run?.chainId,
+      ...(run?.chainId ? { traceId: run.chainId } : {}),
     });
 
     this.broadcast(runId, { type: 'log', log: newLog });
