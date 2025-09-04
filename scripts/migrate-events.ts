@@ -11,7 +11,9 @@ import type {
 /**
  * 将现有 runs 和 logs 表中的数据迁移到 events 事件流中
  */
-export async function migrateToEventLog(storage: StorageAdapter): Promise<void> {
+export async function migrateToEventLog(
+  storage: StorageAdapter
+): Promise<void> {
   const runRecords = await storage.getAll<RunRecord>('runs');
   for (const run of runRecords) {
     const event: EventRecord = {
