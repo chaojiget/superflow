@@ -322,6 +322,42 @@ export async function importData(
 }
 
 /**
+ * 根据 runId 获取日志
+ */
+export async function getLogsByRunId(
+  storage: StorageAdapter,
+  runId: string
+): Promise<LogRecord[]> {
+  const logs = await storage.getAll<LogRecord>('logs');
+  return logs.filter((l) => l.runId === runId);
+}
+
+/**
+ * 根据 traceId 获取运行记录
+ */
+export async function getRunsByTraceId(
+  storage: StorageAdapter,
+  traceId: string
+): Promise<RunRecord[]> {
+  const runs = await storage.getAll<RunRecord>('runs');
+  return runs.filter((r) => r.traceId === traceId);
+}
+
+/**
+ * 按 runId 以 NDJSON 格式导出日志
+ */
+export async function exportLogsAsNDJSON(
+  storage: StorageAdapter,
+  runId: string,
+  writer: { write: (chunk: string) => void }
+): Promise<void> {
+  const logs = await getLogsByRunId(storage, runId);
+  for (const log of logs) {
+    writer.write(JSON.stringify(log) + '\n');
+  }
+}
+
+/**
  * 键值存储封装
  */
 export class KVStore {
