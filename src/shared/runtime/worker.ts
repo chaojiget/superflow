@@ -6,6 +6,7 @@
 import type { Logger } from '@/utils/logger';
 import { logger } from '@/utils/logger';
 import { withTimeout } from './index';
+import type { Capability } from './capabilities';
 
 /**
  * Worker 消息类型
@@ -34,6 +35,7 @@ export interface WorkerContext {
   logger: Logger;
   env?: Record<string, string>;
   kv?: WorkerKVInterface;
+  capabilities?: Capability[];
 }
 
 /**
@@ -61,6 +63,7 @@ export interface WorkerConfig {
   timeoutMs?: number;
   maxMessageSize?: number;
   env?: Record<string, string>;
+  capabilities?: Capability[];
 }
 
 /**
@@ -97,6 +100,7 @@ export class WorkerClient {
       timeoutMs?: number;
       logger?: Logger;
       env?: Record<string, string>;
+      capabilities?: Capability[];
     } = {}
   ): Promise<unknown> {
     const messageId = this.generateMessageId();
@@ -126,6 +130,8 @@ export class WorkerClient {
           env: { ...this.config.env, ...options.env },
           signal: controller.signal,
           logger: options.logger,
+          timeoutMs,
+          capabilities: options.capabilities ?? this.config.capabilities,
         },
       },
     };
@@ -359,6 +365,18 @@ export interface WorkerHost {
 export function createWorkerHost(): WorkerHost {
   let userHandler: UserCodeHandler | null = null;
 
+  const originalFetch = self.fetch;
+  const originalWebSocket = (self as any).WebSocket;
+
+  const disableNetwork = () => {
+    (self as any).fetch = () =>
+      Promise.reject(new Error('fetch 被禁用'));
+    (self as any).WebSocket = function () {
+      throw new Error('WebSocket 被禁用');
+    } as any;
+  };
+  disableNetwork();
+
   self.onmessage = async (event) => {
     const message = event.data as WorkerMessage;
 
@@ -375,9 +393,38 @@ export function createWorkerHost(): WorkerHost {
       if (message.type === 'execute' && userHandler) {
         const { input, config } = message.data as any;
 
-        // 创建执行上下文
+        const caps: Capability[] = config.capabilities || [];
+        if (caps.includes('fetch')) {
+          self.fetch = originalFetch;
+        } else {
+          (self as any).fetch = () =>
+            Promise.reject(new Error('fetch 被禁用'));
+        }
+        if (caps.includes('websocket')) {
+          (self as any).WebSocket = originalWebSocket;
+        } else {
+          (self as any).WebSocket = function () {
+            throw new Error('WebSocket 被禁用');
+          } as any;
+        }
+
+        const controller = new AbortController();
+        if (config.signal) {
+          config.signal.addEventListener('abort', () => controller.abort());
+        }
+        const timeout = config.timeoutMs ?? 15000;
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+          self.postMessage({
+            id: message.id,
+            success: false,
+            error: `执行超时 ${timeout}ms`,
+          } as WorkerResponse);
+          self.close();
+        }, timeout);
+
         const context: WorkerContext = {
-          signal: config.signal || new AbortController().signal,
+          signal: controller.signal,
           logger: config.logger || {
             info: () => {},
             warn: () => {},
@@ -385,15 +432,21 @@ export function createWorkerHost(): WorkerHost {
           },
           env: config.env || {},
           kv: config.kv,
+          capabilities: config.capabilities,
         };
 
-        const result = await userHandler(input, context);
-
-        self.postMessage({
-          id: message.id,
-          success: true,
-          data: result,
-        } as WorkerResponse);
+        try {
+          const result = await userHandler(input, context);
+          clearTimeout(timeoutId);
+          self.postMessage({
+            id: message.id,
+            success: true,
+            data: result,
+          } as WorkerResponse);
+        } catch (err) {
+          clearTimeout(timeoutId);
+          throw err;
+        }
       } else {
         throw new Error(`未知消息类型: ${message.type}`);
       }

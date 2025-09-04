@@ -17,8 +17,7 @@ describe('类型校验与 JSON 序列化', () => {
       language: 'js' as const,
       input: { foo: 1 },
       controls: { timeoutMs: 1000, retries: 2 },
-      env: { A: '1' },
-      capabilities: ['test'],
+      env: { A: '1', capabilities: ['test'] },
     };
     const json = JSON.stringify(req);
     const parsed = ExecRequestSchema.parse(JSON.parse(json));
