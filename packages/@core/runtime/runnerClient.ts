@@ -8,7 +8,7 @@ export function createRunnerClient(worker: Worker) {
   const channel = new MessageChannel();
   worker.postMessage({ port: channel.port1 }, [channel.port1]);
   const remote = Comlink.wrap<{ exec(req: ExecRequest): Promise<ExecEvent> }>(
-    channel.port2,
+    channel.port2
   );
   return {
     exec: (req: ExecRequest) => remote.exec(req),

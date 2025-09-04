@@ -87,9 +87,7 @@ describe('RunCenterPage', () => {
   it('支持分页和重新运行', () => {
     const retry = vi.fn();
     const download = vi.fn();
-    render(
-      <RunCenterPage logs={logs} onRetry={retry} onDownload={download} />
-    );
+    render(<RunCenterPage logs={logs} onRetry={retry} onDownload={download} />);
 
     expect(screen.getAllByTestId('log-item')).toHaveLength(5);
     fireEvent.click(screen.getAllByTestId('download-log')[0]!);

@@ -49,7 +49,8 @@ export class RunnerClient {
         reject(new DOMException('Aborted', 'AbortError'));
       });
 
-      api.exec(req, cb)
+      api
+        .exec(req, cb)
         .then(() => {
           cleanup();
           resolve();

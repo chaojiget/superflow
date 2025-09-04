@@ -19,12 +19,7 @@ export interface RunRecord {
   flowId: string;
   startedAt: number;
   finishedAt?: number;
-  status:
-    | 'pending'
-    | 'running'
-    | 'completed'
-    | 'failed'
-    | 'cancelled';
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   traceId: string;
   error?: string;
   metadata?: Record<string, unknown>;
@@ -393,7 +388,8 @@ export async function exportLogsAsNDJSON(
 ): Promise<void> {
   const logs = await getLogsByRunId(storage, runId);
   for (const log of logs) {
-    const hasData = typeof (log as any).data === 'object' && (log as any).data !== null;
+    const hasData =
+      typeof (log as any).data === 'object' && (log as any).data !== null;
     const withFields = hasData
       ? ({ ...log, fields: (log as any).data } as any)
       : (log as any);

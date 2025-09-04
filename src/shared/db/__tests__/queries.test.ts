@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryStorageAdapter } from '@/test/helpers/test-storage';
-import {
-  getLogsByRunId,
-  getRunsByTraceId,
-  exportLogsAsNDJSON,
-} from '../index';
+import { getLogsByRunId, getRunsByTraceId, exportLogsAsNDJSON } from '../index';
 
 describe('db queries', () => {
   it('getLogsByRunId returns logs of specified run', async () => {

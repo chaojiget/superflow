@@ -107,7 +107,10 @@ export class RunCenterService {
    */
   async addLog(
     runId: string,
-    log: Partial<Omit<RunLog, 'id'>> & { level: RunLog['level']; fields?: Record<string, unknown> }
+    log: Partial<Omit<RunLog, 'id'>> & {
+      level: RunLog['level'];
+      fields?: Record<string, unknown>;
+    }
   ): Promise<void> {
     const logs = this.logs.get(runId) || [];
     const run = this.runs.get(runId);

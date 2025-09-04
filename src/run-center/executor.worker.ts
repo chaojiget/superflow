@@ -27,13 +27,41 @@ async function exec(req: ExecRequest, cb: Comlink.Remote<EventCallback>) {
       signal: new AbortController().signal,
       logger: {
         debug: (event: string, data?: unknown) =>
-          cb({ kind: 'LOG', runId: req.runId, ts: Date.now(), level: 'debug', event, data }),
+          cb({
+            kind: 'LOG',
+            runId: req.runId,
+            ts: Date.now(),
+            level: 'debug',
+            event,
+            data,
+          }),
         info: (event: string, data?: unknown) =>
-          cb({ kind: 'LOG', runId: req.runId, ts: Date.now(), level: 'info', event, data }),
+          cb({
+            kind: 'LOG',
+            runId: req.runId,
+            ts: Date.now(),
+            level: 'info',
+            event,
+            data,
+          }),
         warn: (event: string, data?: unknown) =>
-          cb({ kind: 'LOG', runId: req.runId, ts: Date.now(), level: 'warn', event, data }),
+          cb({
+            kind: 'LOG',
+            runId: req.runId,
+            ts: Date.now(),
+            level: 'warn',
+            event,
+            data,
+          }),
         error: (event: string, data?: unknown) =>
-          cb({ kind: 'LOG', runId: req.runId, ts: Date.now(), level: 'error', event, data }),
+          cb({
+            kind: 'LOG',
+            runId: req.runId,
+            ts: Date.now(),
+            level: 'error',
+            event,
+            data,
+          }),
       },
       env: req.env ?? {},
       traceId: '' as any,

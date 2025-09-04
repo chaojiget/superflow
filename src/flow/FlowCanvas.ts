@@ -112,11 +112,18 @@ export class FlowCanvas {
     const inView = (n: Node) => {
       const x = n.position?.x ?? 0;
       const y = n.position?.y ?? 0;
-      return x >= rect.x && y >= rect.y && x <= rect.x + rect.width && y <= rect.y + rect.height;
+      return (
+        x >= rect.x &&
+        y >= rect.y &&
+        x <= rect.x + rect.width &&
+        y <= rect.y + rect.height
+      );
     };
     const nodes = this.nodes.filter(inView);
     const nodeIds = new Set(nodes.map((n) => n.id));
-    const edges = this.edges.filter((e) => nodeIds.has(e.source) && nodeIds.has(e.target));
+    const edges = this.edges.filter(
+      (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
+    );
     return { nodes, edges };
   }
 

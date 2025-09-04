@@ -17,7 +17,7 @@ export function validateSchema(
     validatorCache.set(schema, validate);
   }
   const valid = validate(data) as boolean;
-  return { valid, errors: valid ? [] : (validate.errors || []) };
+  return { valid, errors: valid ? [] : validate.errors || [] };
 }
 
 /**
