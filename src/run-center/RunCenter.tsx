@@ -523,7 +523,9 @@ export class RunCenter {
 
         // 使用 PreviewRunner 生成日志消息（避免主线程阻塞）
         const msg = (await this.previewRunner.run(
-          (index: number, total: number) => `执行节点 ${index}/${total}`,
+          ((index: number, total: number) => `执行节点 ${index}/${total}`) as (
+            ...args: unknown[]
+          ) => unknown,
           i + 1,
           nodeCount
         )) as string;
