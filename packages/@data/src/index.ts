@@ -15,7 +15,12 @@ export interface RunRecord {
   flowId: string;
   startedAt: number;
   finishedAt?: number;
-  status: 'success' | 'failed' | 'running' | 'cancelled';
+  status:
+    | 'pending'
+    | 'running'
+    | 'completed'
+    | 'failed'
+    | 'cancelled';
   traceId: string;
   error?: string;
   metadata?: Record<string, unknown>;
@@ -28,7 +33,7 @@ export interface LogRecord {
   id: string;
   runId: string;
   ts: number;
-  level: 'info' | 'warn' | 'error';
+  level: 'debug' | 'info' | 'warn' | 'error';
   event: string;
   data?: unknown;
   traceId?: string;

@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
 import type { LogLevel } from '@core/protocol';
 
@@ -88,10 +89,14 @@ export class Logger {
 export const logger = new Logger();
 =======
 import type { LogLevel } from '../protocol/src';
+=======
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+>>>>>>> origin/codex/integrate-superflowdb-in-runcenterservice
 
 export interface LogRow {
   ts: number;
   level: LogLevel;
+<<<<<<< HEAD
   nodeId?: string | undefined;
   runId?: string | undefined;
   chainId?: string | undefined;
@@ -106,3 +111,34 @@ export function createLogRow(row: LogRow): LogRow {
   return row;
 }
 >>>>>>> origin/codex/define-execrequest-and-related-types
+=======
+  runId?: string;
+  chainId?: string;
+  nodeId?: string;
+  fields?: Record<string, unknown>;
+}
+
+export type LogTransport = (row: LogRow) => void;
+
+export function createLogger(transport: LogTransport) {
+  return function log(
+    level: LogLevel,
+    context: {
+      runId?: string;
+      chainId?: string;
+      nodeId?: string;
+      fields?: Record<string, unknown>;
+    } = {}
+  ): void {
+    const row: LogRow = {
+      ts: Date.now(),
+      level,
+      ...(context.runId && { runId: context.runId }),
+      ...(context.chainId && { chainId: context.chainId }),
+      ...(context.nodeId && { nodeId: context.nodeId }),
+      ...(context.fields && { fields: context.fields }),
+    };
+    transport(row);
+  };
+}
+>>>>>>> origin/codex/integrate-superflowdb-in-runcenterservice
