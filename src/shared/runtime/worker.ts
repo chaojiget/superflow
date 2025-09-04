@@ -369,8 +369,7 @@ export function createWorkerHost(): WorkerHost {
   const originalWebSocket = (self as any).WebSocket;
 
   const disableNetwork = () => {
-    (self as any).fetch = () =>
-      Promise.reject(new Error('fetch 被禁用'));
+    (self as any).fetch = () => Promise.reject(new Error('fetch 被禁用'));
     (self as any).WebSocket = function () {
       throw new Error('WebSocket 被禁用');
     } as any;
@@ -397,8 +396,7 @@ export function createWorkerHost(): WorkerHost {
         if (caps.includes('fetch')) {
           self.fetch = originalFetch;
         } else {
-          (self as any).fetch = () =>
-            Promise.reject(new Error('fetch 被禁用'));
+          (self as any).fetch = () => Promise.reject(new Error('fetch 被禁用'));
         }
         if (caps.includes('websocket')) {
           (self as any).WebSocket = originalWebSocket;
