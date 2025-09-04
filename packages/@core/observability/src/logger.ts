@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import Dexie, { type Table } from 'dexie';
 import type { LogLevel } from '@core/protocol';
 
@@ -104,10 +105,14 @@ import type { LogLevel } from '../protocol/src';
 =======
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 >>>>>>> origin/codex/integrate-superflowdb-in-runcenterservice
+=======
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+>>>>>>> origin/codex/define-log-structure-and-export-functionality
 
 export interface LogRow {
   ts: number;
   level: LogLevel;
+<<<<<<< HEAD
 <<<<<<< HEAD
   nodeId?: string | undefined;
   runId?: string | undefined;
@@ -164,3 +169,14 @@ export function createLogger(writer: (row: LogRow) => void): Logger {
   };
 }
 >>>>>>> origin/codex/define-capabilities-in-capabilities.ts
+=======
+  runId?: string | undefined;
+  chainId?: string | undefined;
+  nodeId?: string | undefined;
+  fields?: Record<string, unknown> | undefined;
+}
+
+export function createLog(row: LogRow): LogRow {
+  return row;
+}
+>>>>>>> origin/codex/define-log-structure-and-export-functionality

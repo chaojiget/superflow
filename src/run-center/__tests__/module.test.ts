@@ -62,7 +62,7 @@ describe('Run Center Module', () => {
 
       const logs = await runCenter.getLogs(runId);
       expect(logs.length).toBe(1);
-      expect(logs[0].event).toBe('node_executed');
+      expect(logs[0].fields.message).toBe('node_executed');
     });
 
     it('应该支持不同日志级别', async () => {
@@ -88,8 +88,8 @@ describe('Run Center Module', () => {
       await runCenter.log(runId, { level: 'info', event: 'second' });
 
       const logs = await runCenter.getLogs(runId);
-      expect(logs[0].event).toBe('first');
-      expect(logs[1].event).toBe('second');
+      expect(logs[0].fields.message).toBe('first');
+      expect(logs[1].fields.message).toBe('second');
       expect(logs[1].ts).toBeGreaterThan(logs[0].ts);
     });
   });
@@ -141,7 +141,7 @@ describe('Run Center Module', () => {
 
       await new Promise<void>((resolve) => {
         runCenter.streamLogs(runId, (log: any) => {
-          expect(log.event).toBe('stream_test');
+          expect(log.fields.message).toBe('stream_test');
           resolve();
         });
 

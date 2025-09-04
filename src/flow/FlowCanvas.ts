@@ -700,7 +700,12 @@ export class FlowCanvas {
     runCenter?: {
       addLog: (
         runId: string,
-        log: { level: string; message: string }
+        log: {
+          level: string;
+          chainId: string;
+          fields: Record<string, unknown>;
+          nodeId?: string;
+        }
       ) => Promise<void>;
       updateRunStatus: (
         runId: string,
@@ -729,7 +734,8 @@ export class FlowCanvas {
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
           level: 'info',
-          message: `流程开始执行: ${executionId}`,
+          fields: { message: `流程开始执行: ${executionId}` },
+          chainId: runId,
         });
       }
 
@@ -745,7 +751,8 @@ export class FlowCanvas {
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
           level: 'info',
-          message: `流程执行完成: ${executionId}`,
+          fields: { message: `流程执行完成: ${executionId}` },
+          chainId: runId,
         });
         await runCenter.updateRunStatus(runId, 'completed', {
           output: outputs,
@@ -765,7 +772,12 @@ export class FlowCanvas {
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
           level: 'error',
-          message: `流程执行失败: ${error instanceof Error ? error.message : String(error)}`,
+          fields: {
+            message: `流程执行失败: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          },
+          chainId: runId,
         });
         await runCenter.updateRunStatus(runId, 'failed', {
           error: error instanceof Error ? error.message : String(error),

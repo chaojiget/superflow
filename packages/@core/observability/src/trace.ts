@@ -1,5 +1,6 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { ulid } from 'ulid';
 
 =======
@@ -43,4 +44,15 @@ export function createTrace(
 ): Trace {
   return { chainId, runId, parentId, nodeId };
 >>>>>>> origin/codex/define-capabilities-in-capabilities.ts
+=======
+export interface Trace {
+  chainId: string;
+  runId: string;
+  parentId?: string | undefined;
+  nodeId?: string | undefined;
+}
+
+export function createTrace(data: Trace): Trace {
+  return data;
+>>>>>>> origin/codex/define-log-structure-and-export-functionality
 }
