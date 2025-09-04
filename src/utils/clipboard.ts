@@ -18,6 +18,9 @@ export async function copyText(
   text: string,
   inputRef?: HTMLInputElement | null
 ): Promise<CopyResult> {
+  if (typeof navigator === 'undefined' || typeof document === 'undefined') {
+    return { success: false, message: '当前环境不支持复制' };
+  }
   // 优先使用原生异步 Clipboard API
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
