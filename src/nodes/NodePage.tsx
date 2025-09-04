@@ -355,7 +355,11 @@ export class NodePage {
 
       this.state.executions.set(nodeId, execution);
       this.setNodeStatus(nodeId, 'failed');
-      logger.error('节点执行失败', errorObj);
+      logger.error(
+        '节点执行失败',
+        { event: 'nodePage.executeNode', nodeId },
+        errorObj
+      );
       this.handleError(errorObj);
 
       throw errorObj;
