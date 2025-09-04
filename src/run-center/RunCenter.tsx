@@ -5,6 +5,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { generateId } from '@/shared/utils';
+import { logger } from '@/utils/logger';
 import type { RunRecord, ExecutionSnapshot } from './types';
 import type { NodeExecutionEventHandlers } from '@/shared/types';
 import { PreviewRunner } from './PreviewRunner';
@@ -263,7 +264,15 @@ export class RunCenter {
       try {
         callback(status);
       } catch (error) {
-        console.error('订阅回调错误:', error);
+        logger.error(
+          '订阅回调错误',
+          {
+            event: 'runCenter.updateRunStatus',
+            runId,
+            status,
+          },
+          error as Error
+        );
       }
     });
   }
@@ -323,7 +332,14 @@ export class RunCenter {
       try {
         callback(logEntry);
       } catch (error) {
-        console.error('日志流回调错误:', error);
+        logger.error(
+          '日志流回调错误',
+          {
+            event: 'runCenter.logStream',
+            runId,
+          },
+          error as Error
+        );
       }
     });
   }
@@ -458,7 +474,16 @@ export class RunCenter {
             break;
         }
       } catch (error) {
-        console.error('节点事件回调错误:', error);
+        logger.error(
+          '节点事件回调错误',
+          {
+            event: 'runCenter.emitNodeEvent',
+            runId,
+            nodeId,
+            type,
+          },
+          error as Error
+        );
       }
     }
   }
@@ -637,7 +662,13 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
       await runCenter.startRun('demo-flow', { test: 'data' });
       refreshRuns();
     } catch (error) {
-      console.error('启动运行失败:', error);
+      logger.error(
+        '启动运行失败',
+        {
+          event: 'runCenter.handleStartRun',
+        },
+        error as Error
+      );
     }
   }, [readonly, runCenter, refreshRuns]);
 
@@ -652,7 +683,14 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
         await runCenter.stopRun(runId);
         refreshRuns();
       } catch (error) {
-        console.error('停止运行失败:', error);
+        logger.error(
+          '停止运行失败',
+          {
+            event: 'runCenter.handleStopRun',
+            runId,
+          },
+          error as Error
+        );
       }
     },
     [readonly, runCenter, refreshRuns]
@@ -665,7 +703,10 @@ export const RunCenterComponent: React.FC<RunCenterProps> = ({
     if (readonly) return;
 
     const cleaned = runCenter.cleanup();
-    console.log(`清理了 ${cleaned} 条运行记录`);
+    logger.info('清理运行记录', {
+      event: 'runCenter.cleanup',
+      cleaned,
+    });
     refreshRuns();
   }, [readonly, runCenter, refreshRuns]);
 

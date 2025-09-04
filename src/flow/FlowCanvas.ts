@@ -12,6 +12,7 @@ import {
   type Connection,
 } from 'reactflow';
 import { generateId } from '@/shared/utils';
+import { logger } from '@/utils/logger';
 import type {
   FlowNode,
   FlowEdge,
@@ -719,7 +720,10 @@ export class FlowCanvas {
 
     try {
       // 记录执行开始
-      console.log(`[FlowCanvas] 开始执行流程: ${executionId}`);
+      logger.info('开始执行流程', {
+        event: 'flowCanvas.execute',
+        executionId,
+      });
 
       // 如果有 RunCenter，记录日志
       if (runCenter && runId) {

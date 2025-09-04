@@ -57,6 +57,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
+      'no-console': 'error',
     },
   },
 ];
