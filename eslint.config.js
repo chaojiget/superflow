@@ -78,6 +78,20 @@ export default [
       'prefer-const': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       'no-console': 'error',
+      // packages 层禁止直接依赖应用层 alias '@/..'
+      'no-restricted-imports': [
+        'warn',
+        {
+          patterns: [
+            {
+              group: ['@/*'],
+              message:
+                "Packages 代码不得依赖 src ('@/...')，请通过 @core/@data 等包暴露的 API",
+              caseSensitive: false,
+            },
+          ],
+        },
+      ],
     },
   },
 ];
