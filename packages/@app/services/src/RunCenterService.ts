@@ -3,7 +3,7 @@
  * 运行中心服务类，处理流程执行和监控
  */
 
-import { generateId } from '@/shared/utils';
+import { ulid as generateId } from 'ulid';
 import { SuperflowDB } from '@data';
 import type { RunRecord, RunLog, RunStatus } from '@core/run';
 
