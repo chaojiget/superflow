@@ -26,9 +26,9 @@
   - [ ] ⌘K 命令面板与全局搜索（节点/日志/Artifact/参数）
 
 - [ ] 大图性能与可操作性
-  - [ ] 节点/边虚拟化与惰性渲染
+  - [x] 节点/边虚拟化与惰性渲染 — 已在 FlowCanvas 实现并覆盖测试
   - [ ] 子图/分组折叠（按标签或子流程）
-  - [ ] 自动布局（elkjs）
+  - [ ] 自动布局（elkjs） — 基础能力已实现（utils.autoLayout），待接入画布/工具栏
   - [ ] 状态过滤（只看 failed/running）
   - [ ] 框选批量操作与“选区重跑”
 
@@ -39,7 +39,7 @@
   - [ ] 撤销/审计：每步入事件流，可逐步回滚
 
 - [ ] 强类型与校验
-  - [ ] 为 DSL 维护 JSON Schema / TS 类型
+  - [x] 为 DSL 维护 JSON Schema / TS 类型 — 已落地（Ajv + TS 类型）
   - [ ] Inspector 表单即时校验
   - [ ] outputs 变更触发兼容性判定（breaking / non-breaking / unsafe），在事件流显式提示
 
@@ -51,7 +51,7 @@
 - [ ] 可观察性与 Trace
   - [ ] Trace 进度条可点击跳转节点
   - [ ] 日志级别过滤、书签、跳至最新/锁定滚动
-  - [ ] 为 run/节点打上 OpenTelemetry 关联 id，日志—事件—节点三向联动
+  - [ ] 为 run/节点打上 OpenTelemetry 关联 id，日志—事件—节点三向联动 — 基础链路 id 已具备（runId/chainId/nodeId），待接入 OTel 标准
 
 ### P1（随后做，提升开发者幸福感）
 
