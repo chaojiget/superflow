@@ -4,10 +4,10 @@ export {
   analyzeIdea,
   createBlueprintFromAnalysis,
   validateBlueprint,
-} from './src/generateBlueprint';
+} from './generateBlueprint';
 export type {
   IdeaInput,
   BlueprintOutput,
   AnalysisConfig,
   Blueprint,
-} from './src/types';
+} from './types';

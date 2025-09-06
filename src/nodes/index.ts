@@ -1,2 +1,2 @@
-export { NodePage } from './src/NodePage';
-export type { NodeDefinition, NodeRegistry } from './src/types';
+export { NodePage } from './NodePage';
+export type { NodeDefinition, NodeRegistry } from './types';
