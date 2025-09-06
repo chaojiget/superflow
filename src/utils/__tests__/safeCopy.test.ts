@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { safeCopy } from '@/utils/safeCopy';
+import { safeCopy } from '../src/safeCopy';
 
 describe('safeCopy', () => {
   it('深拷贝对象', () => {

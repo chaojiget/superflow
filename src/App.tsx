@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import FlowEditor from '@/components/FlowEditor';
+import { FlowEditor } from '@/components';
 import { copyText } from '@/utils';
 
 const App: React.FC = () => {

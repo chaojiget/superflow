@@ -1,4 +1,4 @@
-import { generateId } from '@/shared/utils';
+import { generateId } from '@/shared';
 
 interface RunRequest {
   id: string;
@@ -61,3 +61,4 @@ export class PreviewRunner {
     this.pending.clear();
   }
 }
+

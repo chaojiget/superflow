@@ -20,9 +20,6 @@ export class RunCenterClient {
     this.baseUrl = options.baseUrl;
   }
 
-  /**
-   * 启动运行并建立实时连接
-   */
   async startRun(flowId: string, input?: unknown): Promise<string> {
     const res = await fetch(`${this.baseUrl}/runs`, {
       method: 'POST',
@@ -36,9 +33,6 @@ export class RunCenterClient {
     return this.runId!;
   }
 
-  /**
-   * 建立 WebSocket 连接
-   */
   private connectWebSocket(): void {
     if (!this.runId) return;
     const wsUrl = this.baseUrl.replace('http', 'ws') + `/runs/${this.runId}`;
@@ -75,17 +69,14 @@ export class RunCenterClient {
     connect();
   }
 
-  /** 获取当前运行状态 */
   getStatus(): string | null {
     return this.status;
   }
 
-  /** 获取日志列表 */
   getLogs(): any[] {
     return [...this.logs];
   }
 
-  /** 注册连接状态回调 */
   onConnectionStatus(callback: (state: string) => void): () => void {
     this.statusCallbacks.add(callback);
     return () => this.statusCallbacks.delete(callback);
@@ -95,3 +86,4 @@ export class RunCenterClient {
     for (const cb of this.statusCallbacks) cb(state);
   }
 }
+

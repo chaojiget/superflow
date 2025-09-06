@@ -22,7 +22,7 @@ describe('流程集成测试', () => {
 
   it('应该完成完整的想法到运行流程', async () => {
     // 1. 从想法生成蓝图
-    const { generateBlueprint } = await import('../../ideas/generateBlueprint');
+    const { generateBlueprint } = await import('../../ideas');
     const idea = '创建一个简单的数据处理流程：输入数据 -> 验证 -> 转换 -> 输出';
     const blueprint = await generateBlueprint(idea);
 
@@ -30,14 +30,14 @@ describe('流程集成测试', () => {
     expect(blueprint.nodes.length).toBeGreaterThan(0);
 
     // 2. 将蓝图转换为DAG
-    const { blueprintToDag } = await import('../../planner/blueprintToDag');
+    const { blueprintToDag } = await import('../../planner');
     const dag = blueprintToDag(blueprint);
 
     expect(dag).toBeDefined();
     expect(dag.executionOrder).toBeDefined();
 
     // 3. 在Flow画布中渲染
-    const { FlowCanvas } = await import('../../flow/FlowCanvas');
+    const { FlowCanvas } = await import('../../flow');
     const canvas = new FlowCanvas();
     await canvas.loadDAG(dag);
 
@@ -91,7 +91,7 @@ describe('流程集成测试', () => {
       { id: 'e2', source: 'transform', target: 'output' },
     ];
 
-    const { FlowCanvas } = await import('../../flow/FlowCanvas');
+    const { FlowCanvas } = await import('../../flow');
     const canvas = new FlowCanvas();
     await canvas.loadNodes(nodes, edges);
 
@@ -120,7 +120,7 @@ describe('流程集成测试', () => {
       },
     ];
 
-    const { FlowCanvas } = await import('../../flow/FlowCanvas');
+    const { FlowCanvas } = await import('../../flow');
     const canvas = new FlowCanvas();
     await canvas.loadNodes(nodes, []);
 
@@ -157,7 +157,7 @@ describe('流程集成测试', () => {
       { id: 'e6', source: 'parallel3', target: 'end' },
     ];
 
-    const { FlowCanvas } = await import('../../flow/FlowCanvas');
+    const { FlowCanvas } = await import('../../flow');
     const canvas = new FlowCanvas();
     await canvas.loadNodes(nodes, edges);
 
@@ -199,7 +199,7 @@ describe('流程集成测试', () => {
       },
     ];
 
-    const { FlowCanvas } = await import('../../flow/FlowCanvas');
+    const { FlowCanvas } = await import('../../flow');
     const canvas = new FlowCanvas();
     await canvas.loadNodes(nodes, edges);
 

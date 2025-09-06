@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeIdea } from '../analysis';
+import { analyzeIdea } from '../src/analysis';
 
 describe('analysis 模块', () => {
   it('能够识别关键词和步骤', () => {

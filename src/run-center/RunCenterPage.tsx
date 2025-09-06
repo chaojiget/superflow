@@ -18,9 +18,6 @@ export interface RunCenterPageProps {
 
 const PAGE_SIZE = 5;
 
-/**
- * RunCenterPage 聚合流程画布、运行日志列表及全局进度条
- */
 export const RunCenterPage: React.FC<RunCenterPageProps> = ({
   logs,
   onRetry,
@@ -136,3 +133,4 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
 };
 
 export default RunCenterPage;
+

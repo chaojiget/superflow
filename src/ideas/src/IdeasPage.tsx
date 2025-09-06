@@ -6,7 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { generateBlueprint } from './generateBlueprint';
 import type { AnalysisConfig, Blueprint, IdeaHistory } from './types';
-import { generateId } from '@/shared/utils';
+import { generateId } from '@/shared';
 
 /**
  * Ideas 页面属性

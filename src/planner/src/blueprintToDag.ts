@@ -3,8 +3,8 @@
  * 将蓝图转换为可执行的有向无环图
  */
 
-import { generateId } from '@/shared/utils';
-import type { Blueprint } from '@/ideas/types';
+import { generateId } from '@/shared';
+import type { Blueprint } from '@/ideas';
 import type {
   ExecutionDAG,
   DAGNode,

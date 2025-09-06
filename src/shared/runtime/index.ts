@@ -3,6 +3,8 @@
  * 提供超时控制、重试机制、AbortController 等功能
  */
 
+import type { Result } from '../types';
+
 /**
  * 超时控制结果
  */
@@ -366,10 +368,6 @@ export class Semaphore {
 /**
  * 结果类型（用于错误处理）
  */
-export type Result<T, E = Error> =
-  | { success: true; data: T }
-  | { success: false; error: E };
-
 /**
  * 创建成功结果
  */

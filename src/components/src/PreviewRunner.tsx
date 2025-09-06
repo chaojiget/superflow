@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { Node } from 'reactflow';
-import { safeCopy } from '@/utils/safeCopy';
+import { safeCopy } from '@/utils';
 
 interface RunnerProps {
   nodes: Node[];
