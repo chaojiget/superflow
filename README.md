@@ -55,4 +55,4 @@ src/
 
 ## 架构设计
 
-详见 [CLAUDE.md](./CLAUDE.md) 中的完整架构文档。
+详见 [AGENTS.md](./AGENTS.md) 中的架构与开发指南（含 Claude 工作指南）。

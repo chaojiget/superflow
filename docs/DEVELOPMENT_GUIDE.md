@@ -632,7 +632,7 @@ gh pr review --comment --body "建议优化性能"
 
 ## 🔗 相关资源
 
-- [CLAUDE.md](../CLAUDE.md) - AI 助手工作指南
+- [AGENTS.md](../AGENTS.md) - Agents 文档与 AI 助手工作指南
 - [分支保护规则](../.github/branch-protection.md)
 - [自动合并指南](../.github/AUTO_MERGE_GUIDE.md)
 - [问题模板](../.github/ISSUE_TEMPLATE/)
