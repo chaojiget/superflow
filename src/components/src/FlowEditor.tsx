@@ -85,7 +85,15 @@ const FlowEditor = forwardRef<FlowEditorRef>(function FlowEditor(_, ref) {
     <div style={{ display: 'flex', height: '100%' }}>
       <div style={{ flex: 1 }}>
         <div style={{ padding: 8, borderBottom: '1px solid #e5e7eb' }}>
-          <button onClick={() => (ref as any)?.current?.autoLayout?.()}>自动布局</button>
+          <button
+            onClick={async () => {
+              const { nodes: laid } = await autoLayout(nodes, edges);
+              setNodes(laid);
+              if (rf.current) rf.current.fitView({ duration: 300 });
+            }}
+          >
+            自动布局
+          </button>
         </div>
         <ReactFlow
           nodes={nodes}

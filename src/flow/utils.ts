@@ -30,7 +30,7 @@ export async function autoLayout(
 ): Promise<{ nodes: Node[]; edges: Edge[] }> {
   const graph = {
     id: 'root',
-    layoutOptions: { 'elk.algorithm': 'layered' },
+    layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': 'RIGHT' },
     children: nodes.map((n) => ({ id: n.id, width: 180, height: 60 })),
     edges: edges.map((e) => ({
       id: e.id,
