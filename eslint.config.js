@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import importPlugin from 'eslint-plugin-import';
 
 export default [
   {
@@ -39,11 +40,30 @@ export default [
       '@typescript-eslint': tseslint,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      import: importPlugin,
     },
     rules: {
       ...js.configs.recommended.rules,
       ...tseslint.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            {
+              target: './apps',
+              from: './packages/@data',
+              message:
+                'apps 层禁止直接依赖 @data 层，请通过 @app/services 访问',
+            },
+            {
+              target: './packages/@app',
+              from: './packages/@data',
+              message: '@app 层禁止直接依赖 @data 层，请使用 ports/adapters',
+            },
+          ],
+        },
+      ],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
@@ -58,6 +78,20 @@ export default [
       'prefer-const': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       'no-console': 'error',
+      // packages 层禁止直接依赖应用层 alias '@/..'
+      'no-restricted-imports': [
+        'warn',
+        {
+          patterns: [
+            {
+              group: ['@/*'],
+              message:
+                "Packages 代码不得依赖 src ('@/...')，请通过 @core/@data 等包暴露的 API",
+              caseSensitive: false,
+            },
+          ],
+        },
+      ],
     },
   },
 ];

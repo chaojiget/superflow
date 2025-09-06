@@ -31,7 +31,16 @@
       "@/nodes/*": ["src/nodes/*"],
       "@/run-center/*": ["src/run-center/*"],
       "@/utils/*": ["src/utils/*"],
-      "@app/services": ["packages/@app/services/src/index.ts"],
+      "@core": ["packages/@core/src"],
+      "@core/*": ["packages/@core/src/*", "packages/@core/*"],
+      "@core/protocol": ["packages/@core/protocol/src"],
+      "@core/observability": ["packages/@core/observability/src"],
+      "@core/observability/*": ["packages/@core/observability/src/*"],
+      "@core/runtime": ["packages/@core/runtime"],
+      "@data": ["packages/@data/src"],
+      "@data/*": ["packages/@data/src/*"],
+      "@ai/orchestrator": ["packages/@ai/orchestrator/src"],
+      "@app/services": ["packages/@app/services/src"],
       "@app/services/*": ["packages/@app/services/src/*"]
     },
 
@@ -40,6 +49,6 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
   },
-  "include": ["src", "packages/@app/services/src"],
+  "include": ["src", "packages"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

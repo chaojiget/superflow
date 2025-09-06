@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { TestFlow } from '../helpers/test-flow';
-import { RunCenterService } from '../../run-center';
+import { RunCenterService } from '@app/services';
 
 describe('流程集成测试', () => {
   let testFlow: TestFlow;

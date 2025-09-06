@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import {
@@ -8,16 +9,59 @@ import {
   act,
 } from '@testing-library/react';
 import { RunCenterPage, NodeLog } from '../RunCenterPage';
-import { RunCenterService } from '../RunCenterService';
+import { RunCenterService } from '@app/services';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 const logs: NodeLog[] = [
-  { id: '1', node: 'A', status: 'success', message: 'ok' },
-  { id: '2', node: 'B', status: 'failed', message: 'oops', error: 'detail' },
-  { id: '3', node: 'C', status: 'running', message: 'processing' },
-  { id: '4', node: 'D', status: 'success', message: 'done' },
-  { id: '5', node: 'E', status: 'success', message: 'done' },
-  { id: '6', node: 'F', status: 'success', message: 'done' },
+  {
+    id: '1',
+    node: 'A',
+    status: 'success',
+    message: 'ok',
+    runId: 'run-1',
+    traceId: 'trace-1',
+  },
+  {
+    id: '2',
+    node: 'B',
+    status: 'failed',
+    message: 'oops',
+    error: 'detail',
+    runId: 'run-1',
+    traceId: 'trace-1',
+  },
+  {
+    id: '3',
+    node: 'C',
+    status: 'running',
+    message: 'processing',
+    runId: 'run-2',
+    traceId: 'trace-2',
+  },
+  {
+    id: '4',
+    node: 'D',
+    status: 'success',
+    message: 'done',
+    runId: 'run-2',
+    traceId: 'trace-2',
+  },
+  {
+    id: '5',
+    node: 'E',
+    status: 'success',
+    message: 'done',
+    runId: 'run-3',
+    traceId: 'trace-3',
+  },
+  {
+    id: '6',
+    node: 'F',
+    status: 'success',
+    message: 'done',
+    runId: 'run-3',
+    traceId: 'trace-3',
+  },
 ];
 
 describe('RunCenterPage', () => {
@@ -42,9 +86,13 @@ describe('RunCenterPage', () => {
 
   it('支持分页和重新运行', () => {
     const retry = vi.fn();
-    render(<RunCenterPage logs={logs} onRetry={retry} />);
+    const download = vi.fn();
+    render(<RunCenterPage logs={logs} onRetry={retry} onDownload={download} />);
 
     expect(screen.getAllByTestId('log-item')).toHaveLength(5);
+    fireEvent.click(screen.getAllByTestId('download-log')[0]!);
+    expect(download).toHaveBeenCalledWith('run-1');
+
     fireEvent.click(screen.getByText('下一页'));
     expect(screen.getAllByTestId('log-item')).toHaveLength(1);
 
@@ -76,8 +124,10 @@ describe('RunCenterPage', () => {
                 id: l.id,
                 node: l.nodeId || 'N',
                 status: l.level === 'error' ? 'failed' : 'success',
-                message: l.message,
-                error: l.level === 'error' ? l.message : undefined,
+                message: l.fields.message as string,
+                ...(l.level === 'error'
+                  ? { error: l.fields.message as string }
+                  : {}),
               },
             ]);
           }
@@ -100,13 +150,15 @@ describe('RunCenterPage', () => {
         await service.updateRunStatus(run.id, 'running');
         await service.addLog(run.id, {
           level: 'info',
-          message: 'started',
           nodeId: 'A',
+          chainId: run.id,
+          fields: { message: 'started' },
         });
         await service.addLog(run.id, {
           level: 'error',
-          message: 'boom',
           nodeId: 'B',
+          chainId: run.id,
+          fields: { message: 'boom' },
         });
         await service.updateRunStatus(run.id, 'failed');
       });

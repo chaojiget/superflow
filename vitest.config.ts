@@ -40,10 +40,19 @@ export default defineConfig({
       '@/nodes': resolve(__dirname, 'src/nodes'),
       '@/run-center': resolve(__dirname, 'src/run-center'),
       '@/utils': resolve(__dirname, 'src/utils'),
-      '@app/services': resolve(
+      // Core layered packages
+      '@core/domain': resolve(__dirname, 'packages/@core/domain'),
+      '@core/runtime': resolve(__dirname, 'packages/@core/runtime'),
+      '@core/protocol': resolve(__dirname, 'packages/@core/protocol/src'),
+      '@core/observability': resolve(
         __dirname,
-        'packages/@app/services/src'
+        'packages/@core/observability/src'
       ),
+      '@core': resolve(__dirname, 'packages/@core/src'),
+      // Data and App services
+      '@data': resolve(__dirname, 'packages/@data/src'),
+      '@app/services': resolve(__dirname, 'packages/@app/services/src'),
+      '@ai/orchestrator': resolve(__dirname, 'packages/@ai/orchestrator/src'),
     },
   },
 });

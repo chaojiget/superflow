@@ -14,10 +14,9 @@ export default defineConfig({
       '@/nodes': resolve(__dirname, 'src/nodes'),
       '@/run-center': resolve(__dirname, 'src/run-center'),
       '@/utils': resolve(__dirname, 'src/utils'),
-      '@app/services': resolve(
-        __dirname,
-        'packages/@app/services/src'
-      ),
+      '@core': resolve(__dirname, 'packages/@core/src'),
+      '@data': resolve(__dirname, 'packages/@data/src'),
+      '@app/services': resolve(__dirname, 'packages/@app/services/src'),
     },
   },
   server: {

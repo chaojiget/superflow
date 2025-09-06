@@ -1,4 +1,6 @@
 import React from 'react';
+import type { Node, Edge } from 'reactflow';
+import ELK from 'elkjs/lib/elk.bundled.js';
 
 /**
  * 创建自定义节点类型
@@ -16,6 +18,33 @@ export function createCustomEdgeType<P = unknown>(
   component: React.ComponentType<P>
 ): React.ComponentType<P> {
   return React.memo(component) as React.ComponentType<P>;
+}
+
+/**
+ * 基于 elkjs 的自动布局
+ */
+const elk = new ELK();
+export async function autoLayout(
+  nodes: Node[],
+  edges: Edge[]
+): Promise<{ nodes: Node[]; edges: Edge[] }> {
+  const graph = {
+    id: 'root',
+    layoutOptions: { 'elk.algorithm': 'layered' },
+    children: nodes.map((n) => ({ id: n.id, width: 180, height: 60 })),
+    edges: edges.map((e) => ({
+      id: e.id,
+      sources: [e.source],
+      targets: [e.target],
+    })),
+  };
+
+  const layout = await elk.layout(graph);
+  const positioned = nodes.map((n) => {
+    const ln = layout.children?.find((c) => c.id === n.id);
+    return ln ? { ...n, position: { x: ln.x ?? 0, y: ln.y ?? 0 } } : n;
+  });
+  return { nodes: positioned, edges };
 }
 
 /**

@@ -18,9 +18,9 @@ import type {
   FlowEdge,
   NodePosition,
   NodeRuntimeStatus,
-} from '@/shared/types';
+} from '@core';
 import type { RunCenter } from '@/run-center';
-import type { NodeExecutionEventSource } from '@/shared/types';
+import type { NodeExecutionEventSource } from '@core';
 const STATUS_STYLES: Record<NodeRuntimeStatus, React.CSSProperties> = {
   idle: { border: '1px solid #d1d5db' },
   running: { border: '2px solid #3b82f6' },
@@ -46,6 +46,7 @@ export interface FlowCanvasConfig {
   defaultZoom?: number;
   minZoom?: number;
   maxZoom?: number;
+  virtualization?: boolean;
 }
 
 /**
@@ -77,6 +78,7 @@ export class FlowCanvas {
       defaultZoom: 1,
       minZoom: 0.1,
       maxZoom: 2,
+      virtualization: true,
       ...config,
     };
   }
@@ -93,6 +95,36 @@ export class FlowCanvas {
    */
   getEdges(): Edge[] {
     return [...this.edges];
+  }
+
+  /**
+   * 获取可见节点与边（简单实现：若开启虚拟化则按视窗范围过滤，否则返回全部）
+   */
+  getVisibleElements(rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): { nodes: Node[]; edges: Edge[] } {
+    if (!this.config.virtualization) {
+      return { nodes: this.getNodes(), edges: this.getEdges() };
+    }
+    const inView = (n: Node) => {
+      const x = n.position?.x ?? 0;
+      const y = n.position?.y ?? 0;
+      return (
+        x >= rect.x &&
+        y >= rect.y &&
+        x <= rect.x + rect.width &&
+        y <= rect.y + rect.height
+      );
+    };
+    const nodes = this.nodes.filter(inView);
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const edges = this.edges.filter(
+      (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
+    );
+    return { nodes, edges };
   }
 
   /**
@@ -700,7 +732,12 @@ export class FlowCanvas {
     runCenter?: {
       addLog: (
         runId: string,
-        log: { level: string; message: string }
+        log: {
+          level: string;
+          chainId: string;
+          fields: Record<string, unknown>;
+          nodeId?: string;
+        }
       ) => Promise<void>;
       updateRunStatus: (
         runId: string,
@@ -729,7 +766,8 @@ export class FlowCanvas {
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
           level: 'info',
-          message: `流程开始执行: ${executionId}`,
+          fields: { message: `流程开始执行: ${executionId}` },
+          chainId: runId,
         });
       }
 
@@ -745,7 +783,8 @@ export class FlowCanvas {
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
           level: 'info',
-          message: `流程执行完成: ${executionId}`,
+          fields: { message: `流程执行完成: ${executionId}` },
+          chainId: runId,
         });
         await runCenter.updateRunStatus(runId, 'completed', {
           output: outputs,
@@ -765,7 +804,12 @@ export class FlowCanvas {
       if (runCenter && runId) {
         await runCenter.addLog(runId, {
           level: 'error',
-          message: `流程执行失败: ${error instanceof Error ? error.message : String(error)}`,
+          fields: {
+            message: `流程执行失败: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          },
+          chainId: runId,
         });
         await runCenter.updateRunStatus(runId, 'failed', {
           error: error instanceof Error ? error.message : String(error),
