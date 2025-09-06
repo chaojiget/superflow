@@ -4,7 +4,8 @@ module.exports = {
     tsConfig: { fileName: 'tsconfig.json' },
     doNotFollow: { path: ['node_modules'] },
     includeOnly: ['^src', '^packages'],
-    reporterOptions: { dot: { theme: 'default' } },
+    // 兼容 v16+：dot reporter 的 theme 需为对象
+    reporterOptions: { dot: { theme: {} } },
   },
   forbidden: [
     // 基础：禁止循环依赖
@@ -35,4 +36,3 @@ module.exports = {
     },
   ],
 };
-

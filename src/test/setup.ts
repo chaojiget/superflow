@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import 'fake-indexeddb/auto';
 
 // Mock Web Workers
 (globalThis as any).Worker = class {
@@ -19,28 +20,7 @@ import '@testing-library/jest-dom';
   }
 } as unknown as typeof Worker;
 
-// Mock IndexedDB
-const mockIndexedDB = {
-  open: () => ({
-    result: {
-      transaction: () => ({
-        objectStore: () => ({
-          add: () => ({ onsuccess: null }),
-          get: () => ({ onsuccess: null }),
-          put: () => ({ onsuccess: null }),
-          delete: () => ({ onsuccess: null }),
-        }),
-      }),
-    },
-    onsuccess: null,
-    onerror: null,
-  }),
-};
-
-Object.defineProperty(window, 'indexedDB', {
-  value: mockIndexedDB,
-  writable: true,
-});
+// 使用 fake-indexeddb 提供 IndexedDB polyfill，避免重复定义
 
 // Mock ResizeObserver
 (globalThis as any).ResizeObserver = class ResizeObserver {

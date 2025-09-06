@@ -15,7 +15,7 @@
     "test:module": "vitest --run src/",
     "lint": "eslint .",
     "depcruise": "depcruise --ts-config tsconfig.json --config configs/depcruiser/.dependency-cruiser.cjs --include-only '^(src|packages)' src packages",
-    "depcruise:ci": "depcruise --ts-config tsconfig.json --config configs/depcruiser/.dependency-cruiser.cjs --include-only '^(src|packages)' --output-type err html:dist/depcruise.html src packages",
+    "depcruise:ci": "depcruise --ts-config tsconfig.json --config configs/depcruiser/.dependency-cruiser.cjs --include-only '^(src|packages)' --output-type err src packages",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc --noEmit",
     "format": "prettier --write .",

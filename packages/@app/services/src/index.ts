@@ -1,7 +1,6 @@
 export { RunCenterService } from './RunCenterService';
 export * as Commands from './commands';
 export * as Queries from './queries';
-
 import { startRun as startRunCmd } from './commands/startRun';
 import { getRun as getRunQuery } from './queries/getRun';
 import { dexieStorage } from './adapters/dexie';
