@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import {

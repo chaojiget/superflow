@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import type { TestFlow } from '../helpers/test-flow';
 import { RunCenterService } from '@app/services';
