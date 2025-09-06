@@ -1,0 +1,78 @@
+name: Seed Issues from CSV
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure milestones
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const ms = [
+              'M1-Core-Runtime',
+              'M2-Debug-Obs',
+              'M3-Migration',
+              'M4-Agent-Test',
+            ];
+            const existing = await github.paginate(github.rest.issues.listMilestones, { owner, repo, state: 'open', per_page: 100 });
+            const have = new Set(existing.map(m => m.title));
+            for (const title of ms) {
+              if (!have.has(title)) {
+                core.info(`Creating milestone: ${title}`);
+                await github.rest.issues.createMilestone({ owner, repo, title });
+              }
+            }
+
+      - name: Ensure labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labels = [
+              { name: 'priority/p0', color: 'd73a4a', description: 'Highest priority' },
+              { name: 'priority/p1', color: 'fbca04', description: 'High priority' },
+              { name: 'type/epic', color: '5319e7', description: 'Epic' },
+              { name: 'type/feature', color: '0e8a16', description: 'Feature' },
+              { name: 'type/task', color: '1d76db', description: 'Task' },
+              { name: 'type/chore', color: 'c5def5', description: 'Chore' },
+              { name: 'type/test', color: 'fef2c0', description: 'Test' },
+              { name: 'type/docs', color: 'c2e0c6', description: 'Docs' },
+              { name: 'module/studio', color: '0e8a16', description: 'Studio / Console' },
+              { name: 'module/flow', color: '0e8a16', description: 'Flow / Canvas' },
+              { name: 'module/inspector', color: '0e8a16', description: 'Inspector' },
+              { name: 'module/run-center', color: '0e8a16', description: 'Run Center' },
+              { name: 'module/services', color: '0e8a16', description: 'App Services' },
+              { name: 'module/runtime', color: '0e8a16', description: 'Runtime / Worker' },
+              { name: 'module/data', color: '0e8a16', description: 'Data / Dexie' },
+              { name: 'status/planning', color: 'cfd3d7', description: 'Planning' },
+              { name: 'status/ready', color: 'cfd3d7', description: 'Ready' },
+              { name: 'status/blocked', color: 'cfd3d7', description: 'Blocked' },
+              { name: 'project:superflow', color: '5319e7', description: 'Auto-add to Superflow Project' },
+            ];
+            const existing = await github.paginate(github.rest.issues.listLabelsForRepo, { owner, repo, per_page: 100 });
+            const have = new Set(existing.map(l => l.name));
+            for (const l of labels) {
+              if (!have.has(l.name)) {
+                core.info(`Creating label: ${l.name}`);
+                await github.rest.issues.createLabel({ owner, repo, name: l.name, color: l.color, description: l.description });
+              }
+            }
+
+      - name: Seed issues from CSV using gh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sudo apt-get update -y >/dev/null 2>&1 || true
+          sudo apt-get install -y coreutils >/dev/null 2>&1 || true
+          chmod +x scripts/projects/gh-seed.sh
+          scripts/projects/gh-seed.sh "${{ github.repository }}"
+
