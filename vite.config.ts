@@ -18,6 +18,17 @@ export default defineConfig({
       '@data': resolve(__dirname, 'packages/@data/src'),
       '@app/services': resolve(__dirname, 'packages/@app/services/src'),
       '@ai/orchestrator': resolve(__dirname, 'packages/@ai/orchestrator/src'),
+      // shims for doc page
+      '@monaco-editor/react': resolve(__dirname, 'src/shims/monaco.tsx'),
+      'react-diff-viewer-continued': resolve(
+        __dirname,
+        'src/shims/diff-viewer.tsx'
+      ),
+      'react-resizable-panels': resolve(
+        __dirname,
+        'src/shims/resizable-panels.tsx'
+      ),
+      'lucide-react': resolve(__dirname, 'src/shims/lucide-react.tsx'),
     },
   },
   server: {

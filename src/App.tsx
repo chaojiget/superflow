@@ -1,8 +1,8 @@
 import React from 'react';
-import StudioPage from '@/studio/StudioPage';
+import WorkflowStudio from '@/studio/WorkflowStudio';
 
 const App: React.FC = () => {
-  return <StudioPage />;
+  return <WorkflowStudio />;
 };
 
 export default App;

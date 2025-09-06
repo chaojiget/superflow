@@ -4,7 +4,7 @@ export {
   analyzeIdea,
   createBlueprintFromAnalysis,
   validateBlueprint,
-} from './generateBlueprint';
+} from './src/generateBlueprint';
 export type {
   IdeaInput,
   BlueprintOutput,

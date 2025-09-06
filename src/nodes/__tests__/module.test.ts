@@ -73,7 +73,9 @@ describe('Nodes Module', () => {
         category: 'test',
         inputs: [],
         outputs: [],
-        handler: async (input) => ({ foo: (input as any).foo }),
+        handler: async (input: unknown) => ({
+          foo: (input as { foo: number }).foo,
+        }),
         inputSchema: {
           type: 'object',
           properties: { foo: { type: 'number' } },

@@ -86,4 +86,3 @@ export class RunCenterClient {
     for (const cb of this.statusCallbacks) cb(state);
   }
 }
-

@@ -3,7 +3,7 @@
  * 提供超时控制、重试机制、AbortController 等功能
  */
 
-import type { Result } from '../types';
+import type { Result } from '@core/error';
 
 /**
  * 超时控制结果
