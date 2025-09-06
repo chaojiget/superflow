@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import FlowEditor from '@/components/src/FlowEditor';
+import FlowEditor, { type FlowEditorRef } from '@/components/src/FlowEditor';
 import { RunCenter } from '@/run-center/RunCenter';
 import { RunCenterPage, type NodeLog } from '@/run-center/RunCenterPage';
 
@@ -10,6 +10,7 @@ import { RunCenterPage, type NodeLog } from '@/run-center/RunCenterPage';
  */
 const StudioPage: React.FC = () => {
   const runCenterRef = useRef<RunCenter>();
+  const flowRef = useRef<FlowEditorRef>(null);
   const [logs, setLogs] = useState<NodeLog[]>([]);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
   const [connStatus, setConnStatus] = useState<string>('idle');
@@ -101,7 +102,7 @@ const StudioPage: React.FC = () => {
           <strong>Studio · Graph</strong>
         </div>
         <div style={{ height: 'calc(100% - 41px)' }}>
-          <FlowEditor />
+          <FlowEditor ref={flowRef} />
         </div>
       </div>
       <div style={{ width: 420, display: 'flex', flexDirection: 'column' }}>
@@ -127,7 +128,12 @@ const StudioPage: React.FC = () => {
           </div>
         </div>
         <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-          <RunCenterPage logs={logs} onRetry={handleRetry} onDownload={handleDownload} />
+          <RunCenterPage
+            logs={logs}
+            onRetry={handleRetry}
+            onDownload={handleDownload}
+            onFocusNode={(id) => flowRef.current?.focusNode(id)}
+          />
         </div>
       </div>
     </div>

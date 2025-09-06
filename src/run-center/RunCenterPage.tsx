@@ -14,6 +14,7 @@ export interface RunCenterPageProps {
   logs: NodeLog[];
   onRetry?: (id: string) => void;
   onDownload?: (runId: string) => void;
+  onFocusNode?: (nodeId: string) => void;
 }
 
 const PAGE_SIZE = 5;
@@ -22,6 +23,7 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
   logs,
   onRetry,
   onDownload,
+  onFocusNode,
 }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<
@@ -95,7 +97,15 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
             data-testid="log-item"
           >
             <span>
-              [{log.runId ?? ''} {log.traceId ?? ''}] {log.node}: {log.message}
+              [{log.runId ?? ''} {log.traceId ?? ''}] 
+              <button
+                style={{ textDecoration: 'underline', cursor: 'pointer' }}
+                onClick={() => onFocusNode?.(log.node)}
+                aria-label={`focus-${log.node}`}
+              >
+                {log.node}
+              </button>
+              : {log.message}
             </span>
             {log.status === 'failed' && log.error && (
               <pre data-testid="error-detail">{log.error}</pre>
@@ -133,4 +143,3 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
 };
 
 export default RunCenterPage;
-

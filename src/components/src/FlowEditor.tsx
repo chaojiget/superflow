@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import { useImperativeHandle, useRef, useState, forwardRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   type Node,
   type Edge,
+  type ReactFlowInstance,
 } from 'reactflow';
 import { InputNode, TransformNode, OutputNode } from '../nodes';
 import EditorPanel from './EditorPanel';
 import PreviewRunner from './PreviewRunner';
+import { autoLayout } from '@/flow/utils';
 
 const nodeTypes = {
   input: InputNode,
@@ -41,11 +43,17 @@ const initialEdges: Edge[] = [
   { id: 'e2-3', source: 'transform', target: 'output' },
 ];
 
-const FlowEditor: React.FC = () => {
+export interface FlowEditorRef {
+  focusNode: (id: string) => void;
+  autoLayout: () => Promise<void>;
+}
+
+const FlowEditor = forwardRef<FlowEditorRef>(function FlowEditor(_, ref) {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
   const [edges] = useState<Edge[]>(initialEdges);
   const [inputValue, setInputValue] = useState('hello');
   const [previewResult, setPreviewResult] = useState<unknown>();
+  const rf = useRef<ReactFlowInstance | null>(null);
 
   const handleInputChange = (value: string): void => {
     setInputValue(value);
@@ -56,10 +64,35 @@ const FlowEditor: React.FC = () => {
     );
   };
 
+  useImperativeHandle(ref, () => ({
+    focusNode: (id: string) => {
+      const node = nodes.find((n) => n.id === id);
+      if (node && rf.current) {
+        rf.current.setCenter(node.position.x + 90, node.position.y + 20, {
+          zoom: 1.2,
+          duration: 300,
+        });
+      }
+    },
+    autoLayout: async () => {
+      const { nodes: laid } = await autoLayout(nodes, edges);
+      setNodes(laid);
+      if (rf.current) rf.current.fitView({ duration: 300 });
+    },
+  }));
+
   return (
     <div style={{ display: 'flex', height: '100%' }}>
       <div style={{ flex: 1 }}>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}>
+        <div style={{ padding: 8, borderBottom: '1px solid #e5e7eb' }}>
+          <button onClick={() => (ref as any)?.current?.autoLayout?.()}>自动布局</button>
+        </div>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onInit={(inst) => (rf.current = inst)}
+        >
           <Background />
           <Controls />
         </ReactFlow>
@@ -73,6 +106,6 @@ const FlowEditor: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
 export default FlowEditor;
