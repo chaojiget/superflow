@@ -18,7 +18,7 @@ declare global {
 import React, { useState, useCallback } from 'react';
 import { generateId } from '@/shared/utils';
 import { validateSchema } from '@/shared/schema';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils';
 import type {
   NodeDefinition,
   NodeExecutionResult,

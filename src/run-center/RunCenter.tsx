@@ -3,9 +3,9 @@
  * 流程执行监控和管理界面
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+// Note: this file defines a non-React utility class; remove unused React import
 import { generateId } from '@/shared/utils';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils';
 import { startRun as startRunService } from '@app/services';
 import type { RunRecord, ExecutionSnapshot } from '@core/run';
 import type { NodeExecutionEventHandlers } from '@core';
@@ -257,6 +257,76 @@ export class RunCenter {
     });
   }
 
+  /**
+   * 汇总全局运行指标
+   */
+  async getMetrics(): Promise<{
+    totalRuns: number;
+    running: number;
+    completed: number;
+    failed: number;
+    cancelled: number;
+    successRate: number;
+    averageDuration: number;
+  }> {
+    const runs = Array.from(this.state.runs.values());
+    const totalRuns = runs.length;
+    const running = runs.filter((r) => r.status === 'running').length;
+    const completed = runs.filter((r) => r.status === 'completed').length;
+    const failed = runs.filter((r) => r.status === 'failed').length;
+    const cancelled = runs.filter((r) => r.status === 'cancelled').length;
+    const finished = runs.filter(
+      (r) => r.status === 'completed' || r.status === 'failed' || r.status === 'cancelled'
+    );
+    const durations = finished
+      .map((r) => (r.endTime ?? r.metrics.executionTime ?? 0) - (r.startTime || 0))
+      .filter((d) => d > 0);
+    const averageDuration = durations.length
+      ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+      : 0;
+    const denom = totalRuns || 1;
+    const successRate = completed / denom;
+    return {
+      totalRuns,
+      running,
+      completed,
+      failed,
+      cancelled,
+      successRate,
+      averageDuration,
+    };
+  }
+
+  /**
+   * 获取某个 flow 的聚合指标
+   */
+  async getFlowMetrics(flowId: string): Promise<{
+    totalRuns: number;
+    completed: number;
+    failed: number;
+    errorRate: number;
+    averageDuration: number;
+  }> {
+    const runs = Array.from(this.state.runs.values()).filter(
+      (r) => r.flowId === flowId
+    );
+    const totalRuns = runs.length;
+    const completed = runs.filter((r) => r.status === 'completed').length;
+    const failed = runs.filter((r) => r.status === 'failed').length;
+    const finished = runs.filter(
+      (r) => r.status === 'completed' || r.status === 'failed'
+    );
+    const durations = finished
+      .map((r) => (r.endTime ?? r.metrics.executionTime ?? 0) - (r.startTime || 0))
+      .filter((d) => d > 0);
+    const averageDuration = durations.length
+      ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+      : 0;
+    const denom = finished.length || totalRuns || 1;
+    const errorRate = failed / denom;
+    return { totalRuns, completed, failed, errorRate, averageDuration };
+  }
+
   async getRunHistory(flowId: string): Promise<any[]> {
     return Array.from(this.state.runs.values())
       .filter((run) => run.flowId === flowId)
@@ -316,6 +386,24 @@ export class RunCenter {
 
   async getLogs(runId: string): Promise<any[]> {
     return this.logs.get(runId) || [];
+  }
+
+  /**
+   * 订阅某个 runId 的实时日志
+   */
+  streamLogs(
+    runId: string,
+    callback: (log: { level: string; ts: number; runId: string; fields: any }) => void
+  ): () => void {
+    if (!this.logStreamers.has(runId)) {
+      this.logStreamers.set(runId, []);
+    }
+    const list = this.logStreamers.get(runId)!;
+    list.push(callback as (...args: any[]) => void);
+    return () => {
+      const idx = list.indexOf(callback as (...args: any[]) => void);
+      if (idx >= 0) list.splice(idx, 1);
+    };
   }
 
   subscribeToRun(
@@ -454,7 +542,8 @@ export class RunCenter {
         }
         run.progress.running = 0;
         run.progress.percentage = Math.round(
-          ((run.progress.completed + run.progress.failed) / run.progress.total) *
+          ((run.progress.completed + run.progress.failed) /
+            run.progress.total) *
             100
         );
       }
@@ -484,4 +573,3 @@ export class RunCenter {
 }
 
 export default RunCenter;
-
