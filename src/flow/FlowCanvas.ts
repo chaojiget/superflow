@@ -12,7 +12,7 @@ import {
   type Connection,
 } from 'reactflow';
 import { generateId } from '@/shared/utils';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils';
 import type {
   FlowNode,
   FlowEdge,
