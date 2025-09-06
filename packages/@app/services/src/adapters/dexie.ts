@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto';
 import Dexie, { type Table } from 'dexie';
 import type { RunRecord, StoragePort } from '../ports/storage';
 
