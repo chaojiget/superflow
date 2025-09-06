@@ -6,11 +6,14 @@ export interface NodeLog {
   status: 'success' | 'running' | 'failed';
   message: string;
   error?: string;
+  runId?: string;
+  traceId?: string;
 }
 
 export interface RunCenterPageProps {
   logs: NodeLog[];
   onRetry?: (id: string) => void;
+  onDownload?: (runId: string) => void;
 }
 
 const PAGE_SIZE = 5;
@@ -21,6 +24,7 @@ const PAGE_SIZE = 5;
 export const RunCenterPage: React.FC<RunCenterPageProps> = ({
   logs,
   onRetry,
+  onDownload,
 }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<
@@ -31,11 +35,15 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
   const filteredLogs = useMemo(() => {
     return logs
       .filter((l) => (filter === 'all' ? true : l.status === filter))
-      .filter(
-        (l) =>
-          l.node.toLowerCase().includes(search.toLowerCase()) ||
-          l.message.toLowerCase().includes(search.toLowerCase())
-      );
+      .filter((l) => {
+        const s = search.toLowerCase();
+        return (
+          l.node.toLowerCase().includes(s) ||
+          l.message.toLowerCase().includes(s) ||
+          l.runId?.toLowerCase().includes(s) ||
+          l.traceId?.toLowerCase().includes(s)
+        );
+      });
   }, [logs, search, filter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
@@ -90,12 +98,19 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
             data-testid="log-item"
           >
             <span>
-              {log.node}: {log.message}
+              [{log.runId ?? ''} {log.traceId ?? ''}] {log.node}: {log.message}
             </span>
             {log.status === 'failed' && log.error && (
               <pre data-testid="error-detail">{log.error}</pre>
             )}
             <button onClick={() => handleRetry(log.id)}>重新运行</button>
+            <button
+              onClick={() => log.runId && onDownload?.(log.runId)}
+              disabled={!log.runId}
+              data-testid="download-log"
+            >
+              下载
+            </button>
           </li>
         ))}
       </ul>

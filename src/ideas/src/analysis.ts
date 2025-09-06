@@ -1,4 +1,4 @@
-import type { NodeKind } from '@/shared';
+import type { NodeKind } from '@core';
 import type { IdeaAnalysis, ProcessStep, AnalysisConfig } from './types';
 import { DEFAULT_ANALYSIS_CONFIG } from './types';
 

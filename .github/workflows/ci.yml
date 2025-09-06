@@ -48,8 +48,9 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Check module dependencies
-        run: npm run dep:check
+      - name: Dependency boundaries (depcruiser)
+        run: npm run depcruise:ci
+        continue-on-error: false
 
   # 多版本矩阵测试
   test:

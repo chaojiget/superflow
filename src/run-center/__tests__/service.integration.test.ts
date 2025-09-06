@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { RunCenterService } from '../src/RunCenterService';
-import { RunCenterClient } from '../src/RunCenterClient';
+import { RunCenterService } from '@app/services';
+import { RunCenterClient } from '../RunCenterClient';
 import { mockWebSocket } from '@/test/helpers/test-server';
 
 // 集成测试：验证前端与服务端实时通信
@@ -40,10 +40,20 @@ describe('RunCenter Service integration', () => {
     const runId = await page.startRun('flow1');
 
     await service.updateRunStatus(runId, 'running');
-    await service.addLog(runId, { level: 'info', message: 'started' });
+    await service.addLog(runId, {
+      level: 'info',
+      chainId: runId,
+      fields: { message: 'started' },
+    });
 
     expect(page.getStatus()).toBe('running');
     expect(page.getLogs().length).toBe(1);
-    expect(page.getLogs()[0].message).toBe('started');
+    expect(page.getLogs()[0].fields.message).toBe('started');
+
+    const exported = await service.exportLogs(runId);
+    const lines = exported.trim().split('\n');
+    expect(lines.length).toBe(1);
+    const obj = JSON.parse(lines[0]!);
+    expect(obj.fields.message).toBe('started');
   });
 });

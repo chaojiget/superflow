@@ -3,7 +3,7 @@
  * 规划和执行相关类型
  */
 
-import type { Port, NodeCapability } from '@/shared';
+import type { Port, NodeCapability } from '@core';
 
 /**
  * 执行 DAG

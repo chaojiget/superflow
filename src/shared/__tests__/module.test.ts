@@ -1,10 +1,9 @@
-import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Shared Module', () => {
   describe('类型系统', () => {
     it('应该导出基础类型', async () => {
-      const types = await import('../types');
+      const types = await import('@core');
 
       expect(types).toBeDefined();
       // NodeType 是 TypeScript 类型，在运行时不存在
@@ -12,7 +11,7 @@ describe('Shared Module', () => {
     });
 
     it('应该有错误类型定义', async () => {
-      const { createError } = await import('../types/error');
+      const { createError } = await import('@core/error');
 
       const error = createError('VALIDATION_ERROR', '验证失败', {
         cause: { field: 'email' },
@@ -66,6 +65,24 @@ describe('Shared Module', () => {
       const allItems = await storage.getAll('items');
 
       expect(allItems.length).toBe(3);
+    });
+
+    it('应该记录事件日志', async () => {
+      const { createTestStorage } = await import(
+        '../../test/helpers/test-storage'
+      );
+      const storage = createTestStorage();
+      const event = {
+        id: 'evt-1',
+        type: 'test',
+        payload: { msg: 'hello' },
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      await storage.addEvent(event);
+      const events = await storage.getAll('events');
+      expect(events).toHaveLength(1);
+      expect((events[0] as any).type).toBe('test');
     });
   });
 

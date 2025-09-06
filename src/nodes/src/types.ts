@@ -3,8 +3,9 @@
  * 节点定义和执行相关类型
  */
 
-import type { Port, NodeCapability, WorkerContext } from '@/shared';
+import type { Port, NodeCapability } from '@core';
 import React from 'react';
+import type { WorkerContext } from '@/shared/runtime/worker';
 
 /**
  * 节点处理函数

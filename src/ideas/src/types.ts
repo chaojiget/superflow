@@ -4,14 +4,14 @@
  */
 
 import { z } from 'zod';
-import type { FlowNode, FlowEdge, NodeKind } from '@/shared';
+import type { FlowNode, FlowEdge, NodeKind } from '@core';
 import {
   NodeKindSchema,
   NodeCapabilitySchema,
   PortTypeSchema,
   PortDirectionSchema,
   EdgeTypeSchema,
-} from '@/shared';
+} from '@core';
 
 /**
  * 想法分析配置

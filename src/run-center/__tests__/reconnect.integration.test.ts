@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { RunCenterClient } from '../src/RunCenterClient';
-import { RunCenterService } from '../src/RunCenterService';
+import { RunCenterClient } from '../RunCenterClient';
+import { RunCenterService } from '@app/services';
 import { mockWebSocket, mockTimer } from '@/test/helpers/test-server';
 
 // 集成测试：验证断线重连与错误处理
