@@ -3,14 +3,9 @@
  * 运行中心服务类，处理流程执行和监控
  */
 
-<<<<<<<< HEAD:src/run-center/src/RunCenterService.ts
-import { generateId } from '@/shared';
-import type { RunRecord, RunLog, RunStatus } from './types';
-========
 import { ulid as generateId } from 'ulid';
 import { SuperflowDB } from '@data';
 import type { RunRecord, RunLog, RunStatus } from '@core/run';
->>>>>>>> origin/main:packages/@app/services/src/RunCenterService.ts
 
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();
