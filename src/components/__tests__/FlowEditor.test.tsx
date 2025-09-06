@@ -29,6 +29,11 @@ vi.mock('reactflow', () => {
     ReactFlow,
     Controls: () => <div />,
     Background: () => <div />,
+    // minimal stubs for node components using handles
+    Handle: ({ children }: { children?: React.ReactNode }) => (
+      <span data-testid="handle">{children}</span>
+    ),
+    Position: { Left: 'left', Right: 'right', Top: 'top', Bottom: 'bottom' },
   };
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { ReactFlowProvider } from 'reactflow';
 import { InputNode, TransformNode, OutputNode } from '@/components/nodes';
 import type { TransformNodeData } from '@/components/nodes';
 import type { NodeProps } from 'reactflow';
@@ -22,7 +23,11 @@ describe('自定义节点', () => {
       label: '输入',
       value: 'a',
     });
-    render(<InputNode {...props} />);
+    render(
+      <ReactFlowProvider>
+        <InputNode {...props} />
+      </ReactFlowProvider>
+    );
     expect(screen.getByText('输入')).toBeInTheDocument();
     expect(screen.getByText('a')).toBeInTheDocument();
   });
@@ -32,14 +37,22 @@ describe('自定义节点', () => {
       label: '转换',
       operation: 'uppercase',
     });
-    render(<TransformNode {...props} />);
+    render(
+      <ReactFlowProvider>
+        <TransformNode {...props} />
+      </ReactFlowProvider>
+    );
     expect(screen.getByText('转换')).toBeInTheDocument();
     expect(screen.getByText('操作: uppercase')).toBeInTheDocument();
   });
 
   it('渲染 OutputNode', () => {
     const props = createProps({ label: '输出' });
-    render(<OutputNode {...props} />);
+    render(
+      <ReactFlowProvider>
+        <OutputNode {...props} />
+      </ReactFlowProvider>
+    );
     expect(screen.getByText('输出')).toBeInTheDocument();
   });
 });
