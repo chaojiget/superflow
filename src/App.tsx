@@ -1,5 +1,5 @@
 import React from 'react';
-import WorkflowStudio from '@/studio/WorkflowStudio';
+import WorkflowStudio from '@/studio/StudioPageSimple';
 
 const App: React.FC = () => {
   return <WorkflowStudio />;
