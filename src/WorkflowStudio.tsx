@@ -269,7 +269,7 @@ function nodeLabel(id: string, meta: NodeMeta) {
 
 export function extractOutputsFromCode(code: string): string[] {
   // 读取 “# outputs: a, b” 或 “// outputs: a, b”（大小写不敏感）
-  const m = code.match(/^[#\/]{1,2}\s*outputs:\s*([^\n]+)/im);
+  const m = code.match(/^[#/]{1,2}\s*outputs:\s*([^\n]+)/im);
   if (!m || !m[1]) return [];
   return m[1]
     .split(",")
