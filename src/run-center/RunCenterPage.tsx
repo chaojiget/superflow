@@ -1,4 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/select';
 
 export interface NodeLog {
   id: string;
@@ -65,8 +68,8 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
           data-testid="global-progress"
         />
       </div>
-      <div>
-        <input
+      <div className="flex items-center gap-2 py-2">
+        <Input
           placeholder="搜索日志"
           aria-label="search"
           value={search}
@@ -74,20 +77,22 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
             setSearch(e.target.value);
             setPage(1);
           }}
+          className="w-48"
         />
-        <select
+        <NativeSelect
           aria-label="filter"
           value={filter}
           onChange={(e) => {
             setFilter(e.target.value as any);
             setPage(1);
           }}
+          className="w-32"
         >
           <option value="all">全部</option>
           <option value="success">成功</option>
           <option value="running">运行中</option>
           <option value="failed">失败</option>
-        </select>
+        </NativeSelect>
       </div>
       <ul>
         {pageLogs.map((log) => (
@@ -97,46 +102,49 @@ export const RunCenterPage: React.FC<RunCenterPageProps> = ({
             data-testid="log-item"
           >
             <span>
-              [{log.runId ?? ''} {log.traceId ?? ''}] 
-              <button
-                style={{ textDecoration: 'underline', cursor: 'pointer' }}
+              [{log.runId ?? ''} {log.traceId ?? ''}]
+              <Button
+                className="border-0 bg-transparent p-0 h-auto underline text-blue-600"
                 onClick={() => onFocusNode?.(log.node)}
                 aria-label={`focus-${log.node}`}
               >
                 {log.node}
-              </button>
+              </Button>
               : {log.message}
             </span>
             {log.status === 'failed' && log.error && (
               <pre data-testid="error-detail">{log.error}</pre>
             )}
-            <button onClick={() => handleRetry(log.id)}>重新运行</button>
-            <button
+            <Button onClick={() => handleRetry(log.id)} className="ml-2">
+              重新运行
+            </Button>
+            <Button
               onClick={() => log.runId && onDownload?.(log.runId)}
               disabled={!log.runId}
               data-testid="download-log"
+              className="ml-2"
             >
               下载
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
-      <div>
-        <button
+      <div className="flex items-center gap-2 py-2">
+        <Button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page === 1}
         >
           上一页
-        </button>
+        </Button>
         <span>
           {page}/{totalPages}
         </span>
-        <button
+        <Button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page === totalPages}
         >
           下一页
-        </button>
+        </Button>
       </div>
     </div>
   );
