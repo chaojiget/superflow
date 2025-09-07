@@ -4,13 +4,26 @@
  */
 
 import { ulid as generateId } from 'ulid';
-import { SuperflowDB } from '@data';
+import { SuperflowDB, type LogRecord } from '@data';
 import type { RunRecord, RunLog, RunStatus } from '@core/run';
+
+interface WebSocketLike {
+  onclose?: ((event: CloseEvent | Event) => void) | null;
+  simulateMessage?: (data: string | object) => void;
+  send?: (data: string) => void;
+  close?: () => void;
+}
+
+interface BroadcastMessage {
+  type: string;
+  log?: RunLog;
+  [key: string]: unknown;
+}
 
 export class RunCenterService {
   private runs = new Map<string, RunRecord>();
   private logs = new Map<string, RunLog[]>();
-  private clients = new Map<string, Set<any>>();
+  private clients = new Map<string, Set<WebSocketLike>>();
   private db: SuperflowDB;
 
   constructor() {
@@ -135,7 +148,7 @@ export class RunCenterService {
       runId,
       ts: newLog.ts,
       level: newLog.level,
-      event: (newLog.fields as any)?.message ?? '',
+      event: (newLog.fields as Record<string, unknown>)?.message as string ?? '',
       data: newLog.fields,
       ...(run?.chainId ? { traceId: run.chainId } : {}),
     });
@@ -160,11 +173,12 @@ export class RunCenterService {
   /**
    * 注册 WebSocket 客户端
    */
-  registerClient(runId: string, ws: any): void {
+  registerClient(runId: string, ws: WebSocketLike): void {
     if (!this.clients.has(runId)) {
       this.clients.set(runId, new Set());
     }
-    const set = this.clients.get(runId)!;
+    const set = this.clients.get(runId);
+    if (!set) return;
     set.add(ws);
     ws.onclose = () => set.delete(ws);
   }
@@ -172,7 +186,7 @@ export class RunCenterService {
   /**
    * 推送事件
    */
-  private broadcast(runId: string, message: any): void {
+  private broadcast(runId: string, message: BroadcastMessage): void {
     const set = this.clients.get(runId);
     if (!set) return;
     for (const ws of set) {
@@ -192,10 +206,10 @@ export class RunCenterService {
   /**
    * 处理 REST 请求（用于测试集成）
    */
-  async handleRequest(method: string, path: string, body?: any): Promise<any> {
+  async handleRequest(method: string, path: string, body?: Record<string, unknown>): Promise<unknown> {
     if (method === 'POST' && path === '/runs') {
       const { flowId, input } = body || {};
-      return this.createRun(flowId, input);
+      return this.createRun(flowId as string, input);
     }
 
     const statusMatch = path.match(/^\/runs\/([^/]+)\/status$/);
@@ -230,7 +244,7 @@ export class RunCenterService {
       ? await this.db.logs.where('runId').equals(runId).toArray()
       : await this.db.logs.toArray();
     return logs
-      .map((l: any) =>
+      .map((l: LogRecord) =>
         JSON.stringify(
           typeof l.data === 'object' && l.data !== null
             ? { ...l, fields: l.data }

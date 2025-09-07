@@ -23,8 +23,8 @@ export async function startRun(
   try {
     await deps.runtime.execute(req.flowId, req.input);
     deps.log.info(`run ${runId} started`);
-  } catch (err: any) {
-    deps.log.error(err.message);
+  } catch (err: unknown) {
+    deps.log.error(err instanceof Error ? err.message : String(err));
   }
   return runId;
 }
