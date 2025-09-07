@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --project tsconfig.build.json && vite build",
+    "docs:build": "node scripts/build-docs.mjs",
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "node scripts/test-coverage.mjs",
