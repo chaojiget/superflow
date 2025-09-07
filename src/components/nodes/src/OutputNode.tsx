@@ -7,7 +7,15 @@ export interface OutputNodeData {
 }
 
 const OutputNode: React.FC<NodeProps<OutputNodeData>> = ({ data }) => (
-  <div className="output-node" style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+  <div
+    className="output-node"
+    style={{
+      padding: 8,
+      border: '1px solid #e5e7eb',
+      borderRadius: 6,
+      background: '#fff',
+    }}
+  >
     <strong>{data.label}</strong>
     {/* 作为汇聚节点暴露左侧输入句柄 */}
     <Handle type="target" position={Position.Left} />

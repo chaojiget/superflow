@@ -1,6 +1,6 @@
 name: Epic
 description: 史诗级需求（跨多个模块/里程碑）
-labels: ["type/epic", "status/planning", "project:superflow"]
+labels: ['type/epic', 'status/planning', 'project:superflow']
 body:
   - type: input
     id: goal
@@ -36,4 +36,3 @@ body:
       placeholder: |-
         AGENTS.md:xxx
         docs/adr/0003-重构.md:xxx
-

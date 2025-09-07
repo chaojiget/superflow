@@ -15,4 +15,3 @@ jobs:
           # 替换为你的 Project URL（Organization/User 级 Projects v2）
           project-url: https://github.com/orgs/your-org/projects/1
           github-token: ${{ secrets.PROJECT_PAT }}
-

@@ -8,10 +8,17 @@ export interface EditorProps {
   options?: Record<string, unknown>;
 }
 
-const Editor: React.FC<EditorProps> = ({ value = '', onChange, height = 200 }) => {
+const Editor: React.FC<EditorProps> = ({
+  value = '',
+  onChange,
+  height = 200,
+}) => {
   return (
     <textarea
-      style={{ width: '100%', height: typeof height === 'number' ? `${height}px` : height }}
+      style={{
+        width: '100%',
+        height: typeof height === 'number' ? `${height}px` : height,
+      }}
       value={value}
       onChange={(e) => onChange?.(e.target.value)}
     />
@@ -20,4 +27,3 @@ const Editor: React.FC<EditorProps> = ({ value = '', onChange, height = 200 }) =
 
 export { Editor };
 export default Editor;
-

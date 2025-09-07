@@ -1,6 +1,6 @@
 name: Feature
 description: 新功能/能力（可在 1–3 天内完成）
-labels: ["type/feature", "status/planning", "project:superflow"]
+labels: ['type/feature', 'status/planning', 'project:superflow']
 body:
   - type: input
     id: epic
@@ -50,4 +50,3 @@ body:
     id: refs
     attributes:
       label: 参考与文件
-

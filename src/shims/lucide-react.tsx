@@ -3,7 +3,11 @@ import React from 'react';
 const icon = (name: string) =>
   function Icon(props: React.HTMLAttributes<HTMLSpanElement>) {
     return (
-      <span aria-label={name} {...props} style={{ display: 'inline-block', width: 16, height: 16 }} />
+      <span
+        aria-label={name}
+        {...props}
+        style={{ display: 'inline-block', width: 16, height: 16 }}
+      />
     );
   };
 

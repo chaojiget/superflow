@@ -148,7 +148,8 @@ export class RunCenterService {
       runId,
       ts: newLog.ts,
       level: newLog.level,
-      event: (newLog.fields as Record<string, unknown>)?.message as string ?? '',
+      event:
+        ((newLog.fields as Record<string, unknown>)?.message as string) ?? '',
       data: newLog.fields,
       ...(run?.chainId ? { traceId: run.chainId } : {}),
     });
@@ -206,7 +207,11 @@ export class RunCenterService {
   /**
    * 处理 REST 请求（用于测试集成）
    */
-  async handleRequest(method: string, path: string, body?: Record<string, unknown>): Promise<unknown> {
+  async handleRequest(
+    method: string,
+    path: string,
+    body?: Record<string, unknown>
+  ): Promise<unknown> {
     if (method === 'POST' && path === '/runs') {
       const { flowId, input } = body || {};
       return this.createRun(flowId as string, input);

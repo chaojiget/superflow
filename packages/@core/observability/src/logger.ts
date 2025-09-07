@@ -52,13 +52,13 @@ export class Logger {
       ts: entry.ts ?? Date.now(),
       level,
       ...((entry.nodeId ?? this.context.nodeId)
-        ? { nodeId: entry.nodeId ?? this.context.nodeId as string }
+        ? { nodeId: entry.nodeId ?? (this.context.nodeId as string) }
         : {}),
       ...((entry.runId ?? this.context.runId)
-        ? { runId: entry.runId ?? this.context.runId as string }
+        ? { runId: entry.runId ?? (this.context.runId as string) }
         : {}),
       ...((entry.chainId ?? this.context.chainId)
-        ? { chainId: entry.chainId ?? this.context.chainId as string }
+        ? { chainId: entry.chainId ?? (this.context.chainId as string) }
         : {}),
       ...(entry.fields ? { fields: entry.fields } : {}),
     } as LogRow;

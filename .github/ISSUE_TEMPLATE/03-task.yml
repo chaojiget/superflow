@@ -1,6 +1,6 @@
 name: Task
 description: 可独立交付的小任务（≤ 1 天）
-labels: ["type/task", "status/ready", "project:superflow"]
+labels: ['type/task', 'status/ready', 'project:superflow']
 body:
   - type: dropdown
     id: module
@@ -29,4 +29,3 @@ body:
     id: refs
     attributes:
       label: 参考与文件
-

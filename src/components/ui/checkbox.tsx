@@ -4,7 +4,11 @@ export const Checkbox: React.FC<{
   onCheckedChange?: (v: boolean) => void;
   className?: string;
 }> = ({ checked, onCheckedChange, className }) => (
-  <input className={className} type="checkbox" checked={!!checked} onChange={(e) => onCheckedChange?.(e.target.checked)} />
+  <input
+    className={className}
+    type="checkbox"
+    checked={!!checked}
+    onChange={(e) => onCheckedChange?.(e.target.checked)}
+  />
 );
 export default Checkbox;
-

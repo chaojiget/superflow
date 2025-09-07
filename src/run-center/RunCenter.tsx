@@ -276,10 +276,15 @@ export class RunCenter {
     const failed = runs.filter((r) => r.status === 'failed').length;
     const cancelled = runs.filter((r) => r.status === 'cancelled').length;
     const finished = runs.filter(
-      (r) => r.status === 'completed' || r.status === 'failed' || r.status === 'cancelled'
+      (r) =>
+        r.status === 'completed' ||
+        r.status === 'failed' ||
+        r.status === 'cancelled'
     );
     const durations = finished
-      .map((r) => (r.endTime ?? r.metrics.executionTime ?? 0) - (r.startTime || 0))
+      .map(
+        (r) => (r.endTime ?? r.metrics.executionTime ?? 0) - (r.startTime || 0)
+      )
       .filter((d) => d > 0);
     const averageDuration = durations.length
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
@@ -317,7 +322,9 @@ export class RunCenter {
       (r) => r.status === 'completed' || r.status === 'failed'
     );
     const durations = finished
-      .map((r) => (r.endTime ?? r.metrics.executionTime ?? 0) - (r.startTime || 0))
+      .map(
+        (r) => (r.endTime ?? r.metrics.executionTime ?? 0) - (r.startTime || 0)
+      )
       .filter((d) => d > 0);
     const averageDuration = durations.length
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
@@ -393,7 +400,12 @@ export class RunCenter {
    */
   streamLogs(
     runId: string,
-    callback: (log: { level: string; ts: number; runId: string; fields: any }) => void
+    callback: (log: {
+      level: string;
+      ts: number;
+      runId: string;
+      fields: any;
+    }) => void
   ): () => void {
     if (!this.logStreamers.has(runId)) {
       this.logStreamers.set(runId, []);

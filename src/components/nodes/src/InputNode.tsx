@@ -8,7 +8,15 @@ export interface InputNodeData {
 }
 
 const InputNode: React.FC<NodeProps<InputNodeData>> = ({ data }) => (
-  <div className="input-node" style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+  <div
+    className="input-node"
+    style={{
+      padding: 8,
+      border: '1px solid #e5e7eb',
+      borderRadius: 6,
+      background: '#fff',
+    }}
+  >
     <strong>{data.label}</strong>
     {data.value !== undefined && <div>{data.value}</div>}
     {/* 作为源节点暴露右侧输出句柄 */}

@@ -8,7 +8,15 @@ export interface TransformNodeData {
 }
 
 const TransformNode: React.FC<NodeProps<TransformNodeData>> = ({ data }) => (
-  <div className="transform-node" style={{ padding: 8, border: '1px solid #e5e7eb', borderRadius: 6, background: '#fff' }}>
+  <div
+    className="transform-node"
+    style={{
+      padding: 8,
+      border: '1px solid #e5e7eb',
+      borderRadius: 6,
+      background: '#fff',
+    }}
+  >
     <strong>{data.label}</strong>
     {data.operation && <div>操作: {data.operation}</div>}
     {/* 左侧作为输入、右侧作为输出 */}
