@@ -53,7 +53,7 @@ describe('类型校验与 JSON 序列化', () => {
         del: async () => {},
       },
       traceId: 'trace-1',
-    } as any;
+    };
     expect(ctx.logger.info).toBeDefined();
   });
 
@@ -66,7 +66,7 @@ describe('类型校验与 JSON 序列化', () => {
       startedAt: 1,
       status: 'pending',
       traceId: 'trace-1',
-    } as any;
+    };
     const json = JSON.stringify(run);
     const parsed = JSON.parse(json) as RunRecord;
     expect(parsed).toEqual(run);
@@ -82,7 +82,7 @@ describe('类型校验与 JSON 序列化', () => {
       level: 'info',
       event: 'test',
       traceId: 'trace-1',
-    } as any;
+    };
     const json = JSON.stringify(log);
     const parsed = JSON.parse(json) as LogRecord;
     expect(parsed).toEqual(log);
@@ -97,7 +97,7 @@ describe('类型校验与 JSON 序列化', () => {
       author: 'me',
       message: 'msg',
       diff: 'diff',
-    } as any;
+    };
     const json = JSON.stringify(version);
     const parsed = JSON.parse(json) as VersionRecord;
     expect(parsed).toEqual(version);
@@ -112,6 +112,6 @@ describe('类型校验与 JSON 序列化', () => {
       message: 'fail',
       code: 'RUNTIME_ERROR',
     });
-    expect((parsed as any).cause.foo).toBe('bar');
+    expect((parsed as ReturnType<typeof createError>).cause?.foo).toBe('bar');
   });
 });

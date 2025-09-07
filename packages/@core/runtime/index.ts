@@ -9,9 +9,9 @@ export function createExecutor(schemas: {
   const validateOutput = ajv.compile(schemas.output);
 
   return async function run(
-    handler: (input: any) => Promise<any> | any,
+    handler: (input: unknown) => Promise<unknown> | unknown,
     input: unknown
-  ): Promise<any> {
+  ): Promise<unknown> {
     if (!validateInput(input)) {
       throw new Error(ajv.errorsText(validateInput.errors));
     }

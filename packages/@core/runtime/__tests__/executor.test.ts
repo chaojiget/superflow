@@ -21,7 +21,7 @@ describe('createExecutor', () => {
 
   it('拒绝非法输入', async () => {
     await expect(
-      run(async () => ({ output: 1 }), { invalid: true } as any)
+      run(async () => ({ output: 1 }), { invalid: true } as unknown)
     ).rejects.toThrow();
   });
 });
