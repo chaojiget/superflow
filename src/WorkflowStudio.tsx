@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -270,10 +270,10 @@ function nodeLabel(id: string, meta: NodeMeta) {
 export function extractOutputsFromCode(code: string): string[] {
   // 读取 “# outputs: a, b” 或 “// outputs: a, b”（大小写不敏感）
   const m = code.match(/^[#\/]{1,2}\s*outputs:\s*([^\n]+)/im);
-  if (!m) return [];
+  if (!m || !m[1]) return [];
   return m[1]
     .split(",")
-    .map((s) => s.trim())
+    .map((s: string) => s.trim())
     .filter(Boolean);
 }
 
@@ -326,7 +326,7 @@ function suggestFieldMapping(oldOutputs: string[], newOutputs: string[], downstr
         mapping[name] = name;
       } else if (newNames.length === 1) {
         // 2) 若只有一个新输出，默认映射过去
-        mapping[name] = newNames[0];
+        mapping[name] = newNames[0] || null;
       } else {
         // 3) 需人工选择
         mapping[name] = null;
@@ -374,11 +374,11 @@ function runUnitTests(): TestResult[] {
 
 // ---- 主组件 ----
 export default function WorkflowStudio() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [meta, setMeta] = useState<Record<string, NodeMeta>>(initialMeta);
   const [code, setCode] = useState<Record<string, NodeCode>>(initialCode);
-  const [artifacts, setArtifacts] = useState<Record<string, Artifact[]>>(initialArtifacts);
+  const [artifacts] = useState<Record<string, Artifact[]>>(initialArtifacts);
   const [selected, setSelected] = useState<string>("feature");
 
   const [running, setRunning] = useState(false);
@@ -405,6 +405,7 @@ export default function WorkflowStudio() {
   const rfNodes = useMemo<Node[]>(() => {
     return nodes.map((n) => {
       const m = meta[n.id];
+      if (!m) return n; // 如果没有meta数据，返回原节点
       const statusColors = {
         queued: { bg: "#f1f5f9", border: "#94a3b8" },
         running: { bg: "#dbeafe", border: "#3b82f6" },
@@ -460,8 +461,9 @@ export default function WorkflowStudio() {
   }, []);
 
   // code 变化时，检测 outputs 变化，引导 DSL 迁移（两级流程触发）
-  const prevOutputsRef = useRef<string[]>(extractOutputsFromCode(code[selected].content));
+  const prevOutputsRef = useRef<string[]>(code[selected] ? extractOutputsFromCode(code[selected].content) : []);
   useEffect(() => {
+    if (!code[selected]) return;
     const outs = extractOutputsFromCode(code[selected].content);
     const prevOuts = prevOutputsRef.current;
     if (JSON.stringify(outs) !== JSON.stringify(prevOuts)) {
@@ -484,9 +486,34 @@ export default function WorkflowStudio() {
 
   const onConnect = (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds));
 
+  // Helper function to safely update meta
+  function updateMeta(nodeId: string, updates: Partial<NodeMeta>) {
+    setMeta((prev) => {
+      const current = prev[nodeId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [nodeId]: { ...current, ...updates }
+      };
+    });
+  }
+
+  // Helper function to safely update code
+  function updateCode(nodeId: string, updates: Partial<NodeCode>) {
+    setCode((prev) => {
+      const current = prev[nodeId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [nodeId]: { ...current, ...updates }
+      };
+    });
+  }
+
   function onSaveCode() {
     setCode((prev) => {
       const c = prev[selected];
+      if (!c) return prev;
       return {
         ...prev,
         [selected]: {
@@ -496,16 +523,21 @@ export default function WorkflowStudio() {
         },
       };
     });
-    setEvents((e) => [
-      ...e,
-      { ts: Date.now(), level: "info", message: `已保存 ${selected} v${code[selected].version + 1}` },
-    ]);
+    const currentCode = code[selected];
+    if (currentCode) {
+      setEvents((e) => [
+        ...e,
+        { ts: Date.now(), level: "info", message: `已保存 ${selected} v${currentCode.version + 1}` },
+      ]);
+    }
   }
 
   function generatePatch() {
-    const before = code[selected].content;
+    const currentCode = code[selected];
+    if (!currentCode) return;
+    const before = currentCode.content;
     const after = before +
-      (code[selected].lang === "python"
+      (currentCode.lang === "python"
         ? "\n\n# hotfix: handle empty input\nif __name__ == '__main__':\n    print('dry-run ok')\n"
         : "\n\n// hotfix: handle empty input\nconsole.log('dry-run ok')\n");
     setPatch({ before, after });
@@ -518,10 +550,14 @@ export default function WorkflowStudio() {
 
   function mergeAndRerun() {
     if (!patch) return;
-    setCode((prev) => ({
-      ...prev,
-      [selected]: { ...prev[selected], content: patch.after },
-    }));
+    setCode((prev) => {
+      const currentCode = prev[selected];
+      if (!currentCode) return prev;
+      return {
+        ...prev,
+        [selected]: { ...currentCode, content: patch.after },
+      };
+    });
     setEvents((e) => [
       ...e,
       { ts: Date.now(), level: "info", message: `合并补丁并重跑 ${selected}` },
@@ -540,14 +576,22 @@ export default function WorkflowStudio() {
   // 根据 selected 渲染侧栏内容
   const selMeta = meta[selected];
   const selCode = code[selected];
+  
+  if (!selMeta || !selCode) {
+    return <div>节点数据未找到</div>;
+  }
 
   const passCount = tests.filter(t => t.pass).length;
 
   // —— 字段级向导的辅助 ——
   function enterFieldStep() {
     const order = Object.entries(dslGuide.selected).filter(([_, ok]) => ok).map(([id]) => id);
-    // 进入字段级前，先更新当前节点的 outputs（作为“上游签名”真相）
-    setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], outputs: dslGuide.newOutputs } }));
+    // 进入字段级前，先更新当前节点的 outputs（作为"上游签名"真相）
+    setMeta((prev) => {
+      const currentMeta = prev[selected];
+      if (!currentMeta) return prev;
+      return { ...prev, [selected]: { ...currentMeta, outputs: dslGuide.newOutputs } };
+    });
 
     // 为每个选中下游节点生成默认映射
     const fm: Record<string, Record<string, string | null>> = {};
@@ -567,10 +611,14 @@ export default function WorkflowStudio() {
     const nid = dslGuide.selectedOrder[dslGuide.targetIndex];
     if (!nid) return;
     const mapping = dslGuide.fieldMappings[nid] || {};
-    setMeta((prev) => ({
-      ...prev,
-      [nid]: { ...prev[nid], inputs: renameInputsByMapping(prev[nid].inputs, mapping) },
-    }));
+    setMeta((prev) => {
+      const currentMeta = prev[nid];
+      if (!currentMeta) return prev;
+      return {
+        ...prev,
+        [nid]: { ...currentMeta, inputs: renameInputsByMapping(currentMeta.inputs, mapping) },
+      };
+    });
     setEvents((e) => [
       ...e,
       { ts: Date.now(), level: "info", message: `已应用字段映射到下游节点 ${nid}` },
@@ -678,7 +726,7 @@ export default function WorkflowStudio() {
                         节点 Inspector：{selected}
                       </CardTitle>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="rounded-full">{selCode.lang}</Badge>
+                        <Badge variant="secondary" className="rounded-full">{selCode.lang}</Badge>
                         {statusBadge(selMeta.status)}
                       </div>
                     </div>
@@ -703,7 +751,7 @@ export default function WorkflowStudio() {
                                   value={selMeta.inputs.join("\n")}
                                   onChange={(e) => {
                                     const lines = e.target.value.split("\n");
-                                    setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], inputs: lines } }));
+                                    updateMeta(selected, { inputs: lines });
                                   }}
                                 />
                               </div>
@@ -713,35 +761,35 @@ export default function WorkflowStudio() {
                                   value={selMeta.outputs.join("\n")}
                                   onChange={(e) => {
                                     const lines = e.target.value.split("\n");
-                                    setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], outputs: lines } }));
+                                    updateMeta(selected, { outputs: lines });
                                   }}
                                 />
                               </div>
                               <div className="space-y-1">
                                 <Label className="flex items-center gap-2"><Timer className="h-4 w-4"/>超时 (秒)</Label>
-                                <Input type="number" value={selMeta.timeoutSec} onChange={(e) => setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], timeoutSec: Number(e.target.value) } }))} />
+                                <Input type="number" value={selMeta.timeoutSec} onChange={(e) => updateMeta(selected, { timeoutSec: Number(e.target.value) })} />
                               </div>
                               <div className="space-y-1">
                                 <Label className="flex items-center gap-2"><Undo2 className="h-4 w-4"/>重试次数</Label>
-                                <Input type="number" value={selMeta.retry} onChange={(e) => setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], retry: Number(e.target.value) } }))} />
+                                <Input type="number" value={selMeta.retry} onChange={(e) => updateMeta(selected, { retry: Number(e.target.value) })} />
                               </div>
                               <div className="space-y-1 col-span-2">
                                 <Label>缓存键</Label>
-                                <Input value={selMeta.cacheKey} onChange={(e) => setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], cacheKey: e.target.value } }))} />
+                                <Input value={selMeta.cacheKey} onChange={(e) => updateMeta(selected, { cacheKey: e.target.value })} />
                               </div>
                               <div className="space-y-1">
                                 <Label className="flex items-center gap-2"><Cpu className="h-4 w-4"/>CPU</Label>
-                                <Input type="number" value={selMeta.cpu} onChange={(e) => setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], cpu: Number(e.target.value) } }))} />
+                                <Input type="number" value={selMeta.cpu} onChange={(e) => updateMeta(selected, { cpu: Number(e.target.value) })} />
                               </div>
                               <div className="space-y-1">
                                 <Label className="flex items-center gap-2"><Zap className="h-4 w-4"/>内存 (GB)</Label>
-                                <Input type="number" value={selMeta.memoryGB} onChange={(e) => setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], memoryGB: Number(e.target.value) } }))} />
+                                <Input type="number" value={selMeta.memoryGB} onChange={(e) => updateMeta(selected, { memoryGB: Number(e.target.value) })} />
                               </div>
                               <div className="space-y-1 col-span-2">
                                 <Label>环境依赖 (一行一个)</Label>
                                 <Textarea
                                   value={selMeta.env.join("\n")}
-                                  onChange={(e) => setMeta((prev) => ({ ...prev, [selected]: { ...prev[selected], env: e.target.value.split("\n") } }))}
+                                  onChange={(e) => updateMeta(selected, { env: e.target.value.split("\n") })}
                                 />
                               </div>
                             </div>
@@ -750,7 +798,7 @@ export default function WorkflowStudio() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <div className="font-medium">DSL 预览</div>
-                                <Badge variant="outline">双向联动</Badge>
+                                <Badge variant="secondary">双向联动</Badge>
                               </div>
                               <pre className="text-xs bg-slate-950 text-slate-100 rounded-lg p-3 overflow-auto">{JSON.stringify(dsl, null, 2)}</pre>
                               <p className="text-xs text-slate-500">在图上改连线/参数，会自动更新此 DSL；在代码中改入/出参，会触发“DSL 迁移向导”。</p>
@@ -773,10 +821,7 @@ export default function WorkflowStudio() {
                                 defaultLanguage={selCode.lang}
                                 value={selCode.content}
                                 onChange={(val) => {
-                                  setCode((prev) => ({
-                                    ...prev,
-                                    [selected]: { ...prev[selected], content: val || "" },
-                                  }));
+                                  updateCode(selected, { content: val || "" });
                                 }}
                                 options={{ fontSize: 13, minimap: { enabled: false } }}
                               />
@@ -1025,9 +1070,10 @@ export default function WorkflowStudio() {
 
                 {(() => {
                   const nid = dslGuide.selectedOrder[dslGuide.targetIndex];
+                  if (!nid) return null;
                   const inputs = meta[nid]?.inputs || [];
                   const mapping = dslGuide.fieldMappings[nid] || {};
-                  const impactedInputs = inputs.filter((i) => dslGuide.oldOutputs.map(parseParamName).includes(parseParamName(i)));
+                  const impactedInputs = inputs.filter((i: string) => dslGuide.oldOutputs.map(parseParamName).includes(parseParamName(i)));
                   return (
                     <div className="border rounded-xl">
                       <div className="px-3 py-2 border-b text-sm bg-slate-50 flex items-center gap-2">
@@ -1046,14 +1092,14 @@ export default function WorkflowStudio() {
                             {impactedInputs.length === 0 && (
                               <tr><td className="px-3 py-3 text-slate-500" colSpan={2}>此节点未直接引用旧 outputs。</td></tr>
                             )}
-                            {impactedInputs.map((line) => {
+                            {impactedInputs.map((line: string) => {
                               const iptName = parseParamName(line);
                               const current = mapping[iptName] ?? null;
                               return (
                                 <tr key={line}>
                                   <td className="px-3 py-2 font-mono text-xs">{line}</td>
                                   <td className="px-3 py-2">
-                                    <Select value={current ?? "__none"} onValueChange={(val) => setMapping(nid, iptName, val === "__none" ? null : val)}>
+                                    <Select value={current ?? "__none"} onValueChange={(val) => setMapping(nid!, iptName, val === "__none" ? null : val)}>
                                       <SelectTrigger className="w-64">
                                         <SelectValue placeholder="选择新的输出字段" />
                                       </SelectTrigger>

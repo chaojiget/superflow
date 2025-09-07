@@ -37,6 +37,7 @@ import {
   ChevronLeft,
 } from '@/shims/lucide-react';
 import { autoLayout } from '@/flow/utils';
+import BlueprintNode from '@/components/nodes/src/BlueprintNode';
 
 type Status =
   | 'queued'
@@ -69,6 +70,17 @@ const STATUS_THEME: Record<
 };
 
 const initialMeta: Record<string, NodeMeta> = {
+  blueprint: {
+    status: 'queued',
+    inputs: ['user_description: str'],
+    outputs: ['node_blueprint: json'],
+    retry: 0,
+    timeoutSec: 60,
+    cacheKey: 'blueprint:${user_description}',
+    cpu: 1,
+    memoryGB: 1,
+    env: ['ai-agent'],
+  },
   ingest: {
     status: 'cached',
     inputs: ['source_uri: str'],
@@ -127,6 +139,18 @@ const initialMeta: Record<string, NodeMeta> = {
 };
 
 const initialNodes: Node[] = [
+  {
+    id: 'blueprint',
+    position: { x: 80, y: 240 },
+    type: 'blueprint',
+    data: {
+      label: '蓝图生成器',
+      description: '通过AI对话生成节点蓝图',
+      onGenerate: (blueprint: string) => {
+        console.log('Generated blueprint:', blueprint);
+      }
+    },
+  },
   {
     id: 'ingest',
     position: { x: 80, y: 120 },
@@ -206,6 +230,7 @@ const WorkflowStudio: React.FC = () => {
 
   const nodeTypes = useMemo(
     () => ({
+      blueprint: BlueprintNode,
       default: ({ data }: any) => {
         const s: Status = data.status ?? 'queued';
         const theme = STATUS_THEME[s];
