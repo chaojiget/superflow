@@ -37,6 +37,8 @@ import {
   SelectItem,
   SelectValue,
 } from '@/components/ui/select';
+import { StatusBadge, STATUS_THEME } from '@/studio/components/StatusBadge';
+import type { Status } from '@/studio/components/StatusBadge';
 import {
   Check,
   X,
@@ -63,36 +65,6 @@ import {
 } from 'lucide-react';
 
 // ---- 模拟数据结构 ----
-
-type Status =
-  | 'queued'
-  | 'running'
-  | 'success'
-  | 'failed'
-  | 'skipped'
-  | 'cached';
-
-const STATUS_THEME: Record<Status, { bg: string; dot: string; text: string }> =
-  {
-    queued: { bg: 'bg-slate-100', dot: 'bg-slate-400', text: 'text-slate-700' },
-    running: { bg: 'bg-blue-100', dot: 'bg-blue-500', text: 'text-blue-700' },
-    success: {
-      bg: 'bg-emerald-100',
-      dot: 'bg-emerald-500',
-      text: 'text-emerald-700',
-    },
-    failed: { bg: 'bg-rose-100', dot: 'bg-rose-500', text: 'text-rose-700' },
-    skipped: {
-      bg: 'bg-amber-100',
-      dot: 'bg-amber-500',
-      text: 'text-amber-700',
-    },
-    cached: {
-      bg: 'bg-violet-100',
-      dot: 'bg-violet-500',
-      text: 'text-violet-700',
-    },
-  };
 
 interface NodeMeta {
   status: Status;
@@ -288,24 +260,12 @@ const initialArtifacts: Record<string, Artifact[]> = {
 };
 
 // ---- 辅助方法 ----
-function statusBadge(s: Status) {
-  const theme = STATUS_THEME[s];
-  return (
-    <span
-      className={`inline-flex items-center gap-2 px-2 py-1 rounded-full ${theme.bg} ${theme.text}`}
-    >
-      <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
-      {s}
-    </span>
-  );
-}
-
 function nodeLabel(id: string, meta: NodeMeta) {
   return (
     <div className="flex items-center gap-2">
       <Boxes className="h-4 w-4" />
       <span className="font-medium">{id}</span>
-      {statusBadge(meta.status)}
+      <StatusBadge status={meta.status} />
     </div>
   );
 }
@@ -819,7 +779,7 @@ export default function StudioPage() {
                         <Badge variant="outline" className="rounded-full">
                           {selCode.lang}
                         </Badge>
-                        {statusBadge(selMeta.status)}
+                        <StatusBadge status={selMeta.status} />
                       </div>
                     </div>
                   </CardHeader>
