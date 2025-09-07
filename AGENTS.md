@@ -39,12 +39,14 @@
 - 重试：对偶发失败命令最多重试 2 次（5–10s 退避）；优先缩小作用域而非盲目重试。
 
 推荐 Do：
+
 - `rg -n "pattern" src packages`
 - `rg --files | rg -n "\.tsx?$"`
 - `sed -n '1,200p' src/studio/StudioPage.tsx`
 - `npm run test:module --silent` 或 `vitest --run --reporter=dot`
 
 避免 Don’t：
+
 - `npm run dev`、`vitest --watch`、`vitest --ui`、`vite preview`（会常驻/交互）
 - `ls -R`、`grep -R`（慢且噪音大）
 - 任何需要网络或外部 GUI 的命令
@@ -58,6 +60,7 @@
 本项目的具体任务管理、进度跟踪和里程碑规划现在统一在 `TODO.md` 文件中管理。
 
 ### 快速开始
+
 ```bash
 # 查看当前任务清单
 cat TODO.md
@@ -107,8 +110,7 @@ python3 scripts/projects/generate-todo-with-refs.py
 
 ## 起步入口（文件参考）
 
-- 交互样板：docs/工作流编排_studio（模拟页面）.jsx
-- 可运行壳：src/studio/StudioPage.tsx
+- 交互样板与可运行壳：src/studio/StudioPage.tsx
 - 自动布局：src/flow/utils.ts（`autoLayout`）
 - 画布虚拟化：src/flow/FlowCanvas.ts
 
@@ -135,21 +137,25 @@ python3 scripts/projects/generate-todo-with-refs.py
 ```
 
 ### 变更小结（2025-09-06）
+
 - 模块：工程流程 / 文档
 - 摘要：新增“命令行使用规范（防卡住）”，PR 模板加入 AGENTS.md 更新与命令规范检查项。
 - 关联：AGENTS.md:23、AGENTS.md:62、AGENTS.md:96、AGENTS.md:139；.github/pull_request_template.md:29、.github/pull_request_template.md:72
 
 ### 变更小结（2025-09-06）
+
 - 模块：工程流程 / 文档
 - 摘要：合并 CLAUDE.md 至 AGENTS.md；CLAUDE.md 改为存根引用；同步 README 与开发指南链接，统一单一事实来源。
 - 关联：AGENTS.md:1、CLAUDE.md:1、README.md:58、docs/DEVELOPMENT_GUIDE.md:635
 
 ### 变更小结（2025-09-07）
+
 - 模块：任务管理 / 文档重构
 - 摘要：从 AGENTS.md 分离任务管理到专门的 TODO.md；AGENTS.md 专注项目运作指南；创建自动生成工具和GitHub同步脚本
 - 关联：TODO.md、scripts/projects/generate-todo-with-refs.py、scripts/projects/quick-github-sync.sh、scripts/projects/check-progress.sh
 
 ### 变更小结（2025-09-06）
+
 - 模块：工程流程 / 任务管理
 - 摘要：新增 GitHub Projects 种子（issues.csv + gh 脚本 + Issue 模板 + 自动入板工作流），将 AGENTS.md 与 ADR 的 P0/P1 拆解为可执行任务，按模块与里程碑落盘。
 - 关联：scripts/projects/issues.csv、scripts/projects/README.md、.github/ISSUE_TEMPLATE/、.github/workflows/add-to-project.yml
