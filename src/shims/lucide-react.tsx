@@ -33,5 +33,6 @@ export const FileDiff = icon('file-diff');
 export const Download = icon('download');
 export const ChevronLeft = icon('chevron-left');
 export const ChevronRight = icon('chevron-right');
+export const Loader2 = icon('loader-2');
 
 export default {};

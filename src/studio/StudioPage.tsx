@@ -453,6 +453,12 @@ export default function StudioPage() {
   const [tests, setTests] = useState<TestResult[]>([]);
   const [testsRunning, setTestsRunning] = useState(false);
 
+  // 弹窗状态控制
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [runPanelOpen, setRunPanelOpen] = useState(false);
+  const [fixPanelOpen, setFixPanelOpen] = useState(false);
+  const [testPanelOpen, setTestPanelOpen] = useState(false);
+
   const handleRunTests = () => {
     if (testsRunning) return;
     setTestsRunning(true);
@@ -507,6 +513,40 @@ export default function StudioPage() {
   useEffect(() => {
     setTests(runUnitTests());
   }, []);
+
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setInspectorOpen(false);
+        setRunPanelOpen(false);
+        setFixPanelOpen(false);
+        setTestPanelOpen(false);
+      }
+      if (e.key === 'i' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setInspectorOpen(!inspectorOpen);
+      }
+      if (e.key === 'r' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setRunPanelOpen(!runPanelOpen);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [inspectorOpen, runPanelOpen]);
+
+  // 点击画布空白处关闭抽屉
+  const handlePaneClick = () => {
+    if (inspectorOpen || runPanelOpen || fixPanelOpen || testPanelOpen) {
+      // 可选：点击空白处关闭抽屉
+      // setInspectorOpen(false);
+      // setRunPanelOpen(false);
+      // setFixPanelOpen(false);
+      // setTestPanelOpen(false);
+    }
+  };
 
   // code 变化时，检测 outputs 变化，引导 DSL 迁移（两级流程触发）
   const prevOutputsRef = useRef<string[]>(
@@ -728,9 +768,9 @@ export default function StudioPage() {
 
   // —— 渲染 ——
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-50">
+    <div className="h-screen w-full bg-slate-50 relative">
       {/* 顶部栏 */}
-      <header className="h-14 px-4 flex items-center justify-between border-b bg-white">
+      <header className="h-14 px-4 flex items-center justify-between border-b bg-white absolute top-0 left-0 right-0 z-10">
         <div className="flex items-center gap-3">
           <span className="text-xl font-semibold">工作流编排 Studio</span>
           <Badge variant="secondary" className="rounded-full">
@@ -753,627 +793,462 @@ export default function StudioPage() {
         </div>
       </header>
 
-      {/* 主体可缩放布局 */}
-      <PanelGroup direction="vertical" className="flex-1">
-        <Panel defaultSize={70} minSize={40}>
-          <PanelGroup direction="horizontal" className="h-full">
-            {/* 图形区 */}
-            <Panel defaultSize={62} minSize={40}>
-              <div className="h-full p-3">
-                <Card className="h-full">
-                  <CardHeader className="py-3 flex flex-row items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Braces className="h-4 w-4" />
-                      DAG 图 (React Flow)
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2"
-                        onClick={() => setRunning(true)}
-                      >
-                        <Play className="h-4 w-4" />
-                        启动
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2"
-                        onClick={() => setRunning(false)}
-                      >
-                        <Pause className="h-4 w-4" />
-                        暂停
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2"
-                        onClick={rerunFromNode}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                        从节点重跑
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <Separator />
-                  <div className="h-[calc(100%-56px)]">
-                    <ReactFlow
-                      nodes={rfNodes}
-                      edges={edges}
-                      onNodesChange={onNodesChange}
-                      onEdgesChange={onEdgesChange}
-                      onConnect={onConnect}
-                      onNodeClick={(_, n) => setSelected(n.id)}
-                      fitView
-                    >
-                      <Background />
-                      <MiniMap />
-                      <Controls />
-                    </ReactFlow>
-                  </div>
-                </Card>
+      {/* 全屏画布 */}
+      <div 
+        className="absolute inset-0 pt-14" 
+        style={{ width: '100vw', height: 'calc(100vh - 56px)' }}
+        onClick={handlePaneClick}
+      >
+        <ReactFlow
+          nodes={rfNodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeClick={(_, n) => {
+            setSelected(n.id);
+            setInspectorOpen(true);
+          }}
+          onNodeDoubleClick={(_, n) => {
+            setSelected(n.id);
+            setInspectorOpen(true);
+          }}
+          fitView
+          style={{ width: '100%', height: '100%' }}
+        >
+          <Background />
+          <MiniMap />
+          <Controls />
+        </ReactFlow>
+      </div>
+
+      {/* 浮动工具栏 */}
+      <div className="absolute top-20 left-4 flex flex-col gap-2 z-20">
+        <Button
+          variant={inspectorOpen ? "default" : "outline"}
+          size="sm"
+          className="gap-2 bg-white shadow-sm"
+          onClick={() => setInspectorOpen(!inspectorOpen)}
+          title="打开/关闭 Inspector (Cmd+I)"
+        >
+          <FlaskConical className="h-4 w-4" />
+          Inspector
+        </Button>
+        <Button
+          variant={runPanelOpen ? "default" : "outline"}
+          size="sm"
+          className="gap-2 bg-white shadow-sm"
+          onClick={() => setRunPanelOpen(!runPanelOpen)}
+          title="打开/关闭运行面板 (Cmd+R)"
+        >
+          <Play className="h-4 w-4" />
+          运行面板
+        </Button>
+        <Button
+          variant={fixPanelOpen ? "default" : "outline"}
+          size="sm"
+          className="gap-2 bg-white shadow-sm"
+          onClick={() => setFixPanelOpen(!fixPanelOpen)}
+          title="打开/关闭错误修复"
+        >
+          <Wand2 className="h-4 w-4" />
+          错误修复
+        </Button>
+        <Button
+          variant={testPanelOpen ? "default" : "outline"}
+          size="sm"
+          className="gap-2 bg-white shadow-sm"
+          onClick={() => setTestPanelOpen(!testPanelOpen)}
+          title="打开/关闭测试面板"
+        >
+          <Check className="h-4 w-4" />
+          测试 ({passCount}/{tests.length})
+        </Button>
+      </div>
+
+      {/* 运行控制栏 */}
+      <div className="absolute top-20 right-4 flex items-center gap-2 z-20">
+        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border">
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() => setRunning(true)}
+          >
+            <Play className="h-4 w-4" />
+            启动
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={() => setRunning(false)}
+          >
+            <Pause className="h-4 w-4" />
+            暂停
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={rerunFromNode}
+          >
+            <RotateCcw className="h-4 w-4" />
+            从 {selected} 重跑
+          </Button>
+          <Separator orientation="vertical" className="h-6" />
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <span>Trace</span>
+            <div className="h-2 bg-slate-200 rounded-full w-24">
+              <div
+                className={`h-2 rounded-full ${running ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'}`}
+                style={{ width: running ? '66%' : '33%' }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 状态栏 */}
+      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border">
+          {(Object.keys(STATUS_THEME) as Status[]).map((s) => (
+            <div key={s} className="flex items-center gap-1 text-xs">
+              <span
+                className={`h-2 w-2 rounded-full ${STATUS_THEME[s].dot}`}
+              />
+              <span className="capitalize">{s}</span>
+            </div>
+          ))}
+        </div>
+        <div className="text-xs text-slate-600 bg-white rounded-lg px-3 py-2 shadow-sm border">
+          当前节点：<b>{selected}</b> | 语言：<b>{selCode.lang}</b> | 版本：<b>v{selCode.version}</b>
+        </div>
+      </div>
+
+      {/* Inspector 抽屉 - 从右侧滑出 */}
+      <div className={`fixed top-14 right-0 h-[calc(100vh-56px)] w-[400px] bg-white shadow-xl border-l transform transition-transform duration-300 z-40 ${
+        inspectorOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b bg-slate-50">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="h-5 w-5" />
+              <span className="text-lg font-semibold">Inspector: {selected}</span>
+              <Badge variant="outline" className="rounded-full">
+                {selCode.lang}
+              </Badge>
+              <StatusBadge status={selMeta.status} />
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setInspectorOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            <Tabs defaultValue="config" className="h-full flex flex-col">
+              <div className="px-4 pt-2">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="config">配置</TabsTrigger>
+                  <TabsTrigger value="code">代码</TabsTrigger>
+                  <TabsTrigger value="log">日志</TabsTrigger>
+                </TabsList>
               </div>
-            </Panel>
-            <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-300 transition-colors" />
-
-            {/* 侧栏 */}
-            <Panel defaultSize={38} minSize={24}>
-              <div className="h-full p-3">
-                <Card className="h-full flex flex-col">
-                  <CardHeader className="py-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <FlaskConical className="h-4 w-4" />
-                        节点 Inspector：{selected}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="rounded-full">
-                          {selCode.lang}
-                        </Badge>
-                        <StatusBadge status={selMeta.status} />
+              <div className="flex-1 min-h-0">
+                <TabsContent value="config" className="h-full m-0">
+                  <ScrollArea className="h-full px-4 py-2">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>入参 (一行一个)</Label>
+                        <Textarea
+                          rows={3}
+                          value={selMeta.inputs.join('\n')}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n');
+                            setMeta((prev) => ({
+                              ...prev,
+                              [selected]: {
+                                ...prev[selected],
+                                inputs: lines,
+                              },
+                            }));
+                          }}
+                        />
                       </div>
-                    </div>
-                  </CardHeader>
-                  <Separator />
-                  <CardContent className="flex-1 overflow-hidden p-0">
-                    <Tabs
-                      defaultValue="config"
-                      className="h-full flex flex-col"
-                    >
-                      <div className="px-3 pt-2">
-                        <TabsList>
-                          <TabsTrigger value="config">配置</TabsTrigger>
-                          <TabsTrigger value="code">代码</TabsTrigger>
-                          <TabsTrigger value="log">日志/Artifact</TabsTrigger>
-                        </TabsList>
+                      <div className="space-y-2">
+                        <Label>
+                          出参 (一行一个){' '}
+                          <Badge variant="secondary" className="text-xs">签名提示</Badge>
+                        </Label>
+                        <Textarea
+                          rows={3}
+                          value={selMeta.outputs.join('\n')}
+                          onChange={(e) => {
+                            const lines = e.target.value.split('\n');
+                            setMeta((prev) => ({
+                              ...prev,
+                              [selected]: {
+                                ...prev[selected],
+                                outputs: lines,
+                              },
+                            }));
+                          }}
+                        />
                       </div>
-                      <div className="flex-1 min-h-0">
-                        <TabsContent value="config" className="h-full m-0">
-                          <ScrollArea className="h-full px-4 py-2">
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-1 col-span-2">
-                                <Label>入参 (一行一个)</Label>
-                                <Textarea
-                                  value={selMeta.inputs.join('\n')}
-                                  onChange={(e) => {
-                                    const lines = e.target.value.split('\n');
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        inputs: lines,
-                                      },
-                                    }));
-                                  }}
-                                />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label>
-                                  出参 (一行一个){' '}
-                                  <Badge variant="secondary">签名提示</Badge>
-                                </Label>
-                                <Textarea
-                                  value={selMeta.outputs.join('\n')}
-                                  onChange={(e) => {
-                                    const lines = e.target.value.split('\n');
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        outputs: lines,
-                                      },
-                                    }));
-                                  }}
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="flex items-center gap-2">
-                                  <Timer className="h-4 w-4" />
-                                  超时 (秒)
-                                </Label>
-                                <Input
-                                  type="number"
-                                  value={selMeta.timeoutSec}
-                                  onChange={(e) =>
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        timeoutSec: Number(e.target.value),
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="flex items-center gap-2">
-                                  <Undo2 className="h-4 w-4" />
-                                  重试次数
-                                </Label>
-                                <Input
-                                  type="number"
-                                  value={selMeta.retry}
-                                  onChange={(e) =>
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        retry: Number(e.target.value),
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label>缓存键</Label>
-                                <Input
-                                  value={selMeta.cacheKey}
-                                  onChange={(e) =>
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        cacheKey: e.target.value,
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="flex items-center gap-2">
-                                  <Cpu className="h-4 w-4" />
-                                  CPU
-                                </Label>
-                                <Input
-                                  type="number"
-                                  value={selMeta.cpu}
-                                  onChange={(e) =>
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        cpu: Number(e.target.value),
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="flex items-center gap-2">
-                                  <Zap className="h-4 w-4" />
-                                  内存 (GB)
-                                </Label>
-                                <Input
-                                  type="number"
-                                  value={selMeta.memoryGB}
-                                  onChange={(e) =>
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        memoryGB: Number(e.target.value),
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div className="space-y-1 col-span-2">
-                                <Label>环境依赖 (一行一个)</Label>
-                                <Textarea
-                                  value={selMeta.env.join('\n')}
-                                  onChange={(e) =>
-                                    setMeta((prev) => ({
-                                      ...prev,
-                                      [selected]: {
-                                        ...prev[selected],
-                                        env: e.target.value.split('\n'),
-                                      },
-                                    }))
-                                  }
-                                />
-                              </div>
-                            </div>
-
-                            <Separator className="my-3" />
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium">DSL 预览</div>
-                                <Badge variant="outline">双向联动</Badge>
-                              </div>
-                              <pre className="text-xs bg-slate-950 text-slate-100 rounded-lg p-3 overflow-auto">
-                                {JSON.stringify(dsl, null, 2)}
-                              </pre>
-                              <p className="text-xs text-slate-500">
-                                在图上改连线/参数，会自动更新此
-                                DSL；在代码中改入/出参，会触发“DSL 迁移向导”。
-                              </p>
-                            </div>
-                          </ScrollArea>
-                        </TabsContent>
-
-                        <TabsContent value="code" className="h-full m-0">
-                          <div className="h-full flex flex-col">
-                            <div className="px-4 py-2 flex items-center gap-2 border-b">
-                              <Badge variant="secondary">
-                                v{selCode.version}
-                              </Badge>
-                              <div className="ml-auto flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-2"
-                                  onClick={onSaveCode}
-                                >
-                                  <Save className="h-4 w-4" />
-                                  保存
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="gap-2"
-                                  onClick={() => generatePatch()}
-                                >
-                                  <Wand2 className="h-4 w-4" />由 Agent 生成补丁
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex-1 min-h-0">
-                              <Editor
-                                height="100%"
-                                defaultLanguage={selCode.lang}
-                                value={selCode.content}
-                                onChange={(val) => {
-                                  setCode((prev) => ({
-                                    ...prev,
-                                    [selected]: {
-                                      ...prev[selected],
-                                      content: val || '',
-                                    },
-                                  }));
-                                }}
-                                options={{
-                                  fontSize: 13,
-                                  minimap: { enabled: false },
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </TabsContent>
-
-                        <TabsContent value="log" className="h-full m-0">
-                          <div className="grid grid-cols-2 h-full">
-                            <div className="border-r flex flex-col">
-                              <div className="px-3 py-2 flex items-center justify-between">
-                                <div className="font-medium flex items-center gap-2">
-                                  <Bug className="h-4 w-4" />
-                                  实时日志
-                                </div>
-                                <Switch
-                                  checked={running}
-                                  onCheckedChange={setRunning}
-                                />
-                              </div>
-                              <ScrollArea className="flex-1">
-                                <ul className="px-3 pb-3 space-y-2">
-                                  {events.slice(-100).map((e, i) => (
-                                    <li key={i} className="text-xs">
-                                      <span className="text-slate-500 mr-2">
-                                        {new Date(e.ts).toLocaleTimeString()}
-                                      </span>
-                                      <span className="mr-2 uppercase tracking-wide text-[10px]">
-                                        {e.level}
-                                      </span>
-                                      <span>{e.message}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </ScrollArea>
-                            </div>
-                            <div className="flex flex-col">
-                              <div className="px-3 py-2 font-medium flex items-center gap-2">
-                                <FileDiff className="h-4 w-4" />
-                                Artifacts
-                              </div>
-                              <ScrollArea className="flex-1">
-                                <ul className="px-3 pb-3 space-y-2">
-                                  {(artifacts[selected] || []).map((a, i) => (
-                                    <li
-                                      key={i}
-                                      className="flex items-center justify-between text-sm"
-                                    >
-                                      <div className="flex items-center gap-2">
-                                        <Download className="h-4 w-4" />
-                                        <span>{a.name}</span>
-                                      </div>
-                                      <span className="text-slate-500 text-xs">
-                                        {a.size}
-                                      </span>
-                                    </li>
-                                  ))}
-                                  {(!artifacts[selected] ||
-                                    artifacts[selected].length === 0) && (
-                                    <li className="text-xs text-slate-400">
-                                      暂无文件
-                                    </li>
-                                  )}
-                                </ul>
-                              </ScrollArea>
-                            </div>
-                          </div>
-                        </TabsContent>
-                      </div>
-                    </Tabs>
-                  </CardContent>
-                </Card>
-              </div>
-            </Panel>
-          </PanelGroup>
-        </Panel>
-
-        <PanelResizeHandle className="h-1 bg-slate-200 hover:bg-slate-300 transition-colors" />
-
-        {/* 底部：运行面板 + 错误修复 + 测试 */}
-        <Panel defaultSize={30} minSize={20}>
-          <div className="h-full p-3">
-            <Card className="h-full">
-              <Tabs defaultValue="run" className="h-full flex flex-col">
-                <div className="px-3 pt-2">
-                  <TabsList>
-                    <TabsTrigger value="run" className="gap-2">
-                      <Play className="h-4 w-4" />
-                      运行面板
-                    </TabsTrigger>
-                    <TabsTrigger value="fix" className="gap-2">
-                      <Wand2 className="h-4 w-4" />
-                      错误修复
-                    </TabsTrigger>
-                    <TabsTrigger value="tests" className="gap-2">
-                      <Check className="h-4 w-4" />
-                      测试 ({passCount}/{tests.length})
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-                <div className="flex-1 min-h-0">
-                  <TabsContent value="run" className="h-full m-0">
-                    <div className="h-full grid grid-cols-3">
-                      <div className="col-span-2 border-r p-3">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={() => setRunning(true)}
-                          >
-                            <Play className="h-4 w-4" />
-                            启动
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={() => setRunning(false)}
-                          >
-                            <Pause className="h-4 w-4" />
-                            暂停
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2"
-                            onClick={rerunFromNode}
-                          >
-                            <RotateCcw className="h-4 w-4" />从 {selected} 重跑
-                          </Button>
-                          <div className="ml-auto flex items-center gap-2 text-xs text-slate-600">
-                            <span>Trace</span>
-                            <div className="flex-1 h-2 bg-slate-200 rounded-full w-48">
-                              <div
-                                className={`h-2 rounded-full ${running ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'}`}
-                                style={{ width: running ? '66%' : '33%' }}
-                              />
-                            </div>
-                          </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Timer className="h-4 w-4" />
+                            超时 (秒)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={selMeta.timeoutSec}
+                            onChange={(e) =>
+                              setMeta((prev) => ({
+                                ...prev,
+                                [selected]: {
+                                  ...prev[selected],
+                                  timeoutSec: Number(e.target.value),
+                                },
+                              }))
+                            }
+                          />
                         </div>
-                        <ScrollArea className="h-[calc(100%-40px)]">
-                          <ul className="space-y-2 pr-3">
-                            {events
-                              .slice()
-                              .reverse()
-                              .map((e, i) => (
-                                <li key={i} className="text-sm">
-                                  <span className="text-slate-500 mr-2">
-                                    {new Date(e.ts).toLocaleTimeString()}
-                                  </span>
-                                  <span className="mr-2 uppercase tracking-wide text-[10px]">
-                                    {e.level}
-                                  </span>
-                                  <span>{e.message}</span>
-                                </li>
-                              ))}
-                          </ul>
-                        </ScrollArea>
-                      </div>
-                      <div className="p-3">
-                        <div className="font-medium mb-2">整体状态</div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {(Object.keys(STATUS_THEME) as Status[]).map((s) => (
-                            <div
-                              key={s}
-                              className="flex items-centergap-2 text-xs bg-white rounded-xl px-2 py-1 border"
-                            >
-                              <span
-                                className={`h-2 w-2 rounded-full ${STATUS_THEME[s].dot}`}
-                              />
-                              <span className="capitalize">{s}</span>
-                            </div>
-                          ))}
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Undo2 className="h-4 w-4" />
+                            重试次数
+                          </Label>
+                          <Input
+                            type="number"
+                            value={selMeta.retry}
+                            onChange={(e) =>
+                              setMeta((prev) => ({
+                                ...prev,
+                                [selected]: {
+                                  ...prev[selected],
+                                  retry: Number(e.target.value),
+                                },
+                              }))
+                            }
+                          />
                         </div>
-                        <Separator className="my-3" />
-                        <div className="text-xs text-slate-600 space-y-1">
-                          <div>
-                            当前节点：<b>{selected}</b>
-                          </div>
-                          <div>
-                            语言：<b>{selCode.lang}</b>，版本：
-                            <b>v{selCode.version}</b>
-                          </div>
-                          <div>入参：{selMeta.inputs.join(', ') || '-'}</div>
-                          <div>出参：{selMeta.outputs.join(', ') || '-'}</div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Cpu className="h-4 w-4" />
+                            CPU
+                          </Label>
+                          <Input
+                            type="number"
+                            value={selMeta.cpu}
+                            onChange={(e) =>
+                              setMeta((prev) => ({
+                                ...prev,
+                                [selected]: {
+                                  ...prev[selected],
+                                  cpu: Number(e.target.value),
+                                },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-2">
+                            <Zap className="h-4 w-4" />
+                            内存 (GB)
+                          </Label>
+                          <Input
+                            type="number"
+                            value={selMeta.memoryGB}
+                            onChange={(e) =>
+                              setMeta((prev) => ({
+                                ...prev,
+                                [selected]: {
+                                  ...prev[selected],
+                                  memoryGB: Number(e.target.value),
+                                },
+                              }))
+                            }
+                          />
                         </div>
                       </div>
-                    </div>
-                  </TabsContent>
+                      
+                      <div className="space-y-2">
+                        <Label>缓存键</Label>
+                        <Input
+                          value={selMeta.cacheKey}
+                          onChange={(e) =>
+                            setMeta((prev) => ({
+                              ...prev,
+                              [selected]: {
+                                ...prev[selected],
+                                cacheKey: e.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>环境依赖 (一行一个)</Label>
+                        <Textarea
+                          rows={3}
+                          value={selMeta.env.join('\n')}
+                          onChange={(e) =>
+                            setMeta((prev) => ({
+                              ...prev,
+                              [selected]: {
+                                ...prev[selected],
+                                env: e.target.value.split('\n').filter(Boolean),
+                              },
+                            }))
+                          }
+                        />
+                      </div>
 
-                  <TabsContent value="fix" className="h-full m-0">
-                    <div className="h-full grid grid-cols-3">
-                      <div className="col-span-1 border-r p-3">
-                        <div className="font-medium mb-2">一键修复</div>
-                        <p className="text-sm text-slate-600 mb-3">
-                          让 Agent 根据日志生成补丁，先 Dry‑Run
-                          验证，再合并并重跑。
+                      <Separator />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">DSL 预览</div>
+                          <Badge variant="outline" className="text-xs">双向联动</Badge>
+                        </div>
+                        <pre className="text-xs bg-slate-950 text-slate-100 rounded-lg p-3 overflow-auto max-h-40">
+                          {JSON.stringify(dsl, null, 2)}
+                        </pre>
+                        <p className="text-xs text-slate-500">
+                          在图上改连线/参数，会自动更新此 DSL
                         </p>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Button
-                            size="sm"
-                            className="gap-2"
-                            onClick={generatePatch}
-                          >
-                            <Wand2 className="h-4 w-4" />
-                            生成补丁
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={dryRun}
-                            className="gap-2"
-                          >
-                            <FlaskConical className="h-4 w-4" />
-                            Dry‑Run
-                          </Button>
-                        </div>
-                        {dryRunOK !== null && (
-                          <div
-                            className={`text-sm ${dryRunOK ? 'text-emerald-600' : 'text-rose-600'}`}
-                          >
-                            {dryRunOK ? 'Dry‑Run 通过' : 'Dry‑Run 未通过'}
-                          </div>
-                        )}
-                        <Separator className="my-3" />
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="code" className="h-full m-0">
+                  <div className="h-full flex flex-col">
+                    <div className="px-4 py-2 flex items-center gap-2 border-b">
+                      <Badge variant="secondary">
+                        v{selCode.version}
+                      </Badge>
+                      <div className="ml-auto flex items-center gap-2">
                         <Button
                           size="sm"
-                          variant="secondary"
+                          variant="outline"
                           className="gap-2"
-                          onClick={mergeAndRerun}
-                          disabled={!patch}
+                          onClick={onSaveCode}
                         >
-                          <FileDiff className="h-4 w-4" />
-                          合并并重跑此节点
+                          <Save className="h-4 w-4" />
+                          保存
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                          onClick={() => generatePatch()}
+                        >
+                          <Wand2 className="h-4 w-4" />
+                          补丁
                         </Button>
                       </div>
-                      <div className="col-span-2 p-3">
-                        <div className="font-medium mb-2">补丁 diff</div>
-                        <div className="h-[calc(100%-28px)] rounded-xl overflow-hidden border">
-                          {patch ? (
-                            <DiffViewer
-                              oldValue={patch.before}
-                              newValue={patch.after}
-                              splitView={true}
-                              showDiffOnly={false}
-                              styles={{
-                                variables: {
-                                  light: { diffViewerBackground: 'white' },
-                                },
-                              }}
-                            />
-                          ) : (
-                            <div className="h-full grid place-items-center text-slate-400 text-sm">
-                              尚未生成补丁
-                            </div>
-                          )}
-                        </div>
-                      </div>
                     </div>
-                  </TabsContent>
+                    <div className="flex-1 min-h-0">
+                      <Editor
+                        height="100%"
+                        defaultLanguage={selCode.lang}
+                        value={selCode.content}
+                        onChange={(val) => {
+                          setCode((prev) => ({
+                            ...prev,
+                            [selected]: {
+                              ...prev[selected],
+                              content: val || '',
+                            },
+                          }));
+                        }}
+                        options={{
+                          fontSize: 12,
+                          minimap: { enabled: false },
+                          scrollBeyondLastLine: false,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </TabsContent>
 
-                  <TabsContent value="tests" className="h-full m-0">
-                    <div className="h-full grid grid-cols-3">
-                      <div className="col-span-3 p-3">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="font-medium">单元测试</div>
-                          <div className="text-xs text-slate-500">
-                            通过 {passCount} / 共 {tests.length}
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleRunTests}
-                            disabled={testsRunning}
-                            className="flex items-center gap-1"
-                          >
-                            {testsRunning && (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            )}
-                            {testsRunning ? '运行中...' : '重新运行'}
-                          </Button>
-                        </div>
-                        <div className="border rounded-xl overflow-hidden">
-                          <ul>
-                            {tests.map((t, i) => (
-                              <li
-                                key={i}
-                                className="flex items-center justify-between px-3 py-2 border-b last:border-b-0 text-sm"
-                              >
-                                <div className="flex items-center gap-2">
-                                  {t.pass ? (
-                                    <Check className="h-4 w-4 text-emerald-600" />
-                                  ) : (
-                                    <X className="h-4 w-4 text-rose-600" />
-                                  )}
-                                  <span>{t.name}</span>
-                                </div>
-                                {!t.pass && t.detail && (
-                                  <span className="text-xs text-rose-600">
-                                    {t.detail}
-                                  </span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-2">
-                          注：这些用例覆盖了解析 outputs、无 outputs
-                          情况、下游遍历、字段映射建议以及 v2 API 组件存在性。
-                        </p>
+                <TabsContent value="log" className="h-full m-0">
+                  <div className="h-full flex flex-col">
+                    <div className="px-4 py-2 flex items-center justify-between border-b">
+                      <div className="font-medium flex items-center gap-2">
+                        <Bug className="h-4 w-4" />
+                        实时日志
                       </div>
+                      <Switch
+                        checked={running}
+                        onCheckedChange={setRunning}
+                        size="sm"
+                      />
                     </div>
-                  </TabsContent>
-                </div>
-              </Tabs>
-            </Card>
+                    <ScrollArea className="flex-1">
+                      <ul className="px-4 py-2 space-y-2">
+                        {events.slice(-50).map((e, i) => (
+                          <li key={i} className="text-xs">
+                            <span className="text-slate-500 mr-2">
+                              {new Date(e.ts).toLocaleTimeString()}
+                            </span>
+                            <span className="mr-2 uppercase tracking-wide text-[10px]">
+                              {e.level}
+                            </span>
+                            <span>{e.message}</span>
+                          </li>
+                        ))}
+                        {events.length === 0 && (
+                          <li className="text-xs text-slate-400">暂无日志</li>
+                        )}
+                      </ul>
+                    </ScrollArea>
+                    
+                    <Separator />
+                    
+                    <div className="px-4 py-2">
+                      <div className="font-medium flex items-center gap-2 mb-2">
+                        <FileDiff className="h-4 w-4" />
+                        Artifacts
+                      </div>
+                      <ul className="space-y-1">
+                        {(artifacts[selected] || []).map((a, i) => (
+                          <li
+                            key={i}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Download className="h-3 w-3" />
+                              <span>{a.name}</span>
+                            </div>
+                            <span className="text-slate-500 text-xs">
+                              {a.size}
+                            </span>
+                          </li>
+                        ))}
+                        {(!artifacts[selected] ||
+                          artifacts[selected].length === 0) && (
+                          <li className="text-xs text-slate-400">
+                            暂无文件
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
           </div>
-        </Panel>
-      </PanelGroup>
+        </div>
+      </div>
 
       {/* DSL 迁移向导：节点级 → 字段级 */}
       {dslGuide.open && (
@@ -1664,6 +1539,269 @@ export default function StudioPage() {
           </div>
         </div>
       )}
+
+      {/* 运行面板抽屉 - 从底部滑出 */}
+      <div className={`fixed bottom-0 left-0 right-0 h-[300px] bg-white shadow-xl border-t transform transition-transform duration-300 z-40 ${
+        runPanelOpen ? 'translate-y-0' : 'translate-y-full'
+      }`}>
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b bg-slate-50">
+            <div className="flex items-center gap-2">
+              <Play className="h-5 w-5" />
+              <span className="text-lg font-semibold">运行面板</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRunPanelOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 grid grid-cols-4 overflow-hidden">
+            <div className="col-span-3 border-r p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setRunning(true)}
+                >
+                  <Play className="h-4 w-4" />
+                  启动
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setRunning(false)}
+                >
+                  <Pause className="h-4 w-4" />
+                  暂停
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={rerunFromNode}
+                >
+                  <RotateCcw className="h-4 w-4" />从 {selected} 重跑
+                </Button>
+                <div className="ml-auto flex items-center gap-2 text-xs text-slate-600">
+                  <span>Trace</span>
+                  <div className="h-2 bg-slate-200 rounded-full w-32">
+                    <div
+                      className={`h-2 rounded-full ${running ? 'bg-blue-500 animate-pulse' : 'bg-slate-400'}`}
+                      style={{ width: running ? '66%' : '33%' }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <ScrollArea className="h-[calc(100%-60px)]">
+                <ul className="space-y-2 pr-3">
+                  {events
+                    .slice()
+                    .reverse()
+                    .map((e, i) => (
+                      <li key={i} className="text-sm">
+                        <span className="text-slate-500 mr-2">
+                          {new Date(e.ts).toLocaleTimeString()}
+                        </span>
+                        <span className="mr-2 uppercase tracking-wide text-[10px]">
+                          {e.level}
+                        </span>
+                        <span>{e.message}</span>
+                      </li>
+                    ))}
+                  {events.length === 0 && (
+                    <li className="text-sm text-slate-400">暂无运行事件</li>
+                  )}
+                </ul>
+              </ScrollArea>
+            </div>
+            <div className="p-4">
+              <div className="font-medium mb-2">整体状态</div>
+              <div className="grid grid-cols-2 gap-1">
+                {(Object.keys(STATUS_THEME) as Status[]).map((s) => (
+                  <div
+                    key={s}
+                    className="flex items-center gap-1 text-xs bg-slate-50 rounded px-2 py-1 border"
+                  >
+                    <span
+                      className={`h-2 w-2 rounded-full ${STATUS_THEME[s].dot}`}
+                    />
+                    <span className="capitalize">{s}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 错误修复抽屉 - 从左侧滑出 */}
+      <div className={`fixed top-14 left-0 h-[calc(100vh-56px)] w-[500px] bg-white shadow-xl border-r transform transition-transform duration-300 z-40 ${
+        fixPanelOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b bg-slate-50">
+            <div className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5" />
+              <span className="text-lg font-semibold">错误修复</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFixPanelOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-hidden p-4">
+            <div className="space-y-4">
+              <div>
+                <div className="font-medium mb-2">一键修复</div>
+                <p className="text-sm text-slate-600 mb-3">
+                  让 Agent 根据日志生成补丁，先 Dry‑Run 验证，再合并并重跑。
+                </p>
+                <div className="flex flex-col gap-2 mb-3">
+                  <Button
+                    size="sm"
+                    className="gap-2"
+                    onClick={generatePatch}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    生成补丁
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={dryRun}
+                    className="gap-2"
+                  >
+                    <FlaskConical className="h-4 w-4" />
+                    Dry‑Run
+                  </Button>
+                </div>
+                {dryRunOK !== null && (
+                  <div
+                    className={`text-sm mb-3 ${dryRunOK ? 'text-emerald-600' : 'text-rose-600'}`}
+                  >
+                    {dryRunOK ? 'Dry‑Run 通过' : 'Dry‑Run 未通过'}
+                  </div>
+                )}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="gap-2 w-full"
+                  onClick={mergeAndRerun}
+                  disabled={!patch}
+                >
+                  <FileDiff className="h-4 w-4" />
+                  合并并重跑此节点
+                </Button>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <div className="font-medium mb-2">补丁预览</div>
+                <div className="h-[300px] rounded-lg overflow-hidden border">
+                  {patch ? (
+                    <DiffViewer
+                      oldValue={patch.before}
+                      newValue={patch.after}
+                      splitView={false}
+                      showDiffOnly={true}
+                      styles={{
+                        variables: {
+                          light: { 
+                            diffViewerBackground: 'white',
+                            codeFoldGutterBackground: '#f8fafc',
+                          },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <div className="h-full grid place-items-center text-slate-400 text-sm">
+                      尚未生成补丁
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 测试面板抽屉 - 从顶部滑出 */}
+      <div className={`fixed top-14 left-0 right-0 h-[350px] bg-white shadow-xl border-b transform transition-transform duration-300 z-40 ${
+        testPanelOpen ? 'translate-y-0' : '-translate-y-full'
+      }`}>
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b bg-slate-50">
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5" />
+              <span className="text-lg font-semibold">单元测试</span>
+              <Badge variant="outline">
+                {passCount}/{tests.length} 通过
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRunTests}
+                disabled={testsRunning}
+                className="flex items-center gap-1"
+              >
+                {testsRunning && (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                )}
+                {testsRunning ? '运行中...' : '重新运行'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTestPanelOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden p-4">
+            <div className="border rounded-lg overflow-hidden h-full">
+              <ScrollArea className="h-full">
+                <ul className="divide-y">
+                  {tests.map((t, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between px-4 py-3 text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        {t.pass ? (
+                          <Check className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <X className="h-4 w-4 text-rose-600" />
+                        )}
+                        <span>{t.name}</span>
+                      </div>
+                      {!t.pass && t.detail && (
+                        <span className="text-xs text-rose-600">
+                          {t.detail}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>
+            <p className="text-xs text-slate-500 mt-3">
+              这些用例覆盖了解析 outputs、下游遍历、字段映射建议以及组件存在性检测
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
