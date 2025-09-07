@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/select';
 import { StatusBadge, STATUS_THEME } from '@/studio/components/StatusBadge';
 import type { Status } from '@/studio/components/StatusBadge';
+import BlueprintNode from '@/components/nodes/src/BlueprintNode';
 import {
   Check,
   X,
@@ -120,6 +121,18 @@ interface MigrationGuideState {
 // ---- 初始 DAG ----
 const initialNodes: Node[] = [
   {
+    id: 'blueprint',
+    position: { x: 80, y: 200 },
+    data: { 
+      label: '蓝图生成器',
+      description: '通过AI对话生成节点蓝图',
+      onGenerate: (blueprint: string) => {
+        console.log('Generated blueprint:', blueprint);
+      }
+    },
+    type: 'blueprint',
+  },
+  {
     id: 'ingest',
     position: { x: 80, y: 80 },
     data: { label: 'Ingest' },
@@ -159,6 +172,17 @@ const initialEdges: Edge[] = [
 ];
 
 const initialMeta: Record<string, NodeMeta> = {
+  blueprint: {
+    status: 'idle',
+    inputs: ['user_description: str'],
+    outputs: ['node_blueprint: json'],
+    retry: 0,
+    timeoutSec: 60,
+    cacheKey: 'blueprint:${user_description}',
+    cpu: 1,
+    memoryGB: 1,
+    env: ['ai-agent'],
+  },
   ingest: {
     status: 'cached',
     inputs: ['source_uri: str'],
@@ -217,6 +241,12 @@ const initialMeta: Record<string, NodeMeta> = {
 };
 
 const initialCode: Record<string, NodeCode> = {
+  blueprint: {
+    lang: 'python',
+    version: 1,
+    history: [],
+    content: `# v1\n# outputs: node_blueprint\n# 蓝图生成节点 - AI助手\n# 输入: user_description: str\n# 输出: node_blueprint: json\n\nimport json\nfrom typing import Dict, Any\n\ndef run(user_description: str) -> Dict[str, Any]:\n    \"\"\"通过AI对话生成节点蓝图\"\"\"\n    # 这里会调用AI服务进行需求澄清和蓝图生成\n    blueprint = {\n        "name": "AI生成的节点",\n        "description": user_description,\n        "inputs": ["input_data: Any"],\n        "outputs": ["output_data: Any"],\n        "type": "transform",\n        "language": "python"\n    }\n    return blueprint\n`,
+  },
   ingest: {
     lang: 'python',
     version: 3,
@@ -271,7 +301,7 @@ function nodeLabel(id: string, meta: NodeMeta) {
   );
 }
 
-export function extractOutputsFromCode(code: string): string[] {
+function extractOutputsFromCode(code: string): string[] {
   // 读取 “# outputs: a, b” 或 “// outputs: a, b”（大小写不敏感）
   const m = code.match(/^[#\/]{1,2}\s*outputs:\s*([^\n]+)/im);
   if (!m) return [];
@@ -421,7 +451,7 @@ function runUnitTests(): TestResult[] {
 }
 
 // ---- 主组件 ----
-export default function StudioPage() {
+function StudioPageContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [meta, setMeta] = useState<Record<string, NodeMeta>>(initialMeta);
@@ -471,6 +501,21 @@ export default function StudioPage() {
   const rfNodes = useMemo<Node[]>(() => {
     return nodes.map((n) => {
       const m = meta[n.id];
+      
+      // 对于blueprint节点，保持原有data，对其他节点应用nodeLabel
+      if (n.type === 'blueprint') {
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            onGenerate: (blueprint: string) => {
+              console.log('Generated blueprint:', blueprint);
+              // 这里可以添加生成新节点的逻辑
+            }
+          }
+        };
+      }
+      
       return {
         ...n,
         data: { label: nodeLabel(n.id, m) },
@@ -767,41 +812,22 @@ export default function StudioPage() {
   }
 
   // —— 渲染 ——
-  return (
-    <div className="h-screen w-full bg-slate-50 relative">
-      {/* 顶部栏 */}
-      <header className="h-14 px-4 flex items-center justify-between border-b bg-white absolute top-0 left-0 right-0 z-10">
-        <div className="flex items-center gap-3">
-          <span className="text-xl font-semibold">工作流编排 Studio</span>
-          <Badge variant="secondary" className="rounded-full">
-            模拟
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" className="gap-2" onClick={onExposeApi}>
-            <Share2 className="h-4 w-4" />
-            暴露为 API
-          </Button>
-          <Button variant="secondary" className="gap-2" onClick={onRegisterMcp}>
-            <Link2 className="h-4 w-4" />
-            注册为 MCP 工具
-          </Button>
-          <Button className="gap-2" onClick={onPublish}>
-            <UploadCloud className="h-4 w-4" />
-            发布此版本
-          </Button>
-        </div>
-      </header>
+  // 定义节点类型（使用 useMemo 避免重复创建）
+  const nodeTypes = useMemo(() => ({
+    blueprint: BlueprintNode,
+  }), []);
 
+  return (
+    <div className="h-full w-full bg-slate-50 relative">
       {/* 全屏画布 */}
       <div 
-        className="absolute inset-0 pt-14" 
-        style={{ width: '100vw', height: 'calc(100vh - 56px)' }}
+        className="h-full w-full" 
         onClick={handlePaneClick}
       >
         <ReactFlow
           nodes={rfNodes}
           edges={edges}
+          nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
@@ -1805,3 +1831,5 @@ export default function StudioPage() {
     </div>
   );
 }
+
+export default StudioPageContent;
