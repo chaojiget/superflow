@@ -60,6 +60,7 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 
 // ---- 模拟数据结构 ----
@@ -490,6 +491,15 @@ export default function StudioPage() {
   });
 
   const [tests, setTests] = useState<TestResult[]>([]);
+  const [testsRunning, setTestsRunning] = useState(false);
+
+  const handleRunTests = () => {
+    if (testsRunning) return;
+    setTestsRunning(true);
+    const res = runUnitTests();
+    setTests(res);
+    setTestsRunning(false);
+  };
 
   // 图节点着色
   const rfNodes = useMemo<Node[]>(() => {
@@ -1315,9 +1325,14 @@ export default function StudioPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => setTests(runUnitTests())}
+                            onClick={handleRunTests}
+                            disabled={testsRunning}
+                            className="flex items-center gap-1"
                           >
-                            重新运行
+                            {testsRunning && (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            )}
+                            {testsRunning ? '运行中...' : '重新运行'}
                           </Button>
                         </div>
                         <div className="border rounded-xl overflow-hidden">
