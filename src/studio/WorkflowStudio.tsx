@@ -146,7 +146,7 @@ const initialNodes: Node[] = [
     data: {
       label: '蓝图生成器',
       description: '通过AI对话生成节点蓝图',
-      onGenerate: (blueprint: string) => {
+      onGenerate: (_blueprint: string) => {
         // Handle blueprint generation
       }
     },
