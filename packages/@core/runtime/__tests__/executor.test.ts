@@ -7,7 +7,7 @@ describe('createExecutor', () => {
   const run = createExecutor({ input: inputSchema, output: outputSchema });
 
   it('通过合法数据', async () => {
-    const result = await run(async (req) => ({ output: req.input }), {
+    const result = await run(async (input: unknown) => ({ output: (input as any).input }), {
       kind: 'EXEC',
       runId: '0123456789abcdefghijklmnop',
       nodeId: 'node-1',

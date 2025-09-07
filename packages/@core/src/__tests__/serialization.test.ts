@@ -112,6 +112,6 @@ describe('类型校验与 JSON 序列化', () => {
       message: 'fail',
       code: 'RUNTIME_ERROR',
     });
-    expect((parsed as ReturnType<typeof createError>).cause?.foo).toBe('bar');
+    expect((parsed as ReturnType<typeof createError> & { cause?: { foo?: string } }).cause?.foo).toBe('bar');
   });
 });
