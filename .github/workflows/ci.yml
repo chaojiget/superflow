@@ -82,6 +82,9 @@ jobs:
             npm install
           fi
 
+      - name: Build docs
+        run: npm run docs:build
+
       - name: Run unit tests
         run: npm run test
 
