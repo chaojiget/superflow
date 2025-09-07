@@ -684,6 +684,10 @@ export default function StudioPage() {
         inputs: renameInputsByMapping(prev[nid].inputs, mapping),
       },
     }));
+    setDslGuide((g) => ({
+      ...g,
+      fieldMappings: { ...g.fieldMappings, [nid]: mapping },
+    }));
     setEvents((e) => [
       ...e,
       {
@@ -695,13 +699,39 @@ export default function StudioPage() {
   }
 
   function gotoNode(offset: number) {
-    setDslGuide((g) => {
-      const next = Math.min(
-        Math.max(g.targetIndex + offset, 0),
-        Math.max(g.selectedOrder.length - 1, 0)
-      );
-      return { ...g, targetIndex: next };
-    });
+    const nextIndex = Math.min(
+      Math.max(dslGuide.targetIndex + offset, 0),
+      Math.max(dslGuide.selectedOrder.length - 1, 0)
+    );
+    setDslGuide((g) => ({ ...g, targetIndex: nextIndex }));
+    const nid = dslGuide.selectedOrder[nextIndex];
+    setEvents((e) => [
+      ...e,
+      {
+        ts: Date.now(),
+        level: 'info',
+        message: `字段级向导：跳转至下游节点 ${nid}`,
+      },
+    ]);
+  }
+
+  function finishFieldStep() {
+    setDslGuide((g) => ({
+      ...g,
+      open: false,
+      step: 'nodes',
+      selected: {},
+      selectedOrder: [],
+      targetIndex: 0,
+    }));
+    setEvents((e) => [
+      ...e,
+      {
+        ts: Date.now(),
+        level: 'info',
+        message: 'DSL 迁移：字段级确认完成',
+      },
+    ]);
   }
 
   function setMapping(nid: string, inputName: string, to: string | null) {
@@ -1629,24 +1659,12 @@ export default function StudioPage() {
                           size="sm"
                           onClick={applyCurrentNodeFieldMapping}
                         >
-                          应用当前节点
+                          仅应用当前节点
                         </Button>
                         <Button
                           size="sm"
                           variant="secondary"
-                          onClick={() =>
-                            setDslGuide({
-                              open: false,
-                              step: 'nodes',
-                              oldOutputs: [],
-                              newOutputs: [],
-                              impacted: [],
-                              selected: {},
-                              selectedOrder: [],
-                              targetIndex: 0,
-                              fieldMappings: {},
-                            })
-                          }
+                          onClick={finishFieldStep}
                         >
                           完成
                         </Button>
