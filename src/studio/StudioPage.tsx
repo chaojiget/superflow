@@ -714,11 +714,23 @@ export default function StudioPage() {
     }));
   }
 
+  function onExposeApi() {
+    console.log('onExposeApi');
+  }
+
+  function onRegisterMcp() {
+    console.log('onRegisterMcp');
+  }
+
+  function onPublish() {
+    console.log('onPublish');
+  }
+
   // —— 渲染 ——
   return (
     <div className="h-screen w-full flex flex-col bg-slate-50">
       {/* 顶部栏 */}
-      <div className="h-14 px-4 flex items-center justify-between border-b bg-white">
+      <header className="h-14 px-4 flex items-center justify-between border-b bg-white">
         <div className="flex items-center gap-3">
           <span className="text-xl font-semibold">工作流编排 Studio</span>
           <Badge variant="secondary" className="rounded-full">
@@ -726,20 +738,20 @@ export default function StudioPage() {
           </Badge>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" className="gap-2">
+          <Button variant="secondary" className="gap-2" onClick={onExposeApi}>
             <Share2 className="h-4 w-4" />
             暴露为 API
           </Button>
-          <Button variant="secondary" className="gap-2">
+          <Button variant="secondary" className="gap-2" onClick={onRegisterMcp}>
             <Link2 className="h-4 w-4" />
             注册为 MCP 工具
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={onPublish}>
             <UploadCloud className="h-4 w-4" />
             发布此版本
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* 主体可缩放布局 */}
       <PanelGroup direction="vertical" className="flex-1">
