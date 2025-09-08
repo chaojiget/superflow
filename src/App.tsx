@@ -2,11 +2,21 @@ import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Share2, Link2, UploadCloud } from 'lucide-react';
+import { Select, SelectTrigger, SelectContent, SelectItem } from '@/components/ui/select';
+import { Share2, Link2, UploadCloud, FolderOpen } from 'lucide-react';
 import WorkflowStudio from './WorkflowStudio';
 import StudioPage from './studio/StudioPage';
 import { IdeasPageComponent } from './ideas/src/IdeasPage';
 import { RunCenterPage } from './run-center/RunCenterPage';
+
+// 工作流类型定义
+interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  folder: string;
+  status: string;
+}
 
 // 简化样式，避免过度装饰
 const easyStyles = `
@@ -119,13 +129,53 @@ const App: React.FC = () => {
     }
   ]);
 
+  // 工作流项目列表
+  const [workflows] = useState<Workflow[]>([
+    { 
+      id: 'data-pipeline', 
+      name: '数据管道', 
+      description: '数据处理和机器学习工作流',
+      folder: 'workflows/data-pipeline',
+      status: 'active'
+    },
+    { 
+      id: 'ai-training', 
+      name: 'AI 训练', 
+      description: '模型训练和评估流程',
+      folder: 'workflows/ai-training',
+      status: 'draft'
+    },
+    { 
+      id: 'web-scraping', 
+      name: '网络爬虫', 
+      description: '数据采集和清洗工作流',
+      folder: 'workflows/web-scraping',
+      status: 'active'
+    },
+    { 
+      id: 'image-processing', 
+      name: '图像处理', 
+      description: '批量图像处理管道',
+      folder: 'workflows/image-processing',
+      status: 'archived'
+    }
+  ]);
+
+  const [currentWorkflow, setCurrentWorkflow] = useState<Workflow>(() => {
+    const defaultWorkflow = workflows.find(w => w.status === 'active') || workflows[0];
+    if (!defaultWorkflow) {
+      throw new Error('至少需要一个工作流');
+    }
+    return defaultWorkflow;
+  });
+
 
   return (
     <div className="h-screen w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <Tabs defaultValue="studio" className="h-full flex flex-col w-full">
         {/* 顶部导航栏 - 简约响应式布局 */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between shadow-lg border-b bg-gradient-to-r from-white via-gray-50 to-blue-50 p-3 gap-2 min-h-[64px] relative z-50" style={{animationDuration: '0.6s'}}>
-          {/* 左侧：Logo和徽章 */}
+          {/* 左侧：Logo、徽章和工作流选择器 */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse flex-shrink-0"></div>
             <h1 className="text-xl font-bold text-gray-900">
@@ -134,6 +184,52 @@ const App: React.FC = () => {
             <Badge variant="outline" className="text-xs border-gray-300 bg-white/70">
               模拟
             </Badge>
+            
+            {/* 工作流选择器 */}
+            <div className="flex items-center gap-2 ml-4">
+              <FolderOpen className="w-4 h-4 text-gray-600" />
+              <Select 
+                value={currentWorkflow.id} 
+                onValueChange={(value) => {
+                  const workflow = workflows.find(w => w.id === value);
+                  if (workflow) {
+                    setCurrentWorkflow(workflow);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-48 text-sm bg-white/80 border-gray-200 hover:bg-white">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{currentWorkflow.name}</span>
+                    <Badge 
+                      variant={currentWorkflow.status === 'active' ? 'default' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {currentWorkflow.status === 'active' ? '活跃' : 
+                       currentWorkflow.status === 'draft' ? '草稿' : '归档'}
+                    </Badge>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {workflows.map((workflow) => (
+                    <SelectItem key={workflow.id} value={workflow.id}>
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{workflow.name}</span>
+                          <span className="text-xs text-gray-500">{workflow.description}</span>
+                        </div>
+                        <Badge 
+                          variant={workflow.status === 'active' ? 'default' : 'secondary'}
+                          className="ml-2 text-xs"
+                        >
+                          {workflow.status === 'active' ? '活跃' : 
+                           workflow.status === 'draft' ? '草稿' : '归档'}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           {/* Tabs 导航 - 简单清晰 */}
@@ -160,6 +256,12 @@ const App: React.FC = () => {
           
           {/* 右侧按钮组 - 修复版*/}
           <div className="flex flex-wrap items-center gap-2">
+            {/* 工作流信息提示 */}
+            <div className="hidden lg:flex items-center gap-2 text-xs text-gray-600 bg-white/60 px-2 py-1 rounded-md border">
+              <span>项目：</span>
+              <code className="bg-gray-100 px-1 rounded text-xs">{currentWorkflow.folder}</code>
+            </div>
+            
             <Button size="sm" variant="secondary" className="gap-1.5 whitespace-nowrap border border-gray-200 hover:bg-gray-50 text-xs lg:text-sm">
               <Share2 className="w-3 h-3 lg:w-4 lg:h-4" />
               暴露为 API
@@ -178,16 +280,60 @@ const App: React.FC = () => {
         {/* Tab 内容区域 - 修复过度装饰 */}
         <div className="flex-1 min-h-0 p-1 lg:p-2">
           <TabsContent value="studio" className="h-full m-0">
-            <StudioPage />
+            <StudioPage currentWorkflow={currentWorkflow} />
           </TabsContent>
           <TabsContent value="ideas" className="h-full m-0 p-4">
-            <IdeasPageComponent />
+            <div className="h-full flex flex-col">
+              {/* 工作流上下文提示 */}
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-blue-800">
+                  <FolderOpen className="w-4 h-4" />
+                  <span>当前工作流：<strong>{currentWorkflow.name}</strong></span>
+                  <span className="text-blue-600">({currentWorkflow.folder})</span>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">{currentWorkflow.description}</p>
+              </div>
+              <div className="flex-1">
+                <IdeasPageComponent />
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="run-center" className="h-full m-0 p-4">
-            <RunCenterPage logs={mockLogs} />
+            <div className="h-full flex flex-col">
+              {/* 工作流上下文提示 */}
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-green-800">
+                  <FolderOpen className="w-4 h-4" />
+                  <span>运行中心 - {currentWorkflow.name}</span>
+                  <Badge variant="secondary" className="text-xs border-green-300">
+                    {currentWorkflow.status === 'active' ? '活跃' : 
+                     currentWorkflow.status === 'draft' ? '草稿' : '归档'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex-1">
+                <RunCenterPage logs={mockLogs} />
+              </div>
+            </div>
           </TabsContent>
           <TabsContent value="legacy-studio" className="h-full m-0">
-            <WorkflowStudio />
+            <div className="h-full flex flex-col">
+              {/* 工作流上下文提示 */}
+              <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg mx-4 mt-4">
+                <div className="flex items-center gap-2 text-sm text-purple-800">
+                  <FolderOpen className="w-4 h-4" />
+                  <span>旧版Studio - {currentWorkflow.name}</span>
+                  <Badge variant="outline" className="text-xs border-purple-300">
+                    {currentWorkflow.status === 'active' ? '活跃' : 
+                     currentWorkflow.status === 'draft' ? '草稿' : '归档'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-purple-600 mt-1">{currentWorkflow.description}</p>
+              </div>
+              <div className="flex-1">
+                <WorkflowStudio currentWorkflow={currentWorkflow} />
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>

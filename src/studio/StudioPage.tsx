@@ -455,8 +455,17 @@ function runUnitTests(): TestResult[] {
   return results;
 }
 
+// 工作流类型定义
+interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  folder: string;
+  status: string;
+}
+
 // ---- 主组件 ----
-function StudioPageContent() {
+function StudioPageContent({ currentWorkflow }: { currentWorkflow?: Workflow }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [meta, setMeta] = useState<Record<string, NodeMeta>>(initialMeta);

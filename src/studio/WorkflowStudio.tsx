@@ -409,7 +409,16 @@ function statusBadge(s: Status) {
   );
 }
 
-const WorkflowStudio: React.FC = () => {
+// 工作流类型定义
+interface Workflow {
+  id: string;
+  name: string;
+  description: string;
+  folder: string;
+  status: string;
+}
+
+const WorkflowStudio: React.FC<{ currentWorkflow?: Workflow }> = ({ currentWorkflow }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [selected, setSelected] = useState<string>('feature');
@@ -743,6 +752,25 @@ const WorkflowStudio: React.FC = () => {
           }}>
             工作流编排 Studio
           </strong>
+          {currentWorkflow && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginLeft: 16,
+              padding: '4px 8px',
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderRadius: '6px',
+              border: '1px solid rgba(59, 130, 246, 0.2)'
+            }}>
+              <span style={{ fontSize: '12px', color: '#1e40af', fontWeight: 500 }}>
+                {currentWorkflow.name}
+              </span>
+              <span style={{ fontSize: '10px', color: '#64748b' }}>
+                ({currentWorkflow.folder})
+              </span>
+            </div>
+          )}
         </div>
         <span style={{ 
           color: '#64748b',
