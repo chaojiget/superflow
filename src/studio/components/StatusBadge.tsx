@@ -6,7 +6,8 @@ export type Status =
   | 'success'
   | 'failed'
   | 'skipped'
-  | 'cached';
+  | 'cached'
+  | 'idle';
 
 export const STATUS_THEME: Record<
   Status,
@@ -26,6 +27,7 @@ export const STATUS_THEME: Record<
     text: 'text-amber-700',
   },
   cached: { bg: 'bg-violet-100', dot: 'bg-violet-500', text: 'text-violet-700' },
+  idle: { bg: 'bg-gray-100', dot: 'bg-gray-400', text: 'text-gray-700' },
 };
 
 interface StatusBadgeProps {

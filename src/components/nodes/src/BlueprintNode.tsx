@@ -14,8 +14,10 @@ import {
   User, 
   Bot,
   CheckCircle,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
+
 
 export interface BlueprintNodeData {
   label: string;
@@ -150,12 +152,14 @@ const BlueprintNode: React.FC<NodeProps<BlueprintNodeData>> = ({
       {/* 聊天弹窗 */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
-          <div className="bg-white rounded-2xl shadow-2xl w-[800px] h-[600px] max-w-[95vw] max-h-[95vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-[1000px] h-[700px] max-w-[95vw] max-h-[95vh] flex flex-col">
+            {/* 标题栏 */}
             <div className="flex items-center justify-between p-4 border-b">
               <div className="flex items-center gap-2">
                 <Wand2 className="h-5 w-5 text-blue-600" />
                 <span className="text-lg font-semibold">节点蓝图生成器</span>
                 <Badge variant="secondary">AI 助手</Badge>
+                <Badge variant="secondary" className="text-green-600 ml-2">IDE 模式</Badge>
               </div>
               <Button
                 variant="ghost"
@@ -164,6 +168,49 @@ const BlueprintNode: React.FC<NodeProps<BlueprintNodeData>> = ({
               >
                 <X className="h-4 w-4" />
               </Button>
+            </div>
+
+            {/* IDE功能头部 */}
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-3 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span className="font-medium text-sm">📋 文档预览</span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {data.description || "AI节点将通过对话生成自定义处理节点"}
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-3 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="font-medium text-sm">🧠 AI助手</span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {messages.length > 0 ? "正在对话中..." : "等待开始对话"}
+                  </p>
+                </div>
+                
+                <div className="bg-white rounded-lg p-3 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    {blueprint ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Loader2 className="h-4 w-4 text-gray-400 animate-spin" />
+                    )}
+                    <span className="font-medium text-sm">
+                      {blueprint ? "✅ 蓝图已生成" : "🔄 蓝图生成中"}
+                    </span>
+                  </div>
+                  {blueprint && (
+                    <p className="text-xs text-gray-600">
+                      {blueprint.name} ({blueprint.type})
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">

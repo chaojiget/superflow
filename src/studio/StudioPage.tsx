@@ -68,6 +68,11 @@ import {
 
 // ---- 模拟数据结构 ----
 
+// 将 nodeTypes 定义在组件外部，避免 React Flow 警告
+const nodeTypes = {
+  blueprint: BlueprintNode,
+};
+
 interface NodeMeta {
   status: Status;
   inputs: string[]; // 形如 "param: type"
@@ -812,13 +817,9 @@ function StudioPageContent() {
   }
 
   // —— 渲染 ——
-  // 定义节点类型（使用 useMemo 避免重复创建）
-  const nodeTypes = useMemo(() => ({
-    blueprint: BlueprintNode,
-  }), []);
 
   return (
-    <div className="h-full w-full bg-slate-50 relative">
+    <div className="h-full w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative">
       {/* 全屏画布 */}
       <div 
         className="h-full w-full" 
@@ -831,14 +832,7 @@ function StudioPageContent() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeClick={(_, n) => {
-            setSelected(n.id);
-            setInspectorOpen(true);
-          }}
-          onNodeDoubleClick={(_, n) => {
-            setSelected(n.id);
-            setInspectorOpen(true);
-          }}
+          // 删除onNodeClick和onNodeDoubleClick事件处理，断开弹窗关联
           fitView
           style={{ width: '100%', height: '100%' }}
         >
@@ -848,70 +842,71 @@ function StudioPageContent() {
         </ReactFlow>
       </div>
 
-      {/* 浮动工具栏 */}
-      <div className="absolute top-20 left-4 flex flex-col gap-2 z-20">
+      {/* 浮动工具栏 - 响应式优化 */}
+      <div className="absolute top-20 left-4 flex flex-col gap-2 z-20 max-sm:top-16 max-sm:left-2 max-sm:gap-1">
         <Button
           variant={inspectorOpen ? "default" : "outline"}
           size="sm"
-          className="gap-2 bg-white shadow-sm"
+          className="gap-2 bg-white/80 backdrop-blur-sm shadow-sm border border-white/20 hover:bg-white/90 transition-all duration-200 max-sm:px-2 max-sm:py-1 max-sm:text-xs"
           onClick={() => setInspectorOpen(!inspectorOpen)}
           title="打开/关闭 Inspector (Cmd+I)"
         >
-          <FlaskConical className="h-4 w-4" />
-          Inspector
+          <FlaskConical className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
+          <span className="max-sm:hidden">Inspector</span>
         </Button>
         <Button
           variant={runPanelOpen ? "default" : "outline"}
           size="sm"
-          className="gap-2 bg-white shadow-sm"
+          className="gap-2 bg-white/80 backdrop-blur-sm shadow-sm border border-white/20 hover:bg-white/90 transition-all duration-200 max-sm:px-2 max-sm:py-1 max-sm:text-xs"
           onClick={() => setRunPanelOpen(!runPanelOpen)}
           title="打开/关闭运行面板 (Cmd+R)"
         >
-          <Play className="h-4 w-4" />
-          运行面板
+          <Play className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
+          <span className="max-sm:hidden">运行面板</span>
         </Button>
         <Button
           variant={fixPanelOpen ? "default" : "outline"}
           size="sm"
-          className="gap-2 bg-white shadow-sm"
+          className="gap-2 bg-white/80 backdrop-blur-sm shadow-sm border border-white/20 hover:bg-white/90 transition-all duration-200 max-sm:px-2 max-sm:py-1 max-sm:text-xs"
           onClick={() => setFixPanelOpen(!fixPanelOpen)}
           title="打开/关闭错误修复"
         >
-          <Wand2 className="h-4 w-4" />
-          错误修复
+          <Wand2 className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
+          <span className="max-sm:hidden">错误修复</span>
         </Button>
         <Button
           variant={testPanelOpen ? "default" : "outline"}
           size="sm"
-          className="gap-2 bg-white shadow-sm"
+          className="gap-2 bg-white/80 backdrop-blur-sm shadow-sm border border-white/20 hover:bg-white/90 transition-all duration-200 max-sm:px-2 max-sm:py-1 max-sm:text-xs"
           onClick={() => setTestPanelOpen(!testPanelOpen)}
           title="打开/关闭测试面板"
         >
-          <Check className="h-4 w-4" />
-          测试 ({passCount}/{tests.length})
+          <Check className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
+          <span className="max-sm:hidden">测试</span>
+          <span className="max-sm:hidden"> ({passCount}/{tests.length})</span>
         </Button>
       </div>
 
-      {/* 运行控制栏 */}
-      <div className="absolute top-20 right-4 flex items-center gap-2 z-20">
-        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border">
+      {/* 运行控制栏 - 响应式优化 */}
+      <div className="absolute top-20 right-4 flex items-center gap-2 z-20 max-sm:top-16 max-sm:right-2 max-sm:gap-1">
+        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-white/20 max-sm:px-2 max-sm:py-1 max-sm:gap-1">
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 max-sm:px-2 max-sm:py-1 max-sm:text-xs hover:bg-gray-50 transition-all duration-200"
             onClick={() => setRunning(true)}
           >
-            <Play className="h-4 w-4" />
-            启动
+            <Play className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
+            <span className="max-sm:hidden">启动</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
+            className="gap-2 max-sm:px-2 max-sm:py-1 max-sm:text-xs hover:bg-gray-50 transition-all duration-200"
             onClick={() => setRunning(false)}
           >
-            <Pause className="h-4 w-4" />
-            暂停
+            <Pause className="h-4 w-4 max-sm:h-3 max-sm:w-3" />
+            <span className="max-sm:hidden">暂停</span>
           </Button>
           <Button
             size="sm"
@@ -935,11 +930,11 @@ function StudioPageContent() {
         </div>
       </div>
 
-      {/* 状态栏 */}
-      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-20">
-        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm border">
+      {/* 状态栏 - 响应式优化 */}
+      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-20 max-sm:bottom-2 max-sm:left-2 max-sm:right-2">
+        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-white/20 max-sm:px-2 max-sm:py-1 max-sm:flex-wrap max-sm:gap-1">
           {(Object.keys(STATUS_THEME) as Status[]).map((s) => (
-            <div key={s} className="flex items-center gap-1 text-xs">
+            <div key={s} className="flex items-center gap-1 text-xs max-sm:text-xs">
               <span
                 className={`h-2 w-2 rounded-full ${STATUS_THEME[s].dot}`}
               />

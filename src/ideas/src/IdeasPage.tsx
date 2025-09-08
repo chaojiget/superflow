@@ -308,18 +308,18 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
   }, []);
 
   return (
-    <div className={`ideas-page ${className}`}>
-      <header className="ideas-header">
-        <h1>想法转蓝图</h1>
-        <p>描述您的想法，AI将为您生成结构化的流程蓝图</p>
+    <div className={`ideas-page ${className} min-h-full w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 lg:p-6`}>
+      <header className="ideas-header mb-6">
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">想法转蓝图</h1>
+        <p className="text-sm lg:text-base text-gray-600">描述您的想法，AI将为您生成结构化的流程蓝图</p>
       </header>
 
-      <main className="ideas-main">
-        {/* 配置面板 */}
-        <section className="config-panel">
-          <h3>生成配置</h3>
-          <div className="config-grid">
-            <label>
+      <main className="ideas-main space-y-6">
+        {/* 配置面板 - 响应式卡片 */}
+        <section className="config-panel bg-white/80 backdrop-blur-sm rounded-xl p-4 lg:p-6 shadow-sm border border-white/20">
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">生成配置</h3>
+          <div className="config-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
               复杂度:
               <select
                 value={config.complexity}
@@ -327,14 +327,15 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                   handleConfigChange({ complexity: e.target.value as any })
                 }
                 disabled={readonly}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/50"
               >
-                <option value="simple">简单</option>
-                <option value="medium">中等</option>
-                <option value="complex">复杂</option>
+                <option value="simple">🟢 简单</option>
+                <option value="medium">🟡 中等</option>
+                <option value="complex">🔴 复杂</option>
               </select>
             </label>
 
-            <label>
+            <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
               <input
                 type="checkbox"
                 checked={config.includeValidation}
@@ -342,11 +343,12 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                   handleConfigChange({ includeValidation: e.target.checked })
                 }
                 disabled={readonly}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
-              包含验证节点
+              🎯 包含验证节点
             </label>
 
-            <label>
+            <label className="flex items-center gap-3 text-sm font-medium text-gray-700">
               <input
                 type="checkbox"
                 checked={config.includeErrorHandling}
@@ -354,33 +356,39 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                   handleConfigChange({ includeErrorHandling: e.target.checked })
                 }
                 disabled={readonly}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
               />
-              包含错误处理
+              🛡️ 包含错误处理
             </label>
           </div>
         </section>
 
-        {/* 想法输入 */}
-        <section className="idea-input">
-          <form onSubmit={handleSubmit}>
+        {/* 想法输入 - 响应式卡片 */}
+        <section className="idea-input bg-white/80 backdrop-blur-sm rounded-xl p-4 lg:p-6 shadow-sm border border-white/20">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="input-group">
-              <label htmlFor="idea-textarea">您的想法:</label>
+              <label htmlFor="idea-textarea" className="block text-sm lg:text-base font-medium text-gray-900 mb-2">
+                💡 您的想法:
+              </label>
               <textarea
                 id="idea-textarea"
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
-                placeholder="请描述您的想法，例如：&#10;• 创建一个用户注册流程&#10;• 实现文件上传和处理功能&#10;• 构建数据分析报表系统"
+                placeholder="请描述您的想法，例如：
+• 创建一个用户注册流程
+• 实现文件上传和处理功能
+• 构建数据分析报表系统"
                 rows={6}
                 disabled={isGenerating || readonly}
-                className="idea-textarea"
+                className="idea-textarea w-full px-3 py-2 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical transition-all duration-200 bg-white/50 text-sm lg:text-base"
               />
             </div>
 
-            <div className="action-buttons">
+            <div className="action-buttons flex flex-wrap gap-3">
               <button
                 type="submit"
                 disabled={isGenerating || !idea.trim() || readonly}
-                className="generate-button"
+                className="generate-button px-4 py-2 lg:px-6 lg:py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm lg:text-base shadow-sm"
               >
                 {isGenerating ? '🔄 生成中...' : '✨ 生成蓝图'}
               </button>
@@ -389,8 +397,8 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
                 <button
                   type="button"
                   onClick={() => setIdea('')}
-                  className="clear-button"
                   disabled={readonly}
+                  className="clear-button px-4 py-2 lg:px-6 lg:py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm lg:text-base"
                 >
                   🗑️ 清空
                 </button>
@@ -398,25 +406,23 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
             </div>
           </form>
 
-          {error && <div className="error-message">⚠️ {error}</div>}
+          {error && <div className="error-message bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mt-4 text-sm lg:text-base">⚠️ {error}</div>}
         </section>
 
-        {/* 蓝图预览 */}
+        {/* 蓝图预览 - 响应式卡片 */}
         {currentBlueprint && (
-          <section className="blueprint-preview">
-            <h3>生成的蓝图</h3>
-            <div className="blueprint-summary">
-              <div className="summary-stats">
-                <span>📊 {currentBlueprint.nodes.length} 个节点</span>
-                <span>🔗 {currentBlueprint.edges.length} 个连接</span>
-                <span>
-                  📅 {new Date(currentBlueprint.createdAt).toLocaleString()}
-                </span>
+          <section className="blueprint-preview bg-white/80 backdrop-blur-sm rounded-xl p-4 lg:p-6 shadow-sm border border-white/20">
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">🎨 生成的蓝图</h3>
+            <div className="blueprint-summary bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
+              <div className="summary-stats flex flex-wrap gap-4 text-sm lg:text-base">
+                <span className="flex items-center gap-2">📊 {currentBlueprint.nodes.length} 个节点</span>
+                <span className="flex items-center gap-2">🔗 {currentBlueprint.edges.length} 个连接</span>
+                <span className="flex items-center gap-2">📅 {new Date(currentBlueprint.createdAt).toLocaleString()}</span>
               </div>
-              <div className="blueprint-actions">
+              <div className="blueprint-actions mt-4">
                 <button
                   onClick={() => onBlueprintGenerated?.(currentBlueprint)}
-                  className="use-blueprint-button"
+                  className="use-blueprint-button px-4 py-2 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:from-green-600 hover:to-teal-700 transition-all duration-200 font-medium text-sm lg:text-base"
                 >
                   📋 使用此蓝图
                 </button>
@@ -424,14 +430,14 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
             </div>
 
             <div className="node-list">
-              <h4>节点列表:</h4>
-              <ul>
+              <h4 className="font-semibold text-gray-900 mb-3 text-base lg:text-lg">📝 节点列表:</h4>
+              <ul className="space-y-2">
                 {currentBlueprint.nodes.map((node, index) => (
-                  <li key={node.id} className="node-item">
-                    <span className="node-order">{index + 1}.</span>
-                    <span className="node-name">{node.name}</span>
-                    <span className="node-type">({node.kind})</span>
-                    <span className="node-desc">{node.description}</span>
+                  <li key={node.id} className="node-item bg-gray-50 rounded-lg p-3 flex flex-wrap items-center gap-3">
+                    <span className="node-order text-sm font-semibold text-blue-600 bg-blue-100 rounded-full w-6 h-6 flex items-center justify-center">{index + 1}</span>
+                    <span className="node-name font-medium text-gray-900">{node.name}</span>
+                    <span className="node-type px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">{node.kind}</span>
+                    <span className="node-desc text-gray-600 text-sm flex-1 min-w-[200px]">{node.description}</span>
                   </li>
                 ))}
               </ul>
@@ -439,31 +445,32 @@ export const IdeasPageComponent: React.FC<IdeasPageProps> = ({
           </section>
         )}
 
-        {/* 历史记录 */}
+        {/* 历史记录 - 响应式卡片 */}
         {history.length > 0 && (
-          <section className="history-section">
-            <h3>历史记录</h3>
-            <div className="history-list">
+          <section className="history-section bg-white/80 backdrop-blur-sm rounded-xl p-4 lg:p-6 shadow-sm border border-white/20">
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-4">📚 历史记录</h3>
+            <div className="history-list space-y-3">
               {history.map((item) => (
-                <div key={item.id} className="history-item">
-                  <div className="history-content">
-                    <div className="history-idea">"{item.idea}"</div>
-                    <div className="history-meta">
-                      <span>{new Date(item.timestamp).toLocaleString()}</span>
-                      <span>{item.blueprint.nodes.length} 节点</span>
+                <div key={item.id} className="history-item bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-all duration-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div className="history-content flex-1">
+                    <div className="history-idea text-gray-900 font-medium mb-1">"{item.idea}"</div>
+                    <div className="history-meta text-xs lg:text-sm text-gray-600 flex flex-wrap gap-3">
+                      <span>⏰ {new Date(item.timestamp).toLocaleString()}</span>
+                      <span>📊 {item.blueprint.nodes.length} 节点</span>
+                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">{item.config.complexity}</span>
                     </div>
                   </div>
-                  <div className="history-actions">
+                  <div className="history-actions flex flex-wrap gap-2">
                     <button
                       onClick={() => handleRegenerate(item)}
                       disabled={readonly}
-                      className="regenerate-button"
+                      className="regenerate-button px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-xs lg:text-sm font-medium"
                     >
                       🔄 重新生成
                     </button>
                     <button
                       onClick={() => onBlueprintGenerated?.(item.blueprint)}
-                      className="use-button"
+                      className="use-button px-3 py-1.5 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg hover:from-green-600 hover:to-teal-700 transition-all duration-200 text-xs lg:text-sm font-medium"
                     >
                       📋 使用
                     </button>
