@@ -7,11 +7,17 @@ interface TabsCtx {
 const Ctx = createContext<TabsCtx | null>(null);
 
 export const Tabs: React.FC<
-  React.PropsWithChildren<{ defaultValue: string; className?: string }>
-> = ({ defaultValue, children, className }) => {
+  React.PropsWithChildren<{ defaultValue: string; className?: string; onValueChange?: (value: string) => void }>
+> = ({ defaultValue, children, className, onValueChange }) => {
   const [value, setValue] = useState(defaultValue);
+  
+  const handleValueChange = (newValue: string) => {
+    setValue(newValue);
+    onValueChange?.(newValue);
+  };
+  
   return (
-    <Ctx.Provider value={{ value, setValue }}>
+    <Ctx.Provider value={{ value, setValue: handleValueChange }}>
       <div className={className}>{children}</div>
     </Ctx.Provider>
   );
