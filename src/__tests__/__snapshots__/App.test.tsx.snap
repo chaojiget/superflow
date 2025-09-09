@@ -1,3 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`App > 页面能够渲染 1`] = `"<h1 class="text-xl font-bold text-gray-900">Superflow 平台</h1>"`;
