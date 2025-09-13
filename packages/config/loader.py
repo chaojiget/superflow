@@ -29,6 +29,7 @@ DEFAULTS: Dict[str, Any] = {
     },
     "risk": {"check_skills": True, "codegen_mode": "disabled", "capability_token_required": True},
     "scoreboard": {"episodes_dir": "episodes"},
+    "prompts": {"dir": "packages/prompts"},
 }
 
 
@@ -54,4 +55,3 @@ def load_config(path: Optional[str] = None) -> Dict[str, Any]:
         return out
 
     return merge(DEFAULTS, cfg)
-

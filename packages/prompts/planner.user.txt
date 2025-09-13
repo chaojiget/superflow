@@ -1,0 +1,7 @@
+SRS:
+{{SRS}}
+
+CSV_Excerpt(最多前几行):
+{{CSV_EXCERPT}}
+
+请只返回 JSON，例如: {"plan":{"id":"...","steps":[...],"params":{...},"risks":[...],"acceptance":[...]}}

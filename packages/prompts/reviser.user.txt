@@ -1,0 +1,10 @@
+SRS:
+{{SRS}}
+
+CRITIC:
+{{CRITIC}}
+
+REPORT_MARKDOWN(待改进):
+{{REPORT_MD}}
+
+请直接输出改进后的 Markdown。

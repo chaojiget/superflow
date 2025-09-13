@@ -1,0 +1,8 @@
+SRS:
+{{SRS}}
+
+REPORT_MARKDOWN:
+{{REPORT_MD}}
+
+请仅返回 JSON，例如: {"pass":true,"score":0.92,"reasons":["问题1","问题2"]}。
+通过标准: score>=0.8 视为 pass=true。

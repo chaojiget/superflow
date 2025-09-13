@@ -197,7 +197,11 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     print(f"[PLAN] 使用 {planner.name()} 生成计划…")
     ctx_plan = dict(ctx)
-    ctx_plan.update({"temperature": cfg.get("llm", {}).get("temperature", {}).get("planner", 0.2), "retries": cfg.get("llm", {}).get("retries", 0)})
+    ctx_plan.update({
+        "temperature": cfg.get("llm", {}).get("temperature", {}).get("planner", 0.2),
+        "retries": cfg.get("llm", {}).get("retries", 0),
+        "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
+    })
     plan = planner.plan(srs, ctx_plan)
     payload = {"plan": plan, "impl": planner.name()}
     if hasattr(planner, "last_meta"):
@@ -210,13 +214,21 @@ def cmd_run(args: argparse.Namespace) -> None:
     if executor_name == "skills" and cfg.get("risk", {}).get("check_skills", True):
         verify_skills(strict=True)
     ctx_exec = dict(ctx)
-    ctx_exec.update({"temperature": cfg.get("llm", {}).get("temperature", {}).get("executor", 0.6), "retries": cfg.get("llm", {}).get("retries", 0)})
+    ctx_exec.update({
+        "temperature": cfg.get("llm", {}).get("temperature", {}).get("executor", 0.6),
+        "retries": cfg.get("llm", {}).get("retries", 0),
+        "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
+    })
     md_text, exec_ctx = executor.execute(srs, plan, ctx_exec)
     bus.append("exec.output", {"impl": executor.name(), **exec_ctx})
 
     guardian.check()
     print(f"[REVIEW] 使用 {critic.name()} 打分…")
-    ctx_review = {"temperature": cfg.get("llm", {}).get("temperature", {}).get("critic", 0.0), "retries": cfg.get("llm", {}).get("retries", 0)}
+    ctx_review = {
+        "temperature": cfg.get("llm", {}).get("temperature", {}).get("critic", 0.0),
+        "retries": cfg.get("llm", {}).get("retries", 0),
+        "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
+    }
     rv = critic.review(srs, md_text, ctx_review)
     print(f"[REVIEW] score={rv.get('score')} pass={rv.get('pass')} reasons={rv.get('reasons')}")
     pay = dict(rv)
@@ -227,7 +239,11 @@ def cmd_run(args: argparse.Namespace) -> None:
     # 一次修补
     if not bool(rv.get("pass")):
         print(f"[PATCH] 使用 {reviser.name()} 修订报告…")
-        ctx_patch = {"temperature": cfg.get("llm", {}).get("temperature", {}).get("reviser", 0.4), "retries": cfg.get("llm", {}).get("retries", 0)}
+        ctx_patch = {
+            "temperature": cfg.get("llm", {}).get("temperature", {}).get("reviser", 0.4),
+            "retries": cfg.get("llm", {}).get("retries", 0),
+            "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
+        }
         revised = reviser.revise(srs, md_text, rv, ctx_patch)
         patch_payload = {"impl": reviser.name()}
         if hasattr(reviser, "last_meta"):
@@ -379,25 +395,40 @@ def cmd_scoreboard(args: argparse.Namespace) -> None:
             "model": model,
             "provider": provider,
         })
+    # 尝试提取时间戳（使用最后一次 review.scored 的 ts；否则文件 mtime）
+    def _get_ts(path_json: str, ep: Dict[str, Any]) -> str:
+        for ev in reversed(ep.get("events", [])):
+            if ev.get("type") == "review.scored" and ev.get("ts"):
+                return ev.get("ts")
+        # fallback: mtime -> ISO8601Z
+        import datetime, os as _os
+        t = _os.path.getmtime(path_json)
+        return datetime.datetime.utcfromtimestamp(t).isoformat() + "Z"
+
     if args.fmt == "csv":
         # export csv
         with open(args.out, "w", encoding="utf-8", newline="") as f:
-            w = _csv.DictWriter(f, fieldnames=["trace_id","goal","status","latency_ms","score","pass","model","provider"])
+            w = _csv.DictWriter(f, fieldnames=["trace_id","goal","status","latency_ms","score","pass","model","provider","ts"])
             w.writeheader()
             for r in rows:
+                # locate episode json for ts
+                ep_path = os.path.join(eps_dir, f"{r.get('trace_id')}.json")
+                r["ts"] = _get_ts(ep_path, {}) if not os.path.exists(ep_path) else _get_ts(ep_path, json.load(open(ep_path)))
                 w.writerow(r)
         print(f"scoreboard exported: {args.out} ({len(rows)} rows)")
     elif args.fmt == "sqlite":
         import sqlite3
         conn = sqlite3.connect(args.out)
         cur = conn.cursor()
-        cur.execute("CREATE TABLE IF NOT EXISTS scores (trace_id TEXT PRIMARY KEY, goal TEXT, status TEXT, latency_ms INTEGER, score REAL, pass INTEGER, model TEXT, provider TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS scores (trace_id TEXT PRIMARY KEY, goal TEXT, status TEXT, latency_ms INTEGER, score REAL, pass INTEGER, model TEXT, provider TEXT, ts TEXT)")
         # upsert rows
         for r in rows:
+            ep_path = os.path.join(eps_dir, f"{r.get('trace_id')}.json")
+            ts_val = _get_ts(ep_path, {}) if not os.path.exists(ep_path) else _get_ts(ep_path, json.load(open(ep_path)))
             cur.execute(
-                "INSERT INTO scores(trace_id,goal,status,latency_ms,score,pass,model,provider) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET goal=excluded.goal,status=excluded.status,latency_ms=excluded.latency_ms,score=excluded.score,pass=excluded.pass,model=excluded.model,provider=excluded.provider",
+                "INSERT INTO scores(trace_id,goal,status,latency_ms,score,pass,model,provider,ts) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET goal=excluded.goal,status=excluded.status,latency_ms=excluded.latency_ms,score=excluded.score,pass=excluded.pass,model=excluded.model,provider=excluded.provider,ts=excluded.ts",
                 (
-                    r.get("trace_id"), r.get("goal"), r.get("status"), r.get("latency_ms"), r.get("score"), 1 if r.get("pass") else 0, r.get("model"), r.get("provider"),
+                    r.get("trace_id"), r.get("goal"), r.get("status"), r.get("latency_ms"), r.get("score"), 1 if r.get("pass") else 0, r.get("model"), r.get("provider"), ts_val,
                 ),
             )
         conn.commit()
@@ -425,6 +456,54 @@ def cmd_registry(args: argparse.Namespace) -> None:
     with open(args.out, "w", encoding="utf-8") as f:
         f.write(_json.dumps(out, ensure_ascii=False, indent=2))
     print(f"registry generated: {args.out}")
+
+
+def cmd_scoreboard_query(args: argparse.Namespace) -> None:
+    import sqlite3
+    db = args.db
+    if not os.path.exists(db):
+        print(f"sqlite 不存在: {db}", file=sys.stderr)
+        sys.exit(1)
+    conn = sqlite3.connect(db)
+    cur = conn.cursor()
+    # 构建 where 条件
+    where = []
+    params = []
+    if args.model:
+        where.append("model LIKE ?")
+        params.append(f"%{args.model}%")
+    if args.since:
+        where.append("ts >= ?")
+        params.append(args.since)
+    if args.until:
+        # 简单做前缀比较：直到这天 23:59:59Z
+        where.append("ts <= ?")
+        params.append(args.until + "T23:59:59Z")
+    wsql = (" WHERE " + " AND ".join(where)) if where else ""
+
+    # 汇总统计
+    qsum = f"SELECT COUNT(1), AVG(score), AVG(pass), AVG(latency_ms) FROM scores{wsql}"
+    row = cur.execute(qsum, params).fetchone()
+    total = row[0] or 0
+    avg_score = round(row[1], 4) if row[1] is not None else None
+    pass_rate = round(row[2], 4) if row[2] is not None else None
+    avg_latency = int(row[3]) if row[3] is not None else None
+    print(f"总数={total}  平均分={avg_score}  通过率={pass_rate}  平均延迟ms={avg_latency}")
+
+    # 模型维度统计（若未指定模型，给出 top 5 模型）
+    if not args.model:
+        qmodel = f"SELECT model, COUNT(1) c, AVG(score) s, AVG(pass) p FROM scores{wsql} GROUP BY model ORDER BY s DESC LIMIT 5"
+        rows = cur.execute(qmodel, params).fetchall()
+        for m, c, s, p in rows:
+            print(f"model={m}  count={c}  avg_score={round(s,4)}  pass_rate={round(p,4)}")
+
+    # TopN
+    qtop = f"SELECT trace_id, score, pass, model, provider, ts FROM scores{wsql} ORDER BY score DESC LIMIT ?"
+    rows = cur.execute(qtop, params + [int(args.topN)]).fetchall()
+    print("TopN:")
+    for tr, sc, pa, m, pr, ts in rows:
+        print(f"- {tr} score={sc} pass={pa} model={m} provider={pr} ts={ts}")
+    conn.close()
 
 
 def main():
@@ -464,6 +543,15 @@ def main():
     p_reg.add_argument("gen", nargs='?', default="gen")
     p_reg.add_argument("--out", default="skills/registry.json")
     p_reg.set_defaults(func=cmd_registry)
+
+    # Scoreboard 查询
+    p_scoreq = sub.add_parser("scoreboard-query", help="从 sqlite 中查询统计")
+    p_scoreq.add_argument("--db", default="scores.sqlite", help="scoreboard sqlite 文件")
+    p_scoreq.add_argument("--model", default=None, help="按模型名过滤(子串匹配)")
+    p_scoreq.add_argument("--since", default=None, help="起始时间(ISO8601, 仅前缀如 2025-09-13)")
+    p_scoreq.add_argument("--until", default=None, help="结束时间(ISO8601, 含当日)")
+    p_scoreq.add_argument("--topN", type=int, default=10, help="输出前N条最高得分")
+    p_scoreq.set_defaults(func=cmd_scoreboard_query)
 
     args = parser.parse_args()
     args.func(args)

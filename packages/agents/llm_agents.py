@@ -16,6 +16,7 @@ from typing import Any, Dict, Tuple
 from packages.agents.interfaces import Planner, Executor, Critic, Reviser
 from packages.agents.registry import register
 from packages.providers.openrouter_client import OpenRouterClient, extract_json_block
+from packages.prompts.loader import load_pair, render
 
 
 @register("planner", "llm")
@@ -26,17 +27,14 @@ class PlannerLLM(Planner):
 
     def plan(self, srs: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         csv_excerpt: str = context.get("csv_excerpt", "")
-        system = (
-            "你是 Planner。请仅输出 JSON，不要额外文本。根据给定 SRS 和 CSV 片段，"
-            "生成一个计划对象，包含: plan:{id, steps[], params{}, risks[], acceptance[]}。"
-            "注意: steps 为可执行步骤，每步为 {id, op, args}，其中 op 只能是以下之一: \n"
-            "- csv.clean\n- stats.aggregate\n- md.render\n"
-            "args 根据 op 提供所需参数，例如: csv.clean:{drop_empty}, stats.aggregate:{top_n,score_by,title_field}, md.render:{include_table}。"
+        prompts_dir: str = context.get("prompts_dir", "packages/prompts")
+        sys_t, usr_t = load_pair(prompts_dir, "planner")
+        system = sys_t or (
+            "你是 Planner。请仅输出 JSON，不要额外文本。根据给定 SRS 和 CSV 片段，生成一个计划对象。"
         )
-        user = (
-            f"SRS:\n{json.dumps(srs, ensure_ascii=False)}\n\n"
-            f"CSV_Excerpt(最多前几行):\n" + csv_excerpt + "\n\n"
-            "请只返回 JSON，例如: {\"plan\":{\"id\":\"...\",\"steps\":[...],\"params\":{...},\"risks\":[...],\"acceptance\":[...]}}"
+        user = render(
+            usr_t or "SRS:\n{{SRS}}\n\nCSV_Excerpt:\n{{CSV_EXCERPT}}",
+            {"SRS": json.dumps(srs, ensure_ascii=False), "CSV_EXCERPT": csv_excerpt},
         )
         temp = float(context.get("temperature", 0.2))
         retries = int(context.get("retries", 0))
@@ -59,18 +57,14 @@ class ExecutorLLM(Executor):
 
     def execute(self, srs: Dict[str, Any], plan: Dict[str, Any], context: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         csv_excerpt: str = context.get("csv_excerpt", "")
+        prompts_dir: str = context.get("prompts_dir", "packages/prompts")
+        sys_t, usr_t = load_pair(prompts_dir, "executor")
+        system = sys_t or "你是执行器/报告生成器。"
+        user = render(
+            usr_t or "SRS:\n{{SRS}}\n\nPlan:\n{{PLAN}}\n\nCSV:\n{{CSV_EXCERPT}}",
+            {"SRS": json.dumps(srs, ensure_ascii=False), "PLAN": json.dumps(plan, ensure_ascii=False), "CSV_EXCERPT": csv_excerpt},
+        )
         t0 = time.time()
-        system = (
-            "你是执行器/报告生成器。根据 SRS 目标和 CSV 片段，生成结构化的 Markdown 周报。"
-            "要求包含: # Weekly Report, ## Summary(总数/均值等), ## Top Items(表格)。"
-            "内容要可复制，避免多余解释文本。"
-        )
-        user = (
-            f"SRS:\n{json.dumps(srs, ensure_ascii=False)}\n\n"
-            f"Plan:\n{json.dumps(plan, ensure_ascii=False)}\n\n"
-            f"CSV_Excerpt:\n" + csv_excerpt + "\n\n"
-            "请直接输出 Markdown 文本。"
-        )
         temp = float(context.get("temperature", 0.6))
         retries = int(context.get("retries", 0))
         md, meta = self.client.chat_with_meta([
@@ -89,15 +83,12 @@ class CriticLLM(Critic):
         self.last_meta: Dict[str, Any] = {}
 
     def review(self, srs: Dict[str, Any], report_md: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        system = (
-            "你是评审器。请仅输出 JSON，不要额外文本。基于 SRS 的验收与约束，"
-            "对给定 Markdown 报告评分，范围[0,1]，0=完全不符合,1=完全符合。"
-        )
-        user = (
-            f"SRS:\n{json.dumps(srs, ensure_ascii=False)}\n\n"
-            f"REPORT_MARKDOWN:\n" + report_md + "\n\n"
-            "请仅返回 JSON，例如: {\"pass\":true,\"score\":0.92,\"reasons\":[\"问题1\",\"问题2\"]}。"
-            "通过标准: score>=0.8 视为 pass=true。"
+        prompts_dir: str = context.get("prompts_dir", "packages/prompts")
+        sys_t, usr_t = load_pair(prompts_dir, "critic")
+        system = sys_t or "你是评审器。"
+        user = render(
+            usr_t or "SRS:\n{{SRS}}\n\nREPORT:\n{{REPORT_MD}}",
+            {"SRS": json.dumps(srs, ensure_ascii=False), "REPORT_MD": report_md},
         )
         temp = float(context.get("temperature", 0.0))
         retries = int(context.get("retries", 0))
@@ -121,14 +112,12 @@ class ReviserLLM(Reviser):
         self.last_meta: Dict[str, Any] = {}
 
     def revise(self, srs: Dict[str, Any], report_md: str, review_result: Dict[str, Any], context: Dict[str, Any]) -> str:
-        system = (
-            "你是审稿改写器。根据评审意见改进 Markdown 报告，保持结构与可复制性，不要返回解释。"
-        )
-        user = (
-            f"SRS:\n{json.dumps(srs, ensure_ascii=False)}\n\n"
-            f"CRITIC:\n{json.dumps(review_result, ensure_ascii=False)}\n\n"
-            f"REPORT_MARKDOWN(待改进):\n" + report_md + "\n\n"
-            "请直接输出改进后的 Markdown。"
+        prompts_dir: str = context.get("prompts_dir", "packages/prompts")
+        sys_t, usr_t = load_pair(prompts_dir, "reviser")
+        system = sys_t or "你是审稿改写器。"
+        user = render(
+            usr_t or "SRS:\n{{SRS}}\n\nCRITIC:\n{{CRITIC}}\n\nREPORT:\n{{REPORT_MD}}",
+            {"SRS": json.dumps(srs, ensure_ascii=False), "CRITIC": json.dumps(review_result, ensure_ascii=False), "REPORT_MD": report_md},
         )
         temp = float(context.get("temperature", 0.4))
         retries = int(context.get("retries", 0))
