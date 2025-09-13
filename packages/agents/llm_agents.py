@@ -22,6 +22,7 @@ from packages.providers.openrouter_client import OpenRouterClient, extract_json_
 class PlannerLLM(Planner):
     def __init__(self, client: OpenRouterClient) -> None:
         self.client = client
+        self.last_meta: Dict[str, Any] = {}
 
     def plan(self, srs: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         csv_excerpt: str = context.get("csv_excerpt", "")
@@ -37,10 +38,13 @@ class PlannerLLM(Planner):
             f"CSV_Excerpt(最多前几行):\n" + csv_excerpt + "\n\n"
             "请只返回 JSON，例如: {\"plan\":{\"id\":\"...\",\"steps\":[...],\"params\":{...},\"risks\":[...],\"acceptance\":[...]}}"
         )
-        content = self.client.chat([
+        temp = float(context.get("temperature", 0.2))
+        retries = int(context.get("retries", 0))
+        content, meta = self.client.chat_with_meta([
             {"role": "system", "content": system},
             {"role": "user", "content": user},
-        ], temperature=0.2)
+        ], temperature=temp, retries=retries)
+        self.last_meta = meta
         obj = extract_json_block(content)
         plan = obj.get("plan") or obj
         plan.setdefault("id", f"plan-{uuid.uuid4().hex[:8]}")
@@ -51,6 +55,7 @@ class PlannerLLM(Planner):
 class ExecutorLLM(Executor):
     def __init__(self, client: OpenRouterClient) -> None:
         self.client = client
+        self.last_meta: Dict[str, Any] = {}
 
     def execute(self, srs: Dict[str, Any], plan: Dict[str, Any], context: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         csv_excerpt: str = context.get("csv_excerpt", "")
@@ -66,18 +71,22 @@ class ExecutorLLM(Executor):
             f"CSV_Excerpt:\n" + csv_excerpt + "\n\n"
             "请直接输出 Markdown 文本。"
         )
-        md = self.client.chat([
+        temp = float(context.get("temperature", 0.6))
+        retries = int(context.get("retries", 0))
+        md, meta = self.client.chat_with_meta([
             {"role": "system", "content": system},
             {"role": "user", "content": user},
-        ], temperature=0.6)
+        ], temperature=temp, retries=retries)
+        self.last_meta = meta
         latency_ms = int((time.time() - t0) * 1000)
-        return md, {"metrics": {"latency_ms": latency_ms, "retries": 0, "cost": 0.0}}
+        return md, {"metrics": {"latency_ms": latency_ms, "retries": meta.get("attempts", 1) - 1, "cost": 0.0}, "llm": meta}
 
 
 @register("critic", "llm")
 class CriticLLM(Critic):
     def __init__(self, client: OpenRouterClient) -> None:
         self.client = client
+        self.last_meta: Dict[str, Any] = {}
 
     def review(self, srs: Dict[str, Any], report_md: str, context: Dict[str, Any]) -> Dict[str, Any]:
         system = (
@@ -90,10 +99,13 @@ class CriticLLM(Critic):
             "请仅返回 JSON，例如: {\"pass\":true,\"score\":0.92,\"reasons\":[\"问题1\",\"问题2\"]}。"
             "通过标准: score>=0.8 视为 pass=true。"
         )
-        content = self.client.chat([
+        temp = float(context.get("temperature", 0.0))
+        retries = int(context.get("retries", 0))
+        content, meta = self.client.chat_with_meta([
             {"role": "system", "content": system},
             {"role": "user", "content": user},
-        ], temperature=0.0)
+        ], temperature=temp, retries=retries)
+        self.last_meta = meta
         obj = extract_json_block(content)
         obj.setdefault("score", 0.0)
         obj.setdefault("reasons", [])
@@ -106,6 +118,7 @@ class CriticLLM(Critic):
 class ReviserLLM(Reviser):
     def __init__(self, client: OpenRouterClient) -> None:
         self.client = client
+        self.last_meta: Dict[str, Any] = {}
 
     def revise(self, srs: Dict[str, Any], report_md: str, review_result: Dict[str, Any], context: Dict[str, Any]) -> str:
         system = (
@@ -117,8 +130,11 @@ class ReviserLLM(Reviser):
             f"REPORT_MARKDOWN(待改进):\n" + report_md + "\n\n"
             "请直接输出改进后的 Markdown。"
         )
-        return self.client.chat([
+        temp = float(context.get("temperature", 0.4))
+        retries = int(context.get("retries", 0))
+        revised, meta = self.client.chat_with_meta([
             {"role": "system", "content": system},
             {"role": "user", "content": user},
-        ], temperature=0.4)
-
+        ], temperature=temp, retries=retries)
+        self.last_meta = meta
+        return revised

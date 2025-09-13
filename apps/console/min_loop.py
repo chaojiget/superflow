@@ -35,6 +35,8 @@ from packages.agents.interfaces import Planner, Executor, Critic, Reviser  # typ
 from packages.agents.registry import get as get_plugin  # type: ignore
 import packages.agents.llm_agents  # noqa: F401  # 引入以触发注册
 import packages.agents.rule_agents  # noqa: F401  # 引入以触发注册
+from packages.config.loader import load_config  # type: ignore
+from packages.agents.skills_registry import verify_skills  # type: ignore
 
 
 def load_srs(path: str) -> Dict[str, Any]:
@@ -59,8 +61,14 @@ def sample_csv_text(csv_path: str, max_rows: int = 80) -> str:
     return "\n".join(lines)
 
 
-def build_plugins(planner: str, executor: str, critic: str, reviser: str, need_client: bool) -> Tuple[Planner, Executor, Critic, Reviser, dict]:
-    client = OpenRouterClient() if need_client else None
+def build_plugins(planner: str, executor: str, critic: str, reviser: str, need_client: bool, cfg: Dict[str, Any]) -> Tuple[Planner, Executor, Critic, Reviser, dict]:
+    client = None
+    if need_client:
+        llm_cfg = cfg.get("llm", {})
+        client = OpenRouterClient(
+            base_url=llm_cfg.get("base_url"),
+            model=llm_cfg.get("model"),
+        )
     ctx = {"client": client}
     PlannerCls = get_plugin("planner", planner)
     ExecutorCls = get_plugin("executor", executor)
@@ -159,6 +167,9 @@ def ensure_dirs():
 def cmd_run(args: argparse.Namespace) -> None:
     ensure_dirs()
 
+    # 加载配置
+    cfg = load_config(getattr(args, "config", None))
+
     srs = load_srs(args.srs)
     if args.data:
         srs.setdefault("inputs", {})["csv_path"] = args.data
@@ -170,38 +181,65 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     # 记录感知
     bus.append("sense.srs_loaded", {"srs": srs})
-    csv_excerpt = sample_csv_text(srs["inputs"]["csv_path"])  # type: ignore
+    max_rows = int(cfg.get("llm", {}).get("max_rows", 80))
+    csv_excerpt = sample_csv_text(srs["inputs"]["csv_path"], max_rows=max_rows)  # type: ignore
     rows = read_csv_rows(srs["inputs"]["csv_path"])  # type: ignore
 
     # 构建插件
-    need_client = (args.planner == "llm" or args.executor == "llm" or args.critic == "llm" or args.reviser == "llm")
-    planner, executor, critic, reviser, _ctx = build_plugins(args.planner, args.executor, args.critic, args.reviser, need_client)
+    planner_name = args.planner or cfg.get("defaults", {}).get("planner", "llm")
+    executor_name = args.executor or cfg.get("defaults", {}).get("executor", "llm")
+    critic_name = args.critic or cfg.get("defaults", {}).get("critic", "llm")
+    reviser_name = args.reviser or cfg.get("defaults", {}).get("reviser", "llm")
+
+    need_client = (planner_name == "llm" or executor_name == "llm" or critic_name == "llm" or reviser_name == "llm")
+    planner, executor, critic, reviser, _ctx = build_plugins(planner_name, executor_name, critic_name, reviser_name, need_client, cfg)
     ctx = {"csv_excerpt": csv_excerpt, "rows": rows}
 
     print(f"[PLAN] 使用 {planner.name()} 生成计划…")
-    plan = planner.plan(srs, ctx)
-    bus.append("plan.generated", {"plan": plan, "impl": planner.name()})
+    ctx_plan = dict(ctx)
+    ctx_plan.update({"temperature": cfg.get("llm", {}).get("temperature", {}).get("planner", 0.2), "retries": cfg.get("llm", {}).get("retries", 0)})
+    plan = planner.plan(srs, ctx_plan)
+    payload = {"plan": plan, "impl": planner.name()}
+    if hasattr(planner, "last_meta"):
+        payload["llm"] = getattr(planner, "last_meta")
+    bus.append("plan.generated", payload)
 
     guardian.check()
     print(f"[EXEC] 使用 {executor.name()} 执行…")
-    md_text, exec_ctx = executor.execute(srs, plan, ctx)
+    # 风险：执行本地技能时校验签名
+    if executor_name == "skills" and cfg.get("risk", {}).get("check_skills", True):
+        verify_skills(strict=True)
+    ctx_exec = dict(ctx)
+    ctx_exec.update({"temperature": cfg.get("llm", {}).get("temperature", {}).get("executor", 0.6), "retries": cfg.get("llm", {}).get("retries", 0)})
+    md_text, exec_ctx = executor.execute(srs, plan, ctx_exec)
     bus.append("exec.output", {"impl": executor.name(), **exec_ctx})
 
     guardian.check()
     print(f"[REVIEW] 使用 {critic.name()} 打分…")
-    rv = critic.review(srs, md_text, ctx)
+    ctx_review = {"temperature": cfg.get("llm", {}).get("temperature", {}).get("critic", 0.0), "retries": cfg.get("llm", {}).get("retries", 0)}
+    rv = critic.review(srs, md_text, ctx_review)
     print(f"[REVIEW] score={rv.get('score')} pass={rv.get('pass')} reasons={rv.get('reasons')}")
-    bus.append("review.scored", rv)
+    pay = dict(rv)
+    if hasattr(critic, "last_meta"):
+        pay["llm"] = getattr(critic, "last_meta")
+    bus.append("review.scored", pay)
 
     # 一次修补
     if not bool(rv.get("pass")):
         print(f"[PATCH] 使用 {reviser.name()} 修订报告…")
-        revised = reviser.revise(srs, md_text, rv, ctx)
-        bus.append("patch.revised", {"impl": reviser.name()})
+        ctx_patch = {"temperature": cfg.get("llm", {}).get("temperature", {}).get("reviser", 0.4), "retries": cfg.get("llm", {}).get("retries", 0)}
+        revised = reviser.revise(srs, md_text, rv, ctx_patch)
+        patch_payload = {"impl": reviser.name()}
+        if hasattr(reviser, "last_meta"):
+            patch_payload["llm"] = getattr(reviser, "last_meta")
+        bus.append("patch.revised", patch_payload)
         md_text = revised
-        rv = critic.review(srs, md_text, ctx)
+        rv = critic.review(srs, md_text, ctx_review)
         print(f"[REVIEW] after patch score={rv.get('score')} pass={rv.get('pass')}")
-        bus.append("review.scored", rv)
+        pay2 = dict(rv)
+        if hasattr(critic, "last_meta"):
+            pay2["llm"] = getattr(critic, "last_meta")
+        bus.append("review.scored", pay2)
 
     # Write output
     with open(out_path, "w", encoding="utf-8") as f:
@@ -296,6 +334,99 @@ def cmd_replay(args: argparse.Namespace) -> None:
         print(json.dumps({"trace_id": trace_id, **last_rv}, ensure_ascii=False))
 
 
+def cmd_scoreboard(args: argparse.Namespace) -> None:
+    cfg = load_config(None)
+    eps_dir = args.episodes_dir or cfg.get("scoreboard", {}).get("episodes_dir", "episodes")
+    if not os.path.isdir(eps_dir):
+        print(f"episodes 目录不存在: {eps_dir}", file=sys.stderr)
+        sys.exit(1)
+    import csv as _csv
+    rows = []
+    for fn in os.listdir(eps_dir):
+        if not fn.endswith(".json"):
+            continue
+        p = os.path.join(eps_dir, fn)
+        try:
+            with open(p, "r", encoding="utf-8") as f:
+                ep = json.load(f)
+        except Exception:
+            continue
+        trace_id = ep.get("trace_id")
+        goal = ep.get("goal")
+        status = ep.get("status")
+        latency = ep.get("latency_ms")
+        # last review
+        last_review = None
+        for ev in reversed(ep.get("events", [])):
+            if ev.get("type") == "review.scored":
+                last_review = ev.get("payload")
+                break
+        score = (last_review or {}).get("score")
+        passed = (last_review or {}).get("pass")
+        # llm meta if any
+        model = None
+        provider = None
+        if last_review and isinstance(last_review.get("llm"), dict):
+            model = last_review["llm"].get("model")
+            provider = last_review["llm"].get("provider")
+        rows.append({
+            "trace_id": trace_id,
+            "goal": goal,
+            "status": status,
+            "latency_ms": latency,
+            "score": score,
+            "pass": passed,
+            "model": model,
+            "provider": provider,
+        })
+    if args.fmt == "csv":
+        # export csv
+        with open(args.out, "w", encoding="utf-8", newline="") as f:
+            w = _csv.DictWriter(f, fieldnames=["trace_id","goal","status","latency_ms","score","pass","model","provider"])
+            w.writeheader()
+            for r in rows:
+                w.writerow(r)
+        print(f"scoreboard exported: {args.out} ({len(rows)} rows)")
+    elif args.fmt == "sqlite":
+        import sqlite3
+        conn = sqlite3.connect(args.out)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE IF NOT EXISTS scores (trace_id TEXT PRIMARY KEY, goal TEXT, status TEXT, latency_ms INTEGER, score REAL, pass INTEGER, model TEXT, provider TEXT)")
+        # upsert rows
+        for r in rows:
+            cur.execute(
+                "INSERT INTO scores(trace_id,goal,status,latency_ms,score,pass,model,provider) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(trace_id) DO UPDATE SET goal=excluded.goal,status=excluded.status,latency_ms=excluded.latency_ms,score=excluded.score,pass=excluded.pass,model=excluded.model,provider=excluded.provider",
+                (
+                    r.get("trace_id"), r.get("goal"), r.get("status"), r.get("latency_ms"), r.get("score"), 1 if r.get("pass") else 0, r.get("model"), r.get("provider"),
+                ),
+            )
+        conn.commit()
+        conn.close()
+        print(f"scoreboard exported: {args.out} (sqlite, {len(rows)} rows)")
+
+
+def cmd_registry(args: argparse.Namespace) -> None:
+    # 生成 skills/registry.json 的 sha256
+    import hashlib, json as _json
+    skills = [
+        ("csv_clean", "skills/csv_clean.py"),
+        ("stats_aggregate", "skills/stats_aggregate.py"),
+        ("md_render", "skills/md_render.py"),
+    ]
+    out = {"skills": []}
+    for name, path in skills:
+        try:
+            with open(path, "rb") as f:
+                h = hashlib.sha256(f.read()).hexdigest()
+        except Exception:
+            h = ""
+        out["skills"].append({"name": name, "path": path, "sha256": h})
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as f:
+        f.write(_json.dumps(out, ensure_ascii=False, indent=2))
+    print(f"registry generated: {args.out}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="AgentOS minimal offline loop")
     sub = parser.add_subparsers(required=True)
@@ -305,10 +436,11 @@ def main():
     p_run.add_argument("--data", required=True, help="CSV data path")
     p_run.add_argument("--out", required=True, help="Output markdown path")
     p_run.add_argument("--emit-script", action="store_true", help="生成可重复运行的离线脚本到 episodes/<trace>_replay.py")
-    p_run.add_argument("--planner", choices=["llm", "rules"], default="llm", help="规划实现选择")
-    p_run.add_argument("--executor", choices=["llm", "skills"], default="llm", help="执行实现选择")
-    p_run.add_argument("--critic", choices=["llm", "rules"], default="llm", help="评审实现选择")
-    p_run.add_argument("--reviser", choices=["llm", "rules"], default="llm", help="修补实现选择")
+    p_run.add_argument("--planner", choices=["llm", "rules"], default=None, help="规划实现选择(未指定则读 config.json)")
+    p_run.add_argument("--executor", choices=["llm", "skills"], default=None, help="执行实现选择(未指定则读 config.json)")
+    p_run.add_argument("--critic", choices=["llm", "rules"], default=None, help="评审实现选择(未指定则读 config.json)")
+    p_run.add_argument("--reviser", choices=["llm", "rules"], default=None, help="修补实现选择(未指定则读 config.json)")
+    p_run.add_argument("--config", help="配置文件路径，默认 ./config.json")
     p_run.set_defaults(func=cmd_run)
 
     p_replay = sub.add_parser("replay", help="Replay saved result (by --trace or --last)")
@@ -316,7 +448,22 @@ def main():
     p_replay.add_argument("--last", action="store_true", help="使用最新的 trace 进行回放")
     p_replay.add_argument("--rerun", action="store_true", help="根据保存的 plan 使用本地 skills 重新生成报告")
     p_replay.add_argument("--list", action="store_true", help="列出最近的 trace 文件")
+    p_replay.add_argument("--config", help="配置文件路径，默认 ./config.json")
     p_replay.set_defaults(func=cmd_replay)
+
+    # 评分导出
+    p_score = sub.add_parser("scoreboard", help="导出得分视图")
+    p_score.add_argument("export", nargs='?', default="export")
+    p_score.add_argument("--fmt", choices=["csv","sqlite"], default="csv")
+    p_score.add_argument("--out", default="scores.csv")
+    p_score.add_argument("--episodes-dir", default=None, help="episodes 目录，默认读 config.json")
+    p_score.set_defaults(func=cmd_scoreboard)
+
+    # 技能注册表
+    p_reg = sub.add_parser("registry", help="技能注册表操作")
+    p_reg.add_argument("gen", nargs='?', default="gen")
+    p_reg.add_argument("--out", default="skills/registry.json")
+    p_reg.set_defaults(func=cmd_registry)
 
     args = parser.parse_args()
     args.func(args)

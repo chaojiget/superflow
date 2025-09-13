@@ -78,6 +78,58 @@ class OpenRouterClient:
         except Exception as e:
             raise RuntimeError(f"解析 OpenRouter 响应失败: {e}; 原始: {json.dumps(data)[:200]}")
 
+    def chat_with_meta(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.2,
+        max_tokens: Optional[int] = None,
+        retries: int = 0,
+    ) -> (str, Dict[str, Any]):
+        """同 chat，但返回 (content, meta)。包含 provider/model/usage/status/attempts/request_id。"""
+        import requests
+
+        url = f"{self.base_url.rstrip('/')}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": float(temperature),
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = int(max_tokens)
+        if self.seed is not None:
+            payload["seed"] = self.seed
+
+        attempts = 0
+        last_err: Optional[str] = None
+        while True:
+            attempts += 1
+            resp = requests.post(url, headers=headers, json=payload, timeout=120)
+            status = resp.status_code
+            try:
+                data = resp.json()
+            except Exception:
+                data = {}
+            if status < 400:
+                content = (data.get("choices", [{}])[0].get("message", {}) or {}).get("content", "")
+                meta = {
+                    "provider": "openrouter",
+                    "model": self.model,
+                    "usage": data.get("usage"),
+                    "status_code": status,
+                    "attempts": attempts,
+                    "request_id": resp.headers.get("x-request-id"),
+                    "temperature": temperature,
+                }
+                return content, meta
+            # retry on 429/5xx within limit
+            if attempts > max(0, retries) or status < 500 and status != 429:
+                raise RuntimeError(f"OpenRouter 调用失败: {status} {resp.text[:200]}")
+            last_err = f"{status}"
+
 
 def extract_json_block(text: str) -> Dict[str, Any]:
     """从文本中尽量提取 JSON 对象。

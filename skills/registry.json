@@ -1,0 +1,19 @@
+{
+  "skills": [
+    {
+      "name": "csv_clean",
+      "path": "skills/csv_clean.py",
+      "sha256": "054e80821734d1a39650dff81147b0614b865be8dd8a1b0df153db3d3f4f39d3"
+    },
+    {
+      "name": "stats_aggregate",
+      "path": "skills/stats_aggregate.py",
+      "sha256": "21719934fd891bb16eaae00646aedaeee405dc8a6320f97d9ec9e342cfb38911"
+    },
+    {
+      "name": "md_render",
+      "path": "skills/md_render.py",
+      "sha256": "4f59fd594d4a4e8158379f319d9577f3570b5909cc433a298353b4eca91951f2"
+    }
+  ]
+}
