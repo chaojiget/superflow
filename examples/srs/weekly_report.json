@@ -1,0 +1,22 @@
+{
+  "goal": "生成每周数据简报",
+  "budget_usd": 0,
+  "inputs": {
+    "csv_path": "examples/data/weekly.csv"
+  },
+  "constraints": [
+    "完成≤2min",
+    "成本≤¥1"
+  ],
+  "params": {
+    "top_n": 10,
+    "score_by": "views",
+    "title_field": "title"
+  },
+  "acceptance": [
+    {"id": "A1", "then": "包含 Summary 与 Top Items 段落"},
+    {"id": "A2", "then": "TopN 数量与 params.top_n 一致"},
+    {"id": "A3", "then": "无空标题"}
+  ]
+}
+

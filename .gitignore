@@ -1,0 +1,65 @@
+# ─────────────────────────────────────────────────────────────
+# Python project .gitignore (AgentOS v0.1 aligned)
+# ─────────────────────────────────────────────────────────────
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.dylib
+*.dll
+
+# Virtual environments / Python version
+.venv/
+venv/
+ENV/
+env/
+.python-version
+.direnv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.hypothesis/
+
+# Type checking / lint / tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+.cache/
+
+# Jupyter
+.ipynb_checkpoints/
+.jupyter/lab/workspaces/
+
+# OS / Editors
+.DS_Store
+.idea/
+.vscode/
+
+# Project artifacts & local data (from spec)
+.env
+.env.*
+episodes/
+reports/
+
+# Misc
+__pypackages__/
+*.tmp
+*.bak
+Thumbs.db

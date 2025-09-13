@@ -1,202 +1,188 @@
-# agent.md — Agent OS 架构蓝图与最佳开发规范
+# agent.md — AgentOS v0.1 一页蓝图与落地清单
 
-> 版本：v1.0（可作为仓库根目录的开发规范）
-> 目标：构建“以 Agent 为核心、可成长、自演化”的系统，模块可独立开发与部署，也可集成运行。
-> 约束：不自训基座模型，主要依赖第三方 LLM（Claude / OpenAI / 其他），数据先收集后利用。
-
----
-
-## 0. TL;DR（你需要知道的要点）
-- **架构**：多智能体编排（Plan→Act→Review→Log→Patch）+ 记忆层 + 工具/技能层 + 治理/评测层。
-- **执行环境**：**WASM 优先**（毫秒级、强隔离）承载“函数型技能”；**受限容器兜底**（gVisor/Firecracker）承载“脚本/数据/浏览器自动化”。
-- **数据契约**：统一的 Goal DSL、Task State、Skill Card、Tool Registry、Episode Log、Scoreboard。
-- **供应商无关**：LLM Provider 通过 Adapter 接口与 Router 路由，支持灰度与成本/时延/质量权衡。
-- **成长机制**：技能卡化 + 评测驱动 + 金丝雀发布 + 提示补丁（Prompt Patch）+ 范例检索（Exemplar）。
-- **工程化**：模块可独立部署（HTTP/gRPC/OpenAPI）；统一 CI/CD、观测、权限与审计；严控成本与风险。
+> 版本：v0.1（汇总现有资料 → 一页蓝图 + 落地清单）
+> 目标：面向真实需求，构建能「感知—思考—行动」并自迭代的 AgentOS（质量 > 成本 > 延迟，可配置）。
+> 原则：离线优先、预算有上限、度量驱动；不自训基座模型，适配多家 LLM。
 
 ---
 
-## 1. 范围与非目标
-**范围**：智能体编排、任务状态机、技能/工具体系、第三方 LLM 调用、评测与治理、数据与日志、部署与运维。
-**非目标**：训练/微调大模型权重；构建重前端可视化（此处仅提供 API 与 CLI）。
+## 0. TL;DR（要点速览）
+- 认知微内核：Perceiver → Planner → Executor → Critic → Learner，进程内总线 + Outbox 可回放。
+- 策略工厂：Registry / Generator / Evaluator / Selector / Rollout；Draft→Shadow→AB→Promote/Deprecate。
+- 数据契约：统一消息信封、Traces、Skills/Strategies、Merit Ledger（净效用）。
+- 工具与文档：MCP/API 工具统一注册与观测，DocSyncer 持续更新知识并驱动回放。
+- 低成本：每任务预算≤¥1（默认），越线触发 HiTL；度量护栏与自动降级/回滚。
 
 ---
 
-## 2. 总体架构
+## 1. 架构总览（Microkernel + Factory）
 
+### 1.1 认知微内核（Cognitive Microkernel）
+- 职责：调度、记忆接口、安全与预算、度量/回放。
+- 事件通道：内存热总线 + Outbox 持久冷通道（幂等/检查点）。
+- 五进程（用户态）：Perceiver / Planner / Executor / Critic / Learner（经黑板解耦）。
+- 消息信封（关键字段）：`msg_id, trace_id, type, payload(schema_ver), cost, budget_ctx, authz(caps), idempotency_key, labels`。
+
+### 1.2 策略工厂（Strategy Factory）
+- 组件：Registry（权威）/ Generator / Evaluator / Selector / Rollout。
+- 流水线：Draft → Shadow（只读影子）→ AB（金丝雀 5%）→ Promote / Deprecate。
+- Merit Ledger：质量/满意度/成本/延迟加权为净效用，驱动路由与晋升。
+
+### 1.3 系统形态与任务分类
+- 会话层产出需求文档（SRS + 验收）。
+- 执行层按 临时/急单 与 重复/技能化 分派；重复任务沉淀为 Skill（可版本化）。
+
+---
+
+## 2. 数据与存储（DB 摘要）
+- Outbox：append‑only 事件日志（回放来源）。索引：trace、type+ts。
+- Traces（Episodic）：obs/plan/step/action/result/review/error 轨迹。
+- Semantic Docs：`source/version/embedding(1536)/ttl`，对接 DocSyncer。
+- Skills / Strategies（Procedural）：`spec/elo/reliability/status(draft→promoted)`。
+- Strategy Metrics / Merit Ledger：窗口统计 + 净效用账本。
+
+---
+
+## 3. 工具与资料更新
+- 工具层：MCP/API tools 统一注册、鉴权、配额与观测；路由多 LLM 提供商。
+- DocSyncer：持续拉取 OpenAPI/Markdown/网页 → `semantic_docs`；Schema Diff 生成策略补丁 → 回放 → 小流量试。
+
+---
+
+## 4. 低成本原则与目录骨架（MVP）
+- 三大铁律：离线优先；每任务预算≤¥1（越线→HiTL，可降级/缓存）；度量驱动（Autonomy/Spec‑Match/Cost）。
+- 目录骨架（建议）：
 ```
-
-┌───────────────┐
-│   Client/UI   │  Chat/API/Webhook/CLI
-└───────┬───────┘
-│
-┌───────▼─────────────────────────────────────────────┐
-│             API Gateway / AuthN-Z / RateLimit       │
-└───────┬─────────────────────────────────────────────┘
-│
-┌───────▼─────────┐     ┌───────────────┐     ┌───────────────┐
-│ Orchestrator    │◄──► │ Memory Layer  │ ◄──►│ Scoreboard     │
-│ (Plan/Act/...)  │     │ (Vector+SQL)  │     │ (Eval+Metrics) │
-└───┬──────────┬──┘     └──────┬────────┘     └──────┬────────┘
-│          │               │                       │
-┌───▼───┐   ┌──▼───┐       ┌───▼───┐               ┌───▼───┐
-│Runner │   │Runner│       │Registry│               │Auditor│
-│ WASM  │   │ Ctnr │       │ Tools/ │               │ & Gov │
-└───┬───┘   └──┬───┘       │ Skills │               └───┬───┘
-│          │           └───┬────┘                   │
-│          │               │                        │
-┌───▼──────────▼───────────────▼────────────────────────▼───┐
-│           LLM Providers (Claude / OpenAI / …) & Tools      │
-└────────────────────────────────────────────────────────────┘
-
-````
-
-**关键原则**
-- 显式状态机：每个任务都有可回放轨迹与结构化状态。
-- 模块可插拔：所有内部通信以 HTTP/gRPC + JSON Schema/OpenAPI 定义。
-- 最小权限：Runner 与工具均以能力令牌（Capability Token）授予权限。
+/kernel
+  /bus        # 内存总线 + Outbox
+  /scheduler  # 优先级/预算/SLA-aware 调度
+  /memory     # episodic/semantic/procedural 统一接口
+  /guardian   # 能力令牌/Schema 校验/PII 检测
+  /telemetry  # Trace/Metric/Replay
+/plugins
+  /perceiver  /planner  /executor  /critic  /learner
+/registry     # StrategySpec / Tool Registry
+/tests        # 单元/集成/回放
+```
+- RUE v0.1：对话+画像→`TaskSpec(SRS)` + `AcceptanceTests` + 风险清单（Spec‑First）。
 
 ---
 
-## 3. 模块划分与接口（可独立/可集成）
-
-### 3.1 API Gateway
-- 职责：统一入口、认证鉴权（OIDC/JWT）、限流、审计埋点。
-- 接口：`POST /v1/tasks`, `GET /v1/tasks/{id}`, `POST /v1/feedback`
-- 产物：请求上下文（租户/预算/自治级别）注入到 Orchestrator。
-
-### 3.2 Orchestrator（编排器）
-- 职责：Goal 解析 → 规划（Plan）→ 执行（Act）→ 评审（Review）→ 记录（Log）→ 自修补（Patch）。
-- 接口：
-  - `POST /v1/plan`（输入 Goal DSL，输出计划树）
-  - `POST /v1/execute`（输入步骤与工具声明，输出产物与中间态）
-  - `POST /v1/review`（输出打分与改进建议）
-- 备注：支持同步/异步执行，内部事件通过消息总线（NATS/Redis Streams）。
-
-### 3.3 Memory Layer（记忆层）
-- 组件：
-  - **向量库**（pgvector/Qdrant）：范例检索、文档片段。
-  - **SQL（Postgres）**：任务状态、事件日志、指标、配置。
-- 接口：`/v1/memory/upsert`, `/v1/memory/search`, `/v1/episodes/*`
-
-### 3.4 Registry（工具/技能注册表）
-- 职责：注册/查询 Tool 与 SkillCard；版本与风控信息。
-- 接口：`GET /v1/skills`, `POST /v1/skills`, `GET /v1/tools`
-- 产物：**Skill 包（OCI Artifact 或压缩包）**：`skill.yaml + 二进制(wasm或入口) + tests/ + README`
-
-### 3.5 Runners（执行器）
-- **WASM Runner**：承载轻量函数技能（wasmtime/wasmer + WASI）。
-- **Container Runner**：承载脚本/数据/浏览器（Docker/Containerd + gVisor/Kata/Firecracker）。
-- 接口：`POST /v1/run/wasm`, `POST /v1/run/container`
-- 安全：CPU/Mem/IO/Net/时长配额；网络白名单；文件系统挂载白名单。
-
-### 3.6 LLM Providers & Router（供应商适配与路由）
-- 职责：统一 Completion/JSON 模式/工具调用；重试/幂等/可观测；多供应商路由。
-- 接口：`POST /v1/llm/complete`, `POST /v1/llm/chat`, `POST /v1/llm/score`
-- 路由策略：按**成本、时延、历史成功率、输入长度**选择提供商与模型。
-
-### 3.7 Scoreboard（评测与指标）
-- 职责：离线/在线评测、打分、A/B/多臂 bandit、金丝雀发布。
-- 接口：`POST /v1/eval/run`, `GET /v1/scores`, `POST /v1/ab/assign`
-
-### 3.8 Auditor & Governance（审计与治理）
-- 职责：记录每次决策、工具调用、权限申请；审批流（人类在环）。
-- 策略：自治级别 L0–L3、预算上限、敏感操作白/黑名单。
+## 5. 测试与发布（度量为先）
+- 单元：合约/确定性/安全。
+- 集成：每任务族≥50 条黄金样本 + 失败样本；预算/延迟护栏测试；回放可重现性。
+- 线上：金丝雀 5%，自动回滚阈值（质量跌幅/超 SLA/合规失败）。
+- 工具：Fake Tool Server、真实工具 Recorder（录制-回放）。
 
 ---
 
-## 4. 数据契约（Schemas）
+## 6. 里程碑（v0.1 → 90 天）
+1) 强干内核：进程内总线 + Outbox、三类记忆、Tool Registry。
+2) 策略工厂 v0：StrategySpec、回放、UCB 路由、金丝雀 5%。
+3) DocSyncer v0：接入 1–2 个目标 API，Schema Diff 触发回放。
+4) 一个任务族闭环：Web RAG（含引用）或 API→报告；含 HiTL 策略。
+5) 测试基线：合约单测、回放集、金丝雀护栏与回滚。
 
-### 4.1 Goal DSL（YAML）
+---
+
+## 7. 角色与治理
+- 组织（RACI）
+  - Human Area Owner（A）：目标/安全/成本与验收负责。
+  - System Ops Agent（R）：日常回放、金丝雀、路由调权、文档同步。
+  - Consulted（C）：相邻域专家/CI 与 Guardian。
+  - Informed（I）：其余成员与干系人。
+- 升级规则（必须升级到 A）：预算越线 HiTL；SLA p95 连续两轮超阈；工具 Schema 重大不兼容或合规风险；`delta_score > 0.5` 连续≥3；影响面≥20% 的版本切换。
+- 节奏产出：日报/周报与审批箱（预算/发布/合规例外）。
+
+---
+
+## 8. RUE SRS 模板（YAML）
 ```yaml
-goal_id: "OKR-Q4-01"
-objective: "每周生成竞品情报简报（≤10条）"
-constraints:
-  - "budget_usd <= 1"
-  - "no_external_email"
-deliverables:
-  - "weekly_brief.md"
-success_criteria:
-  - "factual_error_rate < 0.05"
-  - "dup_rate < 0.10"
-context_refs: ["kb://competitors/*"]
-autonomy_level: "L1"
-````
-
-### 4.2 Task State（JSON）
-
-```json
-{
-  "task_id": "weekly-brief-2025w36",
-  "status": "running",
-  "plan": [{"id":"p1","step":"search"}, {"id":"p2","step":"dedupe"}],
-  "artifacts": [],
-  "decisions": [],
-  "budget": {"usd_max": 1.0, "usd_spent": 0.21},
-  "metrics": {"latency_ms": 0, "retries": 0},
-  "audit": [],
-  "autonomy_level": "L1"
-}
+goal: "生成10条视频选题并按热度排序"
+constraints: ["成本≤¥1", "完成≤2min", "引用近1年数据"]
+acceptance:
+  - id: A1
+    given: "已有历史视频标题与表现数据"
+    when:  "运行 ideation.rank"
+    then:  "产出10条并包含热度分与来源链接"
+risks: ["数据源不全→回退本地语料", "热点歧义→人工确认"]
 ```
-
-### 4.3 Skill Card（YAML）
-
-```yaml
-name: "dedupe_headlines"
-version: "1.1.0"
-engine: "wasm"       # wasm | container
-entry: "dedupe_headlines.wasm"
-signature:
-  input: {"type":"array","items":{"type":"string"}}
-  output: {"type":"array","items":{"type":"string"}}
-permissions: ["fs:/tmp:rw"]
-resources: []
-tests:
-  - case: ["A","A","B"] -> ["A","B"]
-owner: "content-agent"
-risk_level: "low"
-```
-
-### 4.4 Tool Registry（JSON 片段）
-
-```json
-{
-  "name": "http_fetch",
-  "description": "HTTP GET with domain whitelist",
-  "input_schema": {"type":"object","properties":{"url":{"type":"string"}}},
-  "capabilities": ["net:read"],
-  "domain_whitelist": ["example.com","news.ycombinator.com"],
-  "risk_level": "medium",
-  "requires_approval": false
-}
-```
-
-### 4.5 Episode Log（事件轨迹）
-
-* `episode_id, goal, inputs, prompts, provider, tool_calls, outputs, scores, human_feedback, cost, latency, errors[]`
 
 ---
 
-## 5. 执行流程（状态机）
-
-1. **Sense**：载入 Goal + 上下文 + 相似范例（向量检索）。
-2. **Plan**：规划器生成计划树（含所需工具/技能/验收标准）。
-3. **Act**：按计划调用 Runner 与工具（结构化参数 + 约束）。
-4. **Review**：评审 Agent（LLM+规则）出分；若不达标→**一次自动修正**。
-5. **Deliver**：产物落盘对象存储；按自治级别决定是否请求人审。
-6. **Log**：完整 Episode 入库；关键片段写入向量库。
-7. **Patch**：错误聚类≥3 次 → 生成**提示补丁**或**技能升级提案**（金丝雀后放量）。
+## 9. DoD（Definition of Done）
+- 有 SRS 与至少 1 个验收用例。
+- 观测指标入库（可回放/可比较/可审计）。
+- 金丝雀/回滚策略生效。
+- 自动生成发布说明（作为内容素材）。
 
 ---
 
-## 6. 轻量执行环境规范
+## 10. 第一任务规划（T1）— 最小闭环：SRS→Plan→Run→Review→Patch→Log→Replay
 
-### 6.1 WASM Runner
+- 目标：根据需求（SRS）自动生成解决方案（Plan），执行并产出报告，记录运行日志，按一次修正策略迭代，形成可回放的最小自循环。
 
-* 运行时：wasmtime/wasmer（WASI）。
-* 要求：**纯函数倾向**、无网络（或受控 Host Function）。
-* 打包：`skill.yaml + *.wasm + tests/`。
-* 观测：记录启动时延、执行时长、内存峰值。
+- 实现选择：
+  - 默认：LLM 全流程（Planner/Executor/Critic/Reviser 统一由 LLM 驱动，经 OpenRouter 路由到 Qwen 模型），回放读取保存结果不再触网。
+  - 可选：规则/离线技能版（csv.clean→stats.aggregate→md.render），作为后备路径（后续按需开启）。
+
+- 交付物：
+  - CLI：`apps/console/min_loop.py`，命令：
+    - `run --srs examples/srs/weekly_report.json --data examples/data/weekly.csv --out reports/weekly_report.md`
+    - `replay --trace <trace_id>`（依据保存的 plan 与输入回放）
+  - 内核：`/kernel/bus`（Outbox JSON 事件日志），`/kernel/guardian`（预算/超时护栏）。
+  - LLM Provider：`packages/providers/openrouter_client.py`（OpenRouter/OpenAI 兼容接口）。
+  - 技能（可选后备）：`/skills/{csv_clean,stats_aggregate,md_render}.py`（纯函数、离线）。
+  - 样例：`examples/data/weekly.csv` 与 `examples/srs/weekly_report.json`。
+  - 产物：`reports/weekly_report.md` 与 `episodes/<trace_id>.json`（含计划、决策、指标、结果）。
+
+- 流程约束：
+  - Plan：LLM 基于 SRS 与数据片段生成计划 JSON（steps/params/acceptance/risks）。
+  - Run：LLM 直接生成 Markdown 报告；控制输入片段长度（默认仅传 CSV 前 ~80 行）。
+  - Review：LLM 输出 `{pass, score[0..1], reasons[]}`；阈值 `score>=0.8` 视为通过。
+  - Patch：若未通过，LLM 依据评审意见进行一次改写，再次评审。
+  - Log/Replay：完整 Episode JSON 落盘；回放默认读取保存结果，不再触网。
+
+- 验收标准：
+  - 质量：产物符合 SRS 验收（包含摘要、表格；TopN 数量匹配；无空值）。
+  - 性能：p95 延迟 < 2s（示例数据），成本=0。
+  - 可回放：同一 trace 重放得到相同产物与分数。
+  - 守护：预算与超时生效，越线有标记与降级路径。
+
+- 风险与边界：
+  - 暂不接入真实 LLM/网络；Planner 为规则/模板化；下阶段可无缝替换为 LLM Planner。
+  - 单租户配置；合规/密钥后续在 v0.2 完善。
+
+---
+
+## 11. 附：执行条款 v0.1（精简）
+- Spec‑First：每模块 README 含功能简介、I/O 契约、示例、边界与失败案例。
+- 小步快跑：每次 PR 带 Spec 与最小单测；合并前回放基线。
+- 观测先行：OpenTelemetry 结构；成本/延迟/失败码必填；日志红黑名单字段。
+
+---
+
+## 12. 开发环境（uv）
+- 依赖管理：使用 `uv` 管理 Python 环境与依赖。
+- Python 版本：>= 3.9（推荐 3.11+）。
+
+- 快速开始：
+  - 安装依赖（无全局项目文件时直接装所需包）
+    - `uv pip install requests python-dotenv`
+  - 环境变量（复制 `.env.example` → `.env` 并填入 Key）
+    - `OPENROUTER_API_KEY`（必填）
+    - `OPENROUTER_BASE_URL=https://openrouter.ai/api/v1`
+    - `OPENROUTER_MODEL=qwen/qwen3-next-80b-a3b-thinking`
+    - `OPENROUTER_SEED=42`（可选）
+  - 运行最小闭环：
+    - `uv run python apps/console/min_loop.py run --srs examples/srs/weekly_report.json --data examples/data/weekly.csv --out reports/weekly_report.md`
+  - 查看回放（不触网）：
+    - `uv run python apps/console/min_loop.py replay --trace <trace_id>`
+
+- 建议的忽略项（避免泄露与污染）
+  - `.env`, `episodes/`, `reports/`, `__pycache__/`, `*.pyc`
+
+
 
 ### 6.2 Container Runner
 
