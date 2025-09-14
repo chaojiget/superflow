@@ -26,6 +26,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from kernel.bus import OutboxBus  # type: ignore
+from kernel.outbox_sqlite import OutboxSQLite  # type: ignore
 from kernel.guardian import BudgetGuardian  # type: ignore
 from skills.csv_clean import csv_clean  # type: ignore
 from skills.stats_aggregate import stats_aggregate  # type: ignore
@@ -175,7 +176,12 @@ def cmd_run(args: argparse.Namespace) -> None:
         srs.setdefault("inputs", {})["csv_path"] = args.data
     out_path = args.out
 
-    bus = OutboxBus(episodes_dir="episodes")
+    # 选择 outbox 后端
+    outbox_backend = cfg.get("outbox", {}).get("backend", "json")
+    if outbox_backend == "sqlite":
+        bus = OutboxSQLite(cfg.get("outbox", {}).get("sqlite_path", "episodes.db"))
+    else:
+        bus = OutboxBus(episodes_dir="episodes")
     trace_id = bus.new_trace(goal=srs.get("goal", "weekly-report"))
     guardian = BudgetGuardian(budget_usd=float(srs.get("budget_usd", 0.0) or 0.0), timeout_ms=120000)
 
@@ -460,6 +466,7 @@ def cmd_registry(args: argparse.Namespace) -> None:
 
 def cmd_scoreboard_query(args: argparse.Namespace) -> None:
     import sqlite3
+    from datetime import datetime, timedelta
     db = args.db
     if not os.path.exists(db):
         print(f"sqlite 不存在: {db}", file=sys.stderr)
@@ -469,16 +476,30 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
     # 构建 where 条件
     where = []
     params = []
+    # 解析窗口参数
+    since = args.since
+    until = args.until
+    if args.window:
+        now = datetime.utcnow()
+        w = args.window.strip().lower()
+        if w.endswith('d'):
+            days = int(w[:-1] or '0')
+            since = (now - timedelta(days=days)).isoformat() + 'Z'
+            until = now.isoformat() + 'Z'
+        elif w.endswith('h'):
+            hours = int(w[:-1] or '0')
+            since = (now - timedelta(hours=hours)).isoformat() + 'Z'
+            until = now.isoformat() + 'Z'
     if args.model:
         where.append("model LIKE ?")
         params.append(f"%{args.model}%")
-    if args.since:
+    if since:
         where.append("ts >= ?")
-        params.append(args.since)
-    if args.until:
+        params.append(since)
+    if until:
         # 简单做前缀比较：直到这天 23:59:59Z
         where.append("ts <= ?")
-        params.append(args.until + "T23:59:59Z")
+        params.append(until)
     wsql = (" WHERE " + " AND ".join(where)) if where else ""
 
     # 汇总统计
@@ -490,12 +511,12 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
     avg_latency = int(row[3]) if row[3] is not None else None
     print(f"总数={total}  平均分={avg_score}  通过率={pass_rate}  平均延迟ms={avg_latency}")
 
-    # 模型维度统计（若未指定模型，给出 top 5 模型）
-    if not args.model:
-        qmodel = f"SELECT model, COUNT(1) c, AVG(score) s, AVG(pass) p FROM scores{wsql} GROUP BY model ORDER BY s DESC LIMIT 5"
-        rows = cur.execute(qmodel, params).fetchall()
+    # 分组统计
+    if args.group_by in ("model", "provider"):
+        qgrp = f"SELECT {args.group_by}, COUNT(1) c, AVG(score) s, AVG(pass) p FROM scores{wsql} GROUP BY {args.group_by} ORDER BY s DESC"
+        rows = cur.execute(qgrp, params).fetchall()
         for m, c, s, p in rows:
-            print(f"model={m}  count={c}  avg_score={round(s,4)}  pass_rate={round(p,4)}")
+            print(f"{args.group_by}={m}  count={c}  avg_score={round(s or 0,4)}  pass_rate={round(p or 0,4)}")
 
     # TopN
     qtop = f"SELECT trace_id, score, pass, model, provider, ts FROM scores{wsql} ORDER BY score DESC LIMIT ?"
@@ -504,6 +525,22 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
     for tr, sc, pa, m, pr, ts in rows:
         print(f"- {tr} score={sc} pass={pa} model={m} provider={pr} ts={ts}")
     conn.close()
+
+    # HTML 报表（可选）
+    if args.html_out:
+        html = [
+            "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head><body>",
+            f"<h3>Scoreboard {since or ''} ~ {until or ''}</h3>",
+            f"<p>Total={total} AvgScore={avg_score} PassRate={pass_rate} AvgLatency={avg_latency}ms</p>",
+            "<table><thead><tr><th>trace_id</th><th>score</th><th>pass</th><th>model</th><th>provider</th><th>ts</th></tr></thead><tbody>",
+        ]
+        for tr, sc, pa, m, pr, ts in rows:
+            html.append(f"<tr><td>{tr}</td><td>{sc}</td><td>{pa}</td><td>{m}</td><td>{pr}</td><td>{ts}</td></tr>")
+        html.append("</tbody></table>")
+        html.append("</body></html>")
+        with open(args.html_out, "w", encoding="utf-8") as f:
+            f.write("\n".join(html))
+        print(f"html exported: {args.html_out}")
 
 
 def main():
@@ -551,6 +588,9 @@ def main():
     p_scoreq.add_argument("--since", default=None, help="起始时间(ISO8601, 仅前缀如 2025-09-13)")
     p_scoreq.add_argument("--until", default=None, help="结束时间(ISO8601, 含当日)")
     p_scoreq.add_argument("--topN", type=int, default=10, help="输出前N条最高得分")
+    p_scoreq.add_argument("--group-by", choices=["model", "provider", "none"], default="none", help="按维度分组统计")
+    p_scoreq.add_argument("--window", default=None, help="窗口期，如 7d/24h，若提供将覆盖 --since/--until")
+    p_scoreq.add_argument("--html-out", default=None, help="导出 HTML 报表路径")
     p_scoreq.set_defaults(func=cmd_scoreboard_query)
 
     args = parser.parse_args()

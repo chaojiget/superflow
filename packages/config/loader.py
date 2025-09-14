@@ -30,6 +30,7 @@ DEFAULTS: Dict[str, Any] = {
     "risk": {"check_skills": True, "codegen_mode": "disabled", "capability_token_required": True},
     "scoreboard": {"episodes_dir": "episodes"},
     "prompts": {"dir": "packages/prompts"},
+    "outbox": {"backend": "json", "sqlite_path": "episodes.db"}
 }
 
 

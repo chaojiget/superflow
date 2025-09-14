@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MessageEnvelopeV0",
+  "type": "object",
+  "required": ["msg_id", "trace_id", "type", "payload", "ts"],
+  "properties": {
+    "msg_id": {"type": "string"},
+    "trace_id": {"type": "string"},
+    "type": {"type": "string"},
+    "payload": {"type": "object"},
+    "schema_ver": {"type": "string", "default": "v0"},
+    "ts": {"type": "string", "format": "date-time"},
+    "budget_ctx": {"type": "object"},
+    "authz": {
+      "type": "object",
+      "properties": {
+        "caps": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "idempotency_key": {"type": "string"},
+    "labels": {"type": "object"},
+    "cost": {"type": "number", "minimum": 0}
+  }
+}
+
