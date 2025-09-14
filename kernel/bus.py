@@ -52,7 +52,16 @@ class OutboxBus:
             return v
         return _mask(payload)
 
-    def append(self, event_type: str, payload: Dict[str, Any]) -> None:
+    def append(
+        self,
+        event_type: str,
+        payload: Dict[str, Any],
+        *,
+        budget_ctx: Dict[str, Any] | None = None,
+        authz: Dict[str, Any] | None = None,
+        labels: Dict[str, Any] | None = None,
+        cost: float | None = None,
+    ) -> None:
         assert self._trace_id, "call new_trace first"
         ev = {
             "msg_id": uuid.uuid4().hex,
@@ -62,6 +71,14 @@ class OutboxBus:
             "type": event_type,
             "payload": self._redact(payload),
         }
+        if budget_ctx is not None:
+            ev["budget_ctx"] = budget_ctx
+        if authz is not None:
+            ev["authz"] = authz
+        if labels is not None:
+            ev["labels"] = labels
+        if cost is not None:
+            ev["cost"] = float(cost)
         self._validate_envelope(ev)
         self._events.append(ev)
 
@@ -111,7 +128,7 @@ class OutboxBus:
         return None
 
     def _validate_envelope(self, ev: Dict[str, Any]) -> None:
-        # 轻量校验：必填字段存在且类型正确
+        # 轻量校验：必填字段存在且类型正确；可选字段类型校验
         required = {
             "msg_id": str,
             "trace_id": str,
@@ -124,3 +141,18 @@ class OutboxBus:
                 raise ValueError(f"Envelope 缺少字段: {k}")
             if not isinstance(ev[k], t):
                 raise TypeError(f"Envelope 字段类型错误: {k}")
+        optional = {
+            "budget_ctx": dict,
+            "authz": dict,
+            "labels": dict,
+            "cost": (int, float),
+        }
+        for k, t in optional.items():
+            if k in ev and not isinstance(ev[k], t):
+                raise TypeError(f"Envelope 可选字段类型错误: {k}")
+        # authz.caps 若存在应为字符串数组
+        if isinstance(ev.get("authz"), dict):
+            caps = ev["authz"].get("caps")
+            if caps is not None:
+                if not isinstance(caps, list) or not all(isinstance(x, str) for x in caps):
+                    raise TypeError("Envelope 字段 authz.caps 应为字符串数组")

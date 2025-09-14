@@ -528,12 +528,28 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
 
     # HTML 报表（可选）
     if args.html_out:
+        # 准备分组摘要（模型与提供商）
+        import sqlite3 as _sqlite3
+        conn = _sqlite3.connect(args.db)
+        _rows_model = conn.execute(f"SELECT model, COUNT(1), AVG(score), AVG(pass) FROM scores{wsql} GROUP BY model ORDER BY AVG(score) DESC", params).fetchall()
+        _rows_provider = conn.execute(f"SELECT provider, COUNT(1), AVG(score), AVG(pass) FROM scores{wsql} GROUP BY provider ORDER BY AVG(score) DESC", params).fetchall()
+        conn.close()
+
+        def _tbl(title: str, headers: list[str], data: list[tuple]):
+            H = "".join(f"<th>{h}</th>" for h in headers)
+            R = []
+            for row in data:
+                R.append("".join(f"<td>{(round(x,4) if isinstance(x,float) else x)}</td>" for x in row))
+            return [f"<h4>{title}</h4>", f"<table><thead><tr>{H}</tr></thead><tbody>"] + [f"<tr>{r}</tr>" for r in R] + ["</tbody></table>"]
+
         html = [
             "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head><body>",
             f"<h3>Scoreboard {since or ''} ~ {until or ''}</h3>",
             f"<p>Total={total} AvgScore={avg_score} PassRate={pass_rate} AvgLatency={avg_latency}ms</p>",
-            "<table><thead><tr><th>trace_id</th><th>score</th><th>pass</th><th>model</th><th>provider</th><th>ts</th></tr></thead><tbody>",
         ]
+        html += _tbl("按模型汇总", ["model", "count", "avg_score", "pass_rate"], _rows_model)
+        html += _tbl("按提供商汇总", ["provider", "count", "avg_score", "pass_rate"], _rows_provider)
+        html += ["<h4>TopN</h4>", "<table><thead><tr><th>trace_id</th><th>score</th><th>pass</th><th>model</th><th>provider</th><th>ts</th></tr></thead><tbody>"]
         for tr, sc, pa, m, pr, ts in rows:
             html.append(f"<tr><td>{tr}</td><td>{sc}</td><td>{pa}</td><td>{m}</td><td>{pr}</td><td>{ts}</td></tr>")
         html.append("</tbody></table>")
@@ -618,6 +634,53 @@ def cmd_episodes(args: argparse.Namespace) -> None:
                     print(_json.dumps(ev.get("payload", {}), ensure_ascii=False))
 
 
+def cmd_replay_sqlite(args: argparse.Namespace) -> None:
+    import sqlite3, json as _json
+    db = args.db
+    if not os.path.exists(db):
+        print(f"sqlite 不存在: {db}", file=sys.stderr)
+        sys.exit(1)
+    conn = sqlite3.connect(db)
+    cand = conn.execute("SELECT trace_id FROM episodes WHERE trace_id LIKE ? ORDER BY created_ts DESC", (args.trace + '%',)).fetchall()
+    if not cand:
+        print(f"未找到 trace: {args.trace}", file=sys.stderr)
+        sys.exit(1)
+    if len(cand) > 1:
+        print("匹配到多条，请更精确指定前缀：")
+        for (tr,) in cand[:10]:
+            print(tr)
+        sys.exit(2)
+    trace_id = cand[0][0]
+    row = conn.execute("SELECT sense_json, plan_json, artifacts_json FROM episodes WHERE trace_id=?", (trace_id,)).fetchone()
+    if not row:
+        print("未找到 episode 记录", file=sys.stderr)
+        sys.exit(1)
+    sense = _json.loads(row[0]) if row[0] else {}
+    plan = _json.loads(row[1]) if row[1] else {}
+    artifacts = _json.loads(row[2]) if row[2] else {}
+    if not args.rerun:
+        # 输出保存结果（复用 review.scored 最后一次）
+        ev = conn.execute("SELECT payload_json FROM events WHERE trace_id=? AND type=? ORDER BY id DESC LIMIT 1", (trace_id, "review.scored")).fetchone()
+        if not ev:
+            print(f"{trace_id} 无 review.scored 事件", file=sys.stderr)
+            sys.exit(1)
+        rv = _json.loads(ev[0])
+        print(_json.dumps({"trace_id": trace_id, **rv}, ensure_ascii=False))
+        return
+    # 复跑（本地 skills）
+    srs = sense or {}
+    if not srs or "inputs" not in srs:
+        print("episode 无 SRS/inputs，无法复跑", file=sys.stderr)
+        sys.exit(1)
+    rows = read_csv_rows(srs["inputs"]["csv_path"])  # type: ignore
+    md_text, _ctx = execute_local_plan(plan, rows)
+    out_path = args.out or (artifacts.get("output_path") if isinstance(artifacts, dict) else None) or "reports/replay_sqlite.md"
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(md_text)
+    print(_json.dumps({"trace_id": trace_id, "status": "rerun_ok", "out": out_path}, ensure_ascii=False))
+    conn.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description="AgentOS minimal offline loop")
     sub = parser.add_subparsers(required=True)
@@ -675,6 +738,14 @@ def main():
     p_eps.add_argument("--config", help="配置文件路径，默认 ./config.json")
     p_eps.add_argument("--full", action="store_true", help="打印完整 payload JSON")
     p_eps.set_defaults(func=cmd_episodes)
+
+    # 直接从 SQLite 回放/复跑
+    p_rsql = sub.add_parser("replay-sqlite", help="从 SQLite Outbox 回放/复跑")
+    p_rsql.add_argument("--db", default="episodes.db")
+    p_rsql.add_argument("--trace", required=True, help="trace id 前缀")
+    p_rsql.add_argument("--rerun", action="store_true", help="使用本地 skills 复跑并覆盖原输出")
+    p_rsql.add_argument("--out", default=None, help="复跑输出路径(默认使用原 artifacts.output_path)")
+    p_rsql.set_defaults(func=cmd_replay_sqlite)
 
     args = parser.parse_args()
     args.func(args)
