@@ -31,7 +31,7 @@ from kernel.guardian import BudgetGuardian  # type: ignore
 from skills.csv_clean import csv_clean  # type: ignore
 from skills.stats_aggregate import stats_aggregate  # type: ignore
 from skills.md_render import md_render  # type: ignore
-from packages.providers.openrouter_client import OpenRouterClient  # type: ignore
+from packages.providers.router import LLMRouter  # type: ignore
 from packages.agents.interfaces import Planner, Executor, Critic, Reviser  # type: ignore
 from packages.agents.registry import get as get_plugin  # type: ignore
 import packages.agents.llm_agents  # noqa: F401  # 引入以触发注册
@@ -65,11 +65,8 @@ def sample_csv_text(csv_path: str, max_rows: int = 80) -> str:
 def build_plugins(planner: str, executor: str, critic: str, reviser: str, need_client: bool, cfg: Dict[str, Any]) -> Tuple[Planner, Executor, Critic, Reviser, dict]:
     client = None
     if need_client:
-        llm_cfg = cfg.get("llm", {})
-        client = OpenRouterClient(
-            base_url=llm_cfg.get("base_url"),
-            model=llm_cfg.get("model"),
-        )
+        # 统一通过 Router 选择 provider（openrouter/openai）
+        client = LLMRouter(cfg)
     ctx = {"client": client}
     PlannerCls = get_plugin("planner", planner)
     ExecutorCls = get_plugin("executor", executor)
@@ -170,6 +167,9 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     # 加载配置
     cfg = load_config(getattr(args, "config", None))
+    # 覆盖 provider（若传入）
+    if getattr(args, "provider", None) is not None:
+        cfg.setdefault("llm", {})["provider"] = args.provider
 
     srs = load_srs(args.srs)
     if args.data:
@@ -187,7 +187,7 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     # 记录感知
     bus.append("sense.srs_loaded", {"srs": srs})
-    max_rows = int(cfg.get("llm", {}).get("max_rows", 80))
+    max_rows = int(args.max_rows if args.max_rows is not None else cfg.get("llm", {}).get("max_rows", 80))
     csv_excerpt = sample_csv_text(srs["inputs"]["csv_path"], max_rows=max_rows)  # type: ignore
     rows = read_csv_rows(srs["inputs"]["csv_path"])  # type: ignore
 
@@ -204,8 +204,8 @@ def cmd_run(args: argparse.Namespace) -> None:
     print(f"[PLAN] 使用 {planner.name()} 生成计划…")
     ctx_plan = dict(ctx)
     ctx_plan.update({
-        "temperature": cfg.get("llm", {}).get("temperature", {}).get("planner", 0.2),
-        "retries": cfg.get("llm", {}).get("retries", 0),
+        "temperature": (args.temp_planner if args.temp_planner is not None else cfg.get("llm", {}).get("temperature", {}).get("planner", 0.2)),
+        "retries": (args.retries if args.retries is not None else cfg.get("llm", {}).get("retries", 0)),
         "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
     })
     plan = planner.plan(srs, ctx_plan)
@@ -221,8 +221,8 @@ def cmd_run(args: argparse.Namespace) -> None:
         verify_skills(strict=True)
     ctx_exec = dict(ctx)
     ctx_exec.update({
-        "temperature": cfg.get("llm", {}).get("temperature", {}).get("executor", 0.6),
-        "retries": cfg.get("llm", {}).get("retries", 0),
+        "temperature": (args.temp_executor if args.temp_executor is not None else cfg.get("llm", {}).get("temperature", {}).get("executor", 0.6)),
+        "retries": (args.retries if args.retries is not None else cfg.get("llm", {}).get("retries", 0)),
         "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
     })
     md_text, exec_ctx = executor.execute(srs, plan, ctx_exec)
@@ -231,8 +231,8 @@ def cmd_run(args: argparse.Namespace) -> None:
     guardian.check()
     print(f"[REVIEW] 使用 {critic.name()} 打分…")
     ctx_review = {
-        "temperature": cfg.get("llm", {}).get("temperature", {}).get("critic", 0.0),
-        "retries": cfg.get("llm", {}).get("retries", 0),
+        "temperature": (args.temp_critic if args.temp_critic is not None else cfg.get("llm", {}).get("temperature", {}).get("critic", 0.0)),
+        "retries": (args.retries if args.retries is not None else cfg.get("llm", {}).get("retries", 0)),
         "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
     }
     rv = critic.review(srs, md_text, ctx_review)
@@ -246,8 +246,8 @@ def cmd_run(args: argparse.Namespace) -> None:
     if not bool(rv.get("pass")):
         print(f"[PATCH] 使用 {reviser.name()} 修订报告…")
         ctx_patch = {
-            "temperature": cfg.get("llm", {}).get("temperature", {}).get("reviser", 0.4),
-            "retries": cfg.get("llm", {}).get("retries", 0),
+            "temperature": (args.temp_reviser if args.temp_reviser is not None else cfg.get("llm", {}).get("temperature", {}).get("reviser", 0.4)),
+            "retries": (args.retries if args.retries is not None else cfg.get("llm", {}).get("retries", 0)),
             "prompts_dir": cfg.get("prompts", {}).get("dir", "packages/prompts"),
         }
         revised = reviser.revise(srs, md_text, rv, ctx_patch)
@@ -738,6 +738,14 @@ def main():
     p_run.add_argument("--executor", choices=["llm", "skills"], default=None, help="执行实现选择(未指定则读 config.json)")
     p_run.add_argument("--critic", choices=["llm", "rules"], default=None, help="评审实现选择(未指定则读 config.json)")
     p_run.add_argument("--reviser", choices=["llm", "rules"], default=None, help="修补实现选择(未指定则读 config.json)")
+    p_run.add_argument("--provider", choices=["openrouter", "openai"], default=None, help="LLM provider 覆盖配置(openrouter/openai)")
+    # 运行参数化（覆盖 config.json）
+    p_run.add_argument("--temp-planner", type=float, default=None, help="Planner 温度，覆盖配置")
+    p_run.add_argument("--temp-executor", type=float, default=None, help="Executor 温度，覆盖配置")
+    p_run.add_argument("--temp-critic", type=float, default=None, help="Critic 温度，覆盖配置")
+    p_run.add_argument("--temp-reviser", type=float, default=None, help="Reviser 温度，覆盖配置")
+    p_run.add_argument("--retries", type=int, default=None, help="LLM 重试次数，覆盖配置")
+    p_run.add_argument("--max-rows", type=int, default=None, help="CSV 片段最大行数，覆盖配置")
     p_run.add_argument("--config", help="配置文件路径，默认 ./config.json")
     p_run.set_defaults(func=cmd_run)
 

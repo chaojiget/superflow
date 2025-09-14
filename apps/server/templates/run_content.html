@@ -1,7 +1,5 @@
-{% extends 'base.html' %}
-{% block content %}
-{% include 'run_content.html' %}
-{% endblock %}
+<h2>运行最小闭环</h2>
+<form id="runForm" method="post" action="/api/run">
   <div><label>SRS 路径: <input name="srs_path" value="examples/srs/weekly_report.json" style="width:420px"></label></div>
   <div><label>数据 CSV: <input name="data_path" value="examples/data/weekly.csv" style="width:420px"></label></div>
   <div><label>输出路径: <input name="out_path" value="reports/weekly_report.md" style="width:420px"></label></div>
@@ -10,6 +8,15 @@
     <label>Executor: <select name="executor"><option>llm</option><option>skills</option></select></label>
     <label>Critic: <select name="critic"><option>llm</option><option>rules</option></select></label>
     <label>Reviser: <select name="reviser"><option>llm</option><option>rules</option></select></label>
+  </div>
+  <div style="margin-top:8px">
+    <label>Provider: 
+      <select name="provider">
+        <option value="openrouter" {% if cur_provider=='openrouter' %}selected{% endif %}>openrouter</option>
+        <option value="openai" {% if cur_provider=='openai' %}selected{% endif %}>openai</option>
+      </select>
+    </label>
+    <span style="color:#666">当前模型: {{cur_model}}</span>
   </div>
   <div style="margin-top:8px">
     <label>温度(Planner): <input name="temp_planner" type="number" step="0.1" min="0" max="2" placeholder="默认配置"></label>
@@ -51,5 +58,3 @@ form.addEventListener('submit', async (e) => {
   if(data.job_id){ poll(data.job_id); }
 });
 </script>
-<p>注：通过后端调用 CLI 执行；温度/重试/max_rows 留空则使用 config.json 默认。</p>
-{% endblock %}

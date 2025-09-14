@@ -1,0 +1,24 @@
+<h2>Episodes</h2>
+<table>
+  <thead>
+    <tr><th>trace_id</th><th>status</th><th>created</th><th>goal</th><th>provider</th><th>model</th><th>attempts</th><th>cost</th><th>操作</th></tr>
+  </thead>
+  <tbody>
+    {% for it in items %}
+    <tr>
+      <td><a href="/episodes/{{it.trace_id}}">{{it.trace_id}}</a></td>
+      <td>{{it.status}}</td>
+      <td>{{it.created_ts if it.created_ts else '-'}}</td>
+      <td>{{it.goal if it.goal else '-'}}</td>
+      <td>{{it.provider if it.provider else '-'}}</td>
+      <td>{{it.model if it.model else '-'}}</td>
+      <td>{{it.attempts if it.attempts else '-'}}</td>
+      <td>{{it.cost if it.cost is not none else '-'}}</td>
+      <td>
+        <button class="btn-replay" data-trace="{{it.trace_id}}" title="回放(仅评分)">回放</button>
+        <button class="btn-rerun" data-trace="{{it.trace_id}}" title="复跑(本地技能)">复跑</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+ </table>

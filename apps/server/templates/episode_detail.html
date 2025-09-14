@@ -1,15 +1,27 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Episode: {{trace_id}}</h2>
+{% if header %}
+<div style="border:1px solid #ddd; padding:8px; margin:8px 0; background:#fafafa">
+  <b>Provider:</b> {{header.provider if header.provider else '-'}}
+  &nbsp; <b>Model:</b> {{header.model if header.model else '-'}}
+  &nbsp; <b>Attempts:</b> {{header.attempts if header.attempts else '-'}}
+  &nbsp; <b>Cost:</b> {{header.cost if header.cost is not none else '-'}}
+  {% if header.usage %}
+  <div style="margin-top:4px"><b>Usage:</b> {{header.usage}}</div>
+  {% endif %}
+</div>
+{% endif %}
 {% if review %}
 <div class="kpi">score={{review.score}} pass={{review.pass}} reasons={{review.reasons}}</div>
 {% endif %}
+<div id="toast" style="color:#0a7; margin:6px 0"></div>
 <div style="margin:8px 0;">
-  <form method="post" action="/api/replay" style="display:inline-block;margin-right:8px">
+  <form id="replayForm" method="post" action="/api/replay" style="display:inline-block;margin-right:8px">
     <input type="hidden" name="trace_id" value="{{trace_id}}">
     <button type="submit">回放(仅评分)</button>
   </form>
-  <form method="post" action="/api/rerun" style="display:inline-block">
+  <form id="rerunForm" method="post" action="/api/rerun" style="display:inline-block">
     <input type="hidden" name="trace_id" value="{{trace_id}}">
     <label>输出路径: <input name="out_path" value="reports/replay_sqlite.md"></label>
     <button type="submit">复跑(本地技能)</button>
@@ -18,18 +30,37 @@
 
 <h3>时间线</h3>
 <table>
-  <thead><tr><th>时间</th><th>类型</th><th>要点</th></tr></thead>
+  <thead><tr><th>时间</th><th>类型</th><th>实现</th><th>得分/通过</th><th>原因</th></tr></thead>
   <tbody>
   {% for ev in events %}
     <tr>
       <td>{{ev.ts}}</td>
       <td>{{ev.type}}</td>
-      <td>
-        {% if ev.type == 'plan.generated' %}impl={{ev.payload.impl}}{% endif %}
-        {% if ev.type == 'review.scored' %}score={{ev.payload.score}} pass={{ev.payload.pass}}{% endif %}
-      </td>
+      <td>{% if ev.payload.impl %}{{ev.payload.impl}}{% else %}-{% endif %}</td>
+      <td>{% if ev.type == 'review.scored' %}{{ev.payload.score}} / {{ev.payload.pass}}{% else %}-{% endif %}</td>
+      <td>{% if ev.type == 'review.scored' %}{{ev.payload.reasons}}{% else %}-{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>
 </table>
+<script>
+  const toast = document.getElementById('toast');
+  function show(msg, ok=true){ toast.style.color = ok ? '#0a7' : '#a00'; toast.textContent = msg; setTimeout(()=>toast.textContent='', 4000); }
+  document.getElementById('replayForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const r = await fetch(e.target.action, {method:'POST', body:fd});
+    const data = await r.json();
+    if(data.ok){ show('回放：score='+(data.result.score)+', pass='+(data.result.pass)); }
+    else{ show('回放失败', false); }
+  });
+  document.getElementById('rerunForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const r = await fetch(e.target.action, {method:'POST', body:fd});
+    const data = await r.json();
+    if(data.ok){ show('复跑完成：输出 '+(data.result.out||'')); }
+    else{ show('复跑失败', false); }
+  });
+</script>
 {% endblock %}

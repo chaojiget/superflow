@@ -14,7 +14,7 @@ import os
 import time
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class OutboxBus:
@@ -175,3 +175,36 @@ class OutboxBus:
             if caps is not None:
                 if not isinstance(caps, list) or not all(isinstance(x, str) for x in caps):
                     raise TypeError("Envelope 字段 authz.caps 应为字符串数组")
+        # 尝试执行 JSON Schema 严格校验（若依赖可用）
+        self._validate_with_jsonschema(ev)
+
+    _SCHEMA_CACHE: Optional[Dict[str, Any]] = None
+
+    def _load_envelope_schema(self) -> Optional[Dict[str, Any]]:
+        if OutboxBus._SCHEMA_CACHE is not None:
+            return OutboxBus._SCHEMA_CACHE
+        try:
+            base = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            schema_path = os.path.join(base, "packages", "schemas", "message_envelope.schema.json")
+            if not os.path.exists(schema_path):
+                # 兼容运行路径差异：从项目根相对查找
+                alt = os.path.join(base, "message_envelope.schema.json")
+                schema_path = alt if os.path.exists(alt) else schema_path
+            with open(schema_path, "r", encoding="utf-8") as f:
+                OutboxBus._SCHEMA_CACHE = json.load(f)
+            return OutboxBus._SCHEMA_CACHE
+        except Exception:
+            OutboxBus._SCHEMA_CACHE = None
+            return None
+
+    def _validate_with_jsonschema(self, ev: Dict[str, Any]) -> None:
+        # 仅当 jsonschema 可用且 schema 能加载时才校验
+        try:
+            import jsonschema  # type: ignore
+        except Exception:
+            return
+        schema = self._load_envelope_schema()
+        if not schema:
+            return
+        # 若校验失败，抛出 jsonschema.ValidationError，交由上层感知
+        jsonschema.validate(ev, schema)  # type: ignore

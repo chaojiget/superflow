@@ -1,0 +1,84 @@
+<h2>Scores</h2>
+<form id="scoreFilter" method="get" action="/embed/scores" style="margin-bottom:8px">
+  <label>模型:
+    <select name="model">
+      <option value="">(全部)</option>
+      {% for m in opts_model %}
+      <option value="{{m}}" {% if cur_model==m %}selected{% endif %}>{{m}}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>提供商:
+    <select name="provider">
+      <option value="">(全部)</option>
+      {% for p in opts_provider %}
+      <option value="{{p}}" {% if cur_provider==p %}selected{% endif %}>{{p}}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>窗口: <input name="window" placeholder="7d/24h"></label>
+  <button type="submit">筛选</button>
+  <a id="dlGroupCsv" href="#">下载分组CSV</a>
+  <a id="dlHtml" href="#">下载HTML报表</a>
+  <a id="dlDetailCsv" href="#">下载明细CSV</a>
+</form>
+<div class="kpi">Total={{total}} AvgScore={{avg_score}} PassRate={{pass_rate}} AvgLatency={{avg_latency}}ms P50={{p50}}ms P95={{p95}}ms</div>
+{% if rows_model %}
+<h3>按模型汇总</h3>
+<table>
+  <thead><tr><th>model</th><th>count</th><th>avg_score</th><th>pass_rate</th></tr></thead>
+  <tbody>
+  {% for m,c,s,p in rows_model %}
+  <tr><td>{{m}}</td><td>{{c}}</td><td>{{"%.4f"|format(s) if s is not none else '-'}}</td><td>{{"%.4f"|format(p) if p is not none else '-'}}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% if rows_provider %}
+<h3>按提供商汇总</h3>
+<table>
+  <thead><tr><th>provider</th><th>count</th><th>avg_score</th><th>pass_rate</th></tr></thead>
+  <tbody>
+  {% for m,c,s,p in rows_provider %}
+  <tr><td>{{m}}</td><td>{{c}}</td><td>{{"%.4f"|format(s) if s is not none else '-'}}</td><td>{{"%.4f"|format(p) if p is not none else '-'}}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+<table>
+  <thead>
+    <tr><th>trace_id</th><th>score</th><th>pass</th><th>model</th><th>provider</th><th>ts</th></tr>
+  </thead>
+  <tbody>
+    {% for tr, sc, pa, m, pr, ts in rows %}
+    <tr>
+      <td>{{tr}}</td>
+      <td>{{sc}}</td>
+      <td>{{pa}}</td>
+      <td>{{m}}</td>
+      <td>{{pr}}</td>
+      <td>{{ts}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+ </table>
+<script>
+  const form = document.getElementById('scoreFilter');
+  const params = new URLSearchParams(location.search);
+  if(params.get('model')) form.model.value = params.get('model');
+  if(params.get('provider')) form.provider.value = params.get('provider');
+  if(params.get('window')) form.window.value = params.get('window');
+  const q = () => new URLSearchParams(new FormData(form)).toString();
+  document.getElementById('dlGroupCsv').addEventListener('click', (e)=>{
+    e.preventDefault();
+    location.href = '/api/scores/group.csv?' + q();
+  });
+  document.getElementById('dlHtml').addEventListener('click', (e)=>{
+    e.preventDefault();
+    location.href = '/api/scores/report.html?' + q();
+  });
+  document.getElementById('dlDetailCsv').addEventListener('click', (e)=>{
+    e.preventDefault();
+    location.href = '/api/scores/detail.csv?' + q();
+  });
+</script>

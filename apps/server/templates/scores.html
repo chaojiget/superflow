@@ -1,22 +1,4 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Scores</h2>
-<div class="kpi">Total={{total}} AvgScore={{avg_score}} PassRate={{pass_rate}} AvgLatency={{avg_latency}}ms P50={{p50}}ms P95={{p95}}ms</div>
-<table>
-  <thead>
-    <tr><th>trace_id</th><th>score</th><th>pass</th><th>model</th><th>provider</th><th>ts</th></tr>
-  </thead>
-  <tbody>
-    {% for tr, sc, pa, m, pr, ts in rows %}
-    <tr>
-      <td>{{tr}}</td>
-      <td>{{sc}}</td>
-      <td>{{pa}}</td>
-      <td>{{m}}</td>
-      <td>{{pr}}</td>
-      <td>{{ts}}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
- </table>
+{% include 'scores_content.html' %}
 {% endblock %}
