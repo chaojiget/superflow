@@ -543,6 +543,81 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
         print(f"html exported: {args.html_out}")
 
 
+def cmd_episodes(args: argparse.Namespace) -> None:
+    cfg = load_config(getattr(args, "config", None))
+    backend = cfg.get("outbox", {}).get("backend", "json")
+    if args.action == "list":
+        if backend == "sqlite":
+            import sqlite3
+            db = cfg.get("outbox", {}).get("sqlite_path", "episodes.db")
+            if not os.path.exists(db):
+                print(f"sqlite 不存在: {db}", file=sys.stderr)
+                sys.exit(1)
+            conn = sqlite3.connect(db)
+            rows = conn.execute("SELECT trace_id, goal, status, created_ts FROM episodes ORDER BY created_ts DESC LIMIT 50").fetchall()
+            for tr, goal, st, ts in rows:
+                print(f"{tr}  {st}  {ts}  {goal}")
+            conn.close()
+        else:
+            eps_dir = "episodes"
+            if not os.path.isdir(eps_dir):
+                print("episodes 目录不存在", file=sys.stderr)
+                sys.exit(1)
+            files = [f for f in os.listdir(eps_dir) if f.endswith(".json")]
+            files.sort(key=lambda f: os.path.getmtime(os.path.join(eps_dir, f)), reverse=True)
+            for f in files[:50]:
+                print(f)
+    elif args.action == "events":
+        # 解析 trace 前缀
+        prefix = args.trace or ""
+        if backend == "sqlite":
+            import sqlite3, json as _json
+            db = cfg.get("outbox", {}).get("sqlite_path", "episodes.db")
+            if not os.path.exists(db):
+                print(f"sqlite 不存在: {db}", file=sys.stderr)
+                sys.exit(1)
+            conn = sqlite3.connect(db)
+            # 尝试前缀匹配
+            cand = conn.execute("SELECT trace_id FROM episodes WHERE trace_id LIKE ? ORDER BY created_ts DESC", (prefix + '%',)).fetchall()
+            if not cand:
+                print(f"未找到 trace: {prefix}", file=sys.stderr)
+                sys.exit(1)
+            if len(cand) > 1:
+                print("匹配到多条，请更精确指定前缀：")
+                for (tr,) in cand[:10]:
+                    print(tr)
+                sys.exit(2)
+            trace_id = cand[0][0]
+            rows = conn.execute("SELECT msg_id, ts, type, payload_json FROM events WHERE trace_id=? ORDER BY id ASC", (trace_id,)).fetchall()
+            for mid, ts, tp, pj in rows:
+                print(f"{ts} {mid} {tp}")
+                if args.full:
+                    print(pj)
+            conn.close()
+        else:
+            eps_dir = "episodes"
+            files = [f for f in os.listdir(eps_dir) if f.endswith(".json") and f.startswith(prefix)]
+            if not files:
+                print(f"未找到 trace: {prefix}", file=sys.stderr)
+                sys.exit(1)
+            if len(files) > 1:
+                print("匹配到多条，请更精确指定前缀：")
+                for f in files[:10]:
+                    print(f)
+                sys.exit(2)
+            import json as _json
+            path = os.path.join(eps_dir, files[0])
+            with open(path, "r", encoding="utf-8") as f:
+                ep = _json.load(f)
+            for ev in ep.get("events", []):
+                ts = ev.get("ts")
+                mid = ev.get("msg_id", "")
+                tp = ev.get("type")
+                print(f"{ts} {mid} {tp}")
+                if args.full:
+                    print(_json.dumps(ev.get("payload", {}), ensure_ascii=False))
+
+
 def main():
     parser = argparse.ArgumentParser(description="AgentOS minimal offline loop")
     sub = parser.add_subparsers(required=True)
@@ -592,6 +667,14 @@ def main():
     p_scoreq.add_argument("--window", default=None, help="窗口期，如 7d/24h，若提供将覆盖 --since/--until")
     p_scoreq.add_argument("--html-out", default=None, help="导出 HTML 报表路径")
     p_scoreq.set_defaults(func=cmd_scoreboard_query)
+
+    # Episodes 查询
+    p_eps = sub.add_parser("episodes", help="查看 episodes 列表与事件")
+    p_eps.add_argument("action", choices=["list", "events"], help="操作: list 或 events")
+    p_eps.add_argument("--trace", required=False, help="trace id 前缀(用于 events)")
+    p_eps.add_argument("--config", help="配置文件路径，默认 ./config.json")
+    p_eps.add_argument("--full", action="store_true", help="打印完整 payload JSON")
+    p_eps.set_defaults(func=cmd_episodes)
 
     args = parser.parse_args()
     args.func(args)

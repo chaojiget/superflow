@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS episodes (
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   trace_id TEXT,
+  msg_id TEXT,
   ts TEXT,
   type TEXT,
   payload_json TEXT
@@ -76,6 +77,7 @@ class OutboxSQLite:
     def append(self, event_type: str, payload: Dict[str, Any]) -> None:
         assert self._trace_id, "call new_trace first"
         ts = datetime.utcnow().isoformat() + "Z"
+        msg_id = uuid.uuid4().hex
         pay = self._redact(payload)
         # 提取头（llm 元数据）
         if isinstance(pay, dict) and isinstance(pay.get("llm"), dict):
@@ -87,10 +89,18 @@ class OutboxSQLite:
             attempts = int(m.get("attempts", 1))
             self._header["attempts"] = max(int(self._header.get("attempts", 0)), attempts)
         self._conn.execute(
-            "INSERT INTO events(trace_id,ts,type,payload_json) VALUES (?,?,?,?)",
-            (self._trace_id, ts, event_type, json.dumps(pay, ensure_ascii=False)),
+            "INSERT INTO events(trace_id,msg_id,ts,type,payload_json) VALUES (?,?,?,?,?)",
+            (self._trace_id, msg_id, ts, event_type, json.dumps(pay, ensure_ascii=False)),
         )
         self._conn.commit()
+
+    def list_traces(self, limit: int = 20):
+        cur = self._conn.cursor()
+        return cur.execute("SELECT trace_id, goal, status, created_ts FROM episodes ORDER BY created_ts DESC LIMIT ?", (limit,)).fetchall()
+
+    def fetch_events(self, trace_id: str):
+        cur = self._conn.cursor()
+        return cur.execute("SELECT msg_id, ts, type, payload_json FROM events WHERE trace_id=? ORDER BY id ASC", (trace_id,)).fetchall()
 
     def finalize(self, status: str, artifacts: Dict[str, Any]) -> str:
         assert self._trace_id and self._t0 is not None
@@ -119,4 +129,3 @@ class OutboxSQLite:
         )
         self._conn.commit()
         return self.db_path
-

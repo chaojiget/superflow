@@ -55,10 +55,14 @@ class OutboxBus:
     def append(self, event_type: str, payload: Dict[str, Any]) -> None:
         assert self._trace_id, "call new_trace first"
         ev = {
+            "msg_id": uuid.uuid4().hex,
+            "trace_id": self._trace_id,
+            "schema_ver": "v0",
             "ts": datetime.utcnow().isoformat() + "Z",
             "type": event_type,
             "payload": self._redact(payload),
         }
+        self._validate_envelope(ev)
         self._events.append(ev)
 
     def finalize(self, status: str, artifacts: Dict[str, Any]) -> str:
@@ -105,3 +109,18 @@ class OutboxBus:
             if ev["type"] == event_type:
                 return ev["payload"].get(key)
         return None
+
+    def _validate_envelope(self, ev: Dict[str, Any]) -> None:
+        # 轻量校验：必填字段存在且类型正确
+        required = {
+            "msg_id": str,
+            "trace_id": str,
+            "type": str,
+            "payload": dict,
+            "ts": str,
+        }
+        for k, t in required.items():
+            if k not in ev:
+                raise ValueError(f"Envelope 缺少字段: {k}")
+            if not isinstance(ev[k], t):
+                raise TypeError(f"Envelope 字段类型错误: {k}")
