@@ -14,8 +14,8 @@ import os
 from typing import Any, Dict
 
 try:
-    from fastapi import FastAPI, Request
-    from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, PlainTextResponse
     from fastapi.staticfiles import StaticFiles
     from fastapi.templating import Jinja2Templates
 except Exception as e:  # pragma: no cover
@@ -46,6 +46,47 @@ def create_app() -> Any:
     async def index(request: Request):
         return templates.TemplateResponse("index.html", {"request": request})
 
+    @app.get("/run", response_class=HTMLResponse)
+    async def run_form(request: Request):
+        return templates.TemplateResponse("run.html", {"request": request})
+
+    @app.post("/api/run")
+    async def api_run(
+        request: Request,
+        srs_path: str = Form(...),
+        data_path: str = Form(...),
+        out_path: str = Form("reports/weekly_report.md"),
+        planner: str = Form("llm"),
+        executor: str = Form("llm"),
+        critic: str = Form("llm"),
+        reviser: str = Form("llm"),
+    ):
+        # 直接调用 CLI 以减少耦合（同步阻塞执行）
+        import subprocess, sys as _sys
+        cmd = [
+            _sys.executable,
+            os.path.join(BASE_DIR, "apps", "console", "min_loop.py"),
+            "run",
+            "--srs", srs_path,
+            "--data", data_path,
+            "--out", out_path,
+            "--planner", planner,
+            "--executor", executor,
+            "--critic", critic,
+            "--reviser", reviser,
+        ]
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        except Exception as e:  # pragma: no cover
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        if res.returncode != 0:
+            return JSONResponse({"ok": False, "stderr": res.stderr[-4000:]}, status_code=500)
+        try:
+            data = json.loads(res.stdout.strip().splitlines()[-1])
+        except Exception:
+            data = {"raw": res.stdout[-4000:]}
+        return JSONResponse({"ok": True, "result": data})
+
     @app.get("/episodes", response_class=HTMLResponse)
     async def episodes(request: Request):
         cfg = load_config(None)
@@ -69,6 +110,83 @@ def create_app() -> Any:
                 files.sort(key=lambda f: os.path.getmtime(os.path.join(ep_dir, f)), reverse=True)
                 items = [{"trace_id": f[:-5], "status": "-"} for f in files[:100]]
         return templates.TemplateResponse("episodes.html", {"request": request, "items": items})
+
+    @app.get("/episodes/{trace_id}", response_class=HTMLResponse)
+    async def episode_detail(request: Request, trace_id: str):
+        cfg = load_config(None)
+        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
+        events = []
+        review = None
+        if backend == "sqlite":
+            import sqlite3
+            db = (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db")
+            if os.path.exists(db):
+                conn = sqlite3.connect(db)
+                rows = conn.execute("SELECT ts, type, payload_json FROM events WHERE trace_id=? ORDER BY id ASC", (trace_id,)).fetchall()
+                for ts, tp, pj in rows:
+                    try:
+                        payload = json.loads(pj)
+                    except Exception:
+                        payload = {}
+                    events.append({"ts": ts, "type": tp, "payload": payload})
+                    if tp == "review.scored":
+                        review = payload
+                conn.close()
+        else:
+            path = os.path.join(BASE_DIR, "episodes", f"{trace_id}.json")
+            if os.path.exists(path):
+                ep = json.load(open(path, "r", encoding="utf-8"))
+                for ev in ep.get("events", []):
+                    events.append({"ts": ev.get("ts"), "type": ev.get("type"), "payload": ev.get("payload", {})})
+                    if ev.get("type") == "review.scored":
+                        review = ev.get("payload")
+        return templates.TemplateResponse("episode_detail.html", {"request": request, "trace_id": trace_id, "events": events, "review": review})
+
+    @app.post("/api/replay")
+    async def api_replay(request: Request, trace_id: str):
+        cfg = load_config(None)
+        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
+        if backend != "sqlite":
+            return JSONResponse({"ok": False, "error": "仅 SQLite 后端支持该接口"}, status_code=400)
+        import subprocess, sys as _sys
+        cmd = [
+            _sys.executable,
+            os.path.join(BASE_DIR, "apps", "console", "min_loop.py"),
+            "replay-sqlite", "--db", (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db"),
+            "--trace", trace_id, "--review-only",
+        ]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            return JSONResponse({"ok": False, "stderr": res.stderr[-4000:]}, status_code=500)
+        try:
+            data = json.loads(res.stdout.strip().splitlines()[-1])
+        except Exception:
+            data = {"raw": res.stdout[-4000:]}
+        return JSONResponse({"ok": True, "result": data})
+
+    @app.post("/api/rerun")
+    async def api_rerun(request: Request, trace_id: str, out_path: str | None = None):
+        cfg = load_config(None)
+        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
+        if backend != "sqlite":
+            return JSONResponse({"ok": False, "error": "仅 SQLite 后端支持该接口"}, status_code=400)
+        import subprocess, sys as _sys
+        cmd = [
+            _sys.executable,
+            os.path.join(BASE_DIR, "apps", "console", "min_loop.py"),
+            "replay-sqlite", "--db", (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db"),
+            "--trace", trace_id, "--rerun",
+        ]
+        if out_path:
+            cmd += ["--out", out_path]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            return JSONResponse({"ok": False, "stderr": res.stderr[-4000:]}, status_code=500)
+        try:
+            data = json.loads(res.stdout.strip().splitlines()[-1])
+        except Exception:
+            data = {"raw": res.stdout[-4000:]}
+        return JSONResponse({"ok": True, "result": data})
 
     @app.get("/scores", response_class=HTMLResponse)
     async def scores(request: Request):
@@ -104,4 +222,3 @@ def create_app() -> Any:
 
 
 app = create_app() if FastAPI is not None else None  # type: ignore
-

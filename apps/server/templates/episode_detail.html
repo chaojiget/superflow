@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Episode: {{trace_id}}</h2>
+{% if review %}
+<div class="kpi">score={{review.score}} pass={{review.pass}} reasons={{review.reasons}}</div>
+{% endif %}
+<div style="margin:8px 0;">
+  <form method="post" action="/api/replay" style="display:inline-block;margin-right:8px">
+    <input type="hidden" name="trace_id" value="{{trace_id}}">
+    <button type="submit">回放(仅评分)</button>
+  </form>
+  <form method="post" action="/api/rerun" style="display:inline-block">
+    <input type="hidden" name="trace_id" value="{{trace_id}}">
+    <label>输出路径: <input name="out_path" value="reports/replay_sqlite.md"></label>
+    <button type="submit">复跑(本地技能)</button>
+  </form>
+</div>
+
+<h3>时间线</h3>
+<table>
+  <thead><tr><th>时间</th><th>类型</th><th>要点</th></tr></thead>
+  <tbody>
+  {% for ev in events %}
+    <tr>
+      <td>{{ev.ts}}</td>
+      <td>{{ev.type}}</td>
+      <td>
+        {% if ev.type == 'plan.generated' %}impl={{ev.payload.impl}}{% endif %}
+        {% if ev.type == 'review.scored' %}score={{ev.payload.score}} pass={{ev.payload.pass}}{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

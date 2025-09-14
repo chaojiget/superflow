@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>运行最小闭环</h2>
+<form method="post" action="/api/run">
+  <div><label>SRS 路径: <input name="srs_path" value="examples/srs/weekly_report.json" style="width:420px"></label></div>
+  <div><label>数据 CSV: <input name="data_path" value="examples/data/weekly.csv" style="width:420px"></label></div>
+  <div><label>输出路径: <input name="out_path" value="reports/weekly_report.md" style="width:420px"></label></div>
+  <div>
+    <label>Planner: <select name="planner"><option>llm</option><option>rules</option></select></label>
+    <label>Executor: <select name="executor"><option>llm</option><option>skills</option></select></label>
+    <label>Critic: <select name="critic"><option>llm</option><option>rules</option></select></label>
+    <label>Reviser: <select name="reviser"><option>llm</option><option>rules</option></select></label>
+  </div>
+  <div style="margin-top:8px"><button type="submit">运行</button></div>
+</form>
+<p>注：当前通过后端调用 CLI 执行；默认读取 config.json。</p>
+{% endblock %}
