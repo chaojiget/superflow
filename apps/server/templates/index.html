@@ -105,7 +105,15 @@
     btn.classList.add('active');
     load(btn.dataset.path);
   }));
-  load('/embed/run');
+  // 支持通过 ?tab=run|episodes|scores 选择默认页
+  const usp = new URLSearchParams(location.search);
+  const tab = usp.get('tab') || 'run';
+  const map = { run:'/embed/run', episodes:'/embed/episodes', scores:'/embed/scores' };
+  const def = map[tab] || '/embed/run';
+  if(tab!=='run'){
+    tabs.forEach(b=>{ if(b.dataset.path===def){ b.classList.add('active'); } else { b.classList.remove('active'); }});
+  }
+  load(def);
 </script>
 <style>
   #tabs .tab{padding:6px 12px; border:1px solid #ddd; background:#f8f8f8; cursor:pointer; margin-right:6px}

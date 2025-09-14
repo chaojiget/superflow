@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Workflow #{{wf.id}} — {{wf.name}}</h2>
+<h3>定义</h3>
+<pre style="background:#f7f7f7; padding:8px">{{wf.definition_json}}</pre>
+<h3>调度</h3>
+<form method="post" action="/api/jobs/schedule" id="jobForm">
+  <input type="hidden" name="workflow_id" value="{{wf.id}}">
+  <label>延时(秒): <input type="number" name="after_seconds" value="5"></label>
+  <button type="submit">安排一次</button>
+  <span id="jobHint" style="margin-left:8px;color:#666"></span>
+</form>
+<h3>任务</h3>
+<table>
+  <thead><tr><th>ID</th><th>状态</th><th>运行时间</th><th>创建时间</th></tr></thead>
+  <tbody>
+  {% for j in jobs %}
+    <tr><td>{{j.id}}</td><td>{{j.status}}</td><td>{{j.run_at}}</td><td>{{j.created_ts}}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<script>
+const jf=document.getElementById('jobForm'); const jh=document.getElementById('jobHint');
+jf.addEventListener('submit', async (e)=>{e.preventDefault(); const fd=new FormData(jf); const r=await fetch(jf.action,{method:'POST',body:fd}); const d=await r.json(); jh.textContent=d.ok?('已安排 job='+d.job_id+' @ '+d.run_at):'安排失败';});
+</script>
+{% endblock %}

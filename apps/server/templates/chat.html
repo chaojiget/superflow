@@ -51,7 +51,7 @@ form.addEventListener('submit', async (e)=>{
     div.innerHTML = '<b>执行建议</b> — type=run' +
       '<div>args: <pre>'+JSON.stringify(args,null,2)+'</pre></div>' +
       (data.srs_path?('<div>SRS 已保存: '+data.srs_path+'</div>'):'') +
-      '<button id="btnRunNow">立即运行</button>';
+      '<button id="btnRunNow">立即运行</button> <button id="btnEditRun">编辑并运行</button>';
     actionBox.appendChild(div);
     const btn = div.querySelector('#btnRunNow');
     btn.addEventListener('click', async ()=>{
@@ -68,6 +68,11 @@ form.addEventListener('submit', async (e)=>{
       const r2 = await fetch('/api/run', {method:'POST', body:fd2});
       const j2 = await r2.json();
       hint.textContent = j2.ok ? ('已提交，job='+ (j2.job_id||'')) : '提交失败';
+    });
+    const btnEdit = div.querySelector('#btnEditRun');
+    btnEdit.addEventListener('click', ()=>{
+      try{ localStorage.setItem('runArgs', JSON.stringify(args)); }catch(e){}
+      location.href = '/?tab=run';
     });
   }
 });

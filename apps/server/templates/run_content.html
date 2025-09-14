@@ -65,4 +65,21 @@ if(selProv){
     if(hp) hp.textContent = '将使用: ' + selProv.value + '（模型以配置为准）';
   });
 }
+// 预填参数（来自 localStorage.runArgs）
+try {
+  const raw = localStorage.getItem('runArgs');
+  if(raw){
+    const args = JSON.parse(raw);
+    if(args.srs_path) form.querySelector('input[name="srs_path"]').value = args.srs_path;
+    if(args.data_path) form.querySelector('input[name="data_path"]').value = args.data_path;
+    if(args.out) form.querySelector('input[name="out_path"]').value = args.out;
+    if(args.planner) form.querySelector('select[name="planner"]').value = args.planner;
+    if(args.executor) form.querySelector('select[name="executor"]').value = args.executor;
+    if(args.critic) form.querySelector('select[name="critic"]').value = args.critic;
+    if(args.reviser) form.querySelector('select[name="reviser"]').value = args.reviser;
+    if(args.provider) form.querySelector('select[name="provider"]').value = args.provider;
+    // 使用一次后清除
+    localStorage.removeItem('runArgs');
+  }
+} catch(e) {}
 </script>

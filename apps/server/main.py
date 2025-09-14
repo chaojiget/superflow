@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict
+from typing import Any, Dict, List
 import threading
 
 try:
@@ -65,9 +65,41 @@ def create_app() -> Any:
     tpl_dir = os.path.join(os.path.dirname(__file__), "templates")
     templates = Jinja2Templates(directory=tpl_dir)
     # Chat DB
-    from .chat_db import init_db, append_message, get_history, clear_session  # type: ignore
+    from .chat_db import init_db, append_message, get_history, clear_session, upsert_workflow, list_workflows, get_workflow, schedule_job, list_jobs, due_jobs, mark_job_result  # type: ignore
     chat_db_path = os.path.join(BASE_DIR, "chat.db")
     CHAT_CONN = init_db(chat_db_path)
+
+    # 简易后台 Job 调度（每5秒扫描待执行）
+    def _jobs_loop() -> None:
+        import time as _t
+        from datetime import datetime
+        while True:
+            try:
+                now_iso = datetime.utcnow().isoformat() + 'Z'
+                for j in due_jobs(CHAT_CONN, now_iso):
+                    try:
+                        args = json.loads(j.get('args_json') or '{}') if isinstance(j, dict) else {}
+                        import sys as _sys, subprocess
+                        cmd: List[str] = [_sys.executable, os.path.join(BASE_DIR, 'apps', 'console', 'min_loop.py'), 'run',
+                                          '--srs', args.get('srs_path', 'examples/srs/weekly_report.json'),
+                                          '--data', args.get('data_path', 'examples/data/weekly.csv'),
+                                          '--out', args.get('out', 'reports/weekly_report.md')]
+                        for k in ('planner','executor','critic','reviser'):
+                            if args.get(k): cmd += [f'--{k}', args[k]]
+                        if args.get('provider'): cmd += ['--provider', args['provider']]
+                        res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+                        ok = res.returncode == 0
+                        try:
+                            out = json.loads((res.stdout or '').strip().splitlines()[-1])
+                        except Exception:
+                            out = {'raw': (res.stdout or '')[-2000:]}
+                        mark_job_result(CHAT_CONN, int(j.get('id')), 'done' if ok else 'failed', json.dumps(out, ensure_ascii=False))
+                    except Exception as e:
+                        mark_job_result(CHAT_CONN, int(j.get('id')), 'failed', json.dumps({'error': str(e)}, ensure_ascii=False))
+            except Exception:
+                pass
+            _t.sleep(5)
+    threading.Thread(target=_jobs_loop, daemon=True).start()
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
@@ -75,6 +107,49 @@ def create_app() -> Any:
     @app.get("/chat", response_class=HTMLResponse)
     async def chat(request: Request):
         return templates.TemplateResponse("chat.html", {"request": request})
+
+    @app.get('/config', response_class=HTMLResponse)
+    async def config_page(request: Request):
+        try: _require_admin(request)
+        except Exception: return PlainTextResponse('unauthorized', status_code=401)
+        cfg = load_config(None)
+        # 用 SimpleNamespace 风格供模板访问（cfg.llm.provider）
+        class Obj(dict):
+            __getattr__ = dict.get
+        cfg_obj = Obj({k: Obj(v) if isinstance(v, dict) else v for k,v in cfg.items()})
+        return templates.TemplateResponse('config.html', {'request': request, 'cfg': cfg_obj})
+
+    @app.get('/api/config')
+    async def api_config():
+        return JSONResponse(load_config(None))
+
+    @app.post('/api/config')
+    async def api_config_save(request: Request):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error':'unauthorized'}, status_code=401)
+        form = await request.form()
+        cfg = load_config(None)
+        # 赋值工具
+        def set_in(obj, path, val):
+            keys = path.split('.')
+            cur = obj
+            for k in keys[:-1]:
+                cur = cur.setdefault(k, {})
+            cur[keys[-1]] = val
+        # 基础校验&赋值
+        for k,v in form.items():
+            if k == 'llm.retries' or k == 'llm.max_rows':
+                try: v = int(v)
+                except Exception: v = 0
+            set_in(cfg, k, v)
+        # 备份
+        cfg_path = os.path.join(BASE_DIR, 'config.json')
+        if os.path.exists(cfg_path):
+            import shutil, time as _t
+            shutil.copyfile(cfg_path, cfg_path + f'.bak')
+        with open(cfg_path, 'w', encoding='utf-8') as f:
+            json.dump(cfg, f, ensure_ascii=False, indent=2)
+        return JSONResponse({'ok': True})
 
     @app.post("/api/chat/send")
     async def api_chat_send(text: str = Form(...), session: str | None = Form(None)):
@@ -124,6 +199,52 @@ def create_app() -> Any:
     async def api_chat_clear(session: str = Form(...)):
         clear_session(CHAT_CONN, session)
         return JSONResponse({"ok": True, "session": session})
+
+    # 轻量鉴权（Admin Token + 可选 IP 白名单）
+    def _require_admin(req: Request) -> None:
+        cfgs = load_config(None)
+        allow = (cfgs.get('security', {}) or {}).get('ip_allowlist')
+        if allow and getattr(req.client, 'host', None) not in allow:
+            raise Exception('forbidden')
+        token = os.environ.get('ADMIN_TOKEN') or (cfgs.get('security', {}) or {}).get('admin_token')
+        if token and req.headers.get('x-admin-token') != str(token):
+            raise Exception('unauthorized')
+
+    # Workflows
+    @app.get('/workflows', response_class=HTMLResponse)
+    async def workflows_page(request: Request):
+        try: _require_admin(request)
+        except Exception: return PlainTextResponse('unauthorized', status_code=401)
+        wfs = list_workflows(CHAT_CONN)
+        return templates.TemplateResponse('workflows.html', {'request': request, 'wfs': wfs})
+
+    @app.get('/workflows/{wf_id}', response_class=HTMLResponse)
+    async def workflow_detail_page(request: Request, wf_id: int):
+        try: _require_admin(request)
+        except Exception: return PlainTextResponse('unauthorized', status_code=401)
+        wf = get_workflow(CHAT_CONN, wf_id)
+        jobs = list_jobs(CHAT_CONN, wf_id)
+        return templates.TemplateResponse('workflow_detail.html', {'request': request, 'wf': wf, 'jobs': jobs})
+
+    @app.post('/api/workflows')
+    async def api_workflows(name: str = Form(...), definition_json: str = Form(...)):
+        _id = upsert_workflow(CHAT_CONN, name, definition_json)
+        return JSONResponse({'ok': True, 'id': _id})
+
+    @app.post('/api/jobs/schedule')
+    async def api_jobs_schedule(workflow_id: int = Form(...), after_seconds: int = Form(0)):
+        run_at = (datetime.utcnow() + timedelta(seconds=int(after_seconds))).isoformat() + 'Z'
+        wf = get_workflow(CHAT_CONN, workflow_id)
+        args_json = '{}'
+        try:
+            if wf and wf.get('definition_json'):
+                obj = json.loads(wf['definition_json']) if isinstance(wf['definition_json'], str) else wf['definition_json']
+                if isinstance(obj, dict) and obj.get('action') and obj['action'].get('type') == 'run':
+                    args_json = json.dumps(obj['action'].get('args', {}), ensure_ascii=False)
+        except Exception:
+            pass
+        jid = schedule_job(CHAT_CONN, int(workflow_id), run_at, args_json)
+        return JSONResponse({'ok': True, 'job_id': jid, 'run_at': run_at})
 
     @app.get("/run", response_class=HTMLResponse)
     async def run_form(request: Request):

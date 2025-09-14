@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Config</h2>
+<form id="cfgForm" method="post" action="/api/config" style="max-width:720px">
+  <fieldset>
+    <legend>LLM</legend>
+    <label>Provider:
+      <select name="llm.provider">
+        <option value="openrouter" {% if cfg.llm.provider=='openrouter' %}selected{% endif %}>openrouter</option>
+        <option value="openai" {% if cfg.llm.provider=='openai' %}selected{% endif %}>openai</option>
+      </select>
+    </label>
+    <label>Model: <input name="llm.model" value="{{cfg.llm.model}}"></label>
+    <label>Retries: <input name="llm.retries" type="number" value="{{cfg.llm.retries or 0}}"></label>
+    <label>max_rows: <input name="llm.max_rows" type="number" value="{{cfg.llm.max_rows or 80}}"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Outbox</legend>
+    <label>backend:
+      <select name="outbox.backend">
+        <option value="json" {% if cfg.outbox.backend=='json' %}selected{% endif %}>json</option>
+        <option value="sqlite" {% if cfg.outbox.backend=='sqlite' %}selected{% endif %}>sqlite</option>
+      </select>
+    </label>
+    <label>sqlite_path: <input name="outbox.sqlite_path" value="{{cfg.outbox.sqlite_path or 'episodes.db'}}"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Prompts</legend>
+    <label>dir: <input name="prompts.dir" value="{{cfg.prompts.dir}}"></label>
+  </fieldset>
+  <fieldset>
+    <legend>Security</legend>
+    <label>admin_token: <input name="security.admin_token" value="{{cfg.security.admin_token or ''}}"></label>
+  </fieldset>
+  <button type="submit">保存</button> <span id="cfgHint" style="margin-left:8px;color:#666"></span>
+</form>
+<script>
+const f=document.getElementById('cfgForm'); const h=document.getElementById('cfgHint');
+f.addEventListener('submit', async (e)=>{e.preventDefault(); const fd=new FormData(f); const r=await fetch(f.action,{method:'POST',body:fd}); const d=await r.json(); h.textContent=d.ok?'已保存（config.json.bak 已备份）':'保存失败';});
+</script>
+{% endblock %}
