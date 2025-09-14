@@ -57,6 +57,9 @@ coverage.xml
 .env.*
 episodes/
 reports/
+chat.db
+episodes.db
+scores.sqlite
 
 # Misc
 __pypackages__/

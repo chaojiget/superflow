@@ -343,7 +343,7 @@ def cmd_replay(args: argparse.Namespace) -> None:
         # 读取计划与输入，使用本地 skills 再跑一次，产出到原 output_path
         srs = episode.get("sense", {})
         plan = episode.get("plan", {})
-        out_path = (episode.get("artifacts", {}) or {}).get("output_path", "reports/replay.md")
+        out_path = args.out or (episode.get("artifacts", {}) or {}).get("output_path", "reports/replay.md")
         rows = read_csv_rows(srs["inputs"]["csv_path"])  # type: ignore
         md_text, _ctx = execute_local_plan(plan, rows)
         with open(out_path, "w", encoding="utf-8") as f:
@@ -753,6 +753,7 @@ def main():
     p_replay.add_argument("--trace", required=False, help="trace id，例如 t-xxxx")
     p_replay.add_argument("--last", action="store_true", help="使用最新的 trace 进行回放")
     p_replay.add_argument("--rerun", action="store_true", help="根据保存的 plan 使用本地 skills 重新生成报告")
+    p_replay.add_argument("--out", required=False, help="复跑输出路径(可选)")
     p_replay.add_argument("--list", action="store_true", help="列出最近的 trace 文件")
     p_replay.add_argument("--config", help="配置文件路径，默认 ./config.json")
     p_replay.set_defaults(func=cmd_replay)

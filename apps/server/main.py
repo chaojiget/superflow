@@ -64,10 +64,66 @@ def create_app() -> Any:
     app = FastAPI(title="AgentOS Console")
     tpl_dir = os.path.join(os.path.dirname(__file__), "templates")
     templates = Jinja2Templates(directory=tpl_dir)
+    # Chat DB
+    from .chat_db import init_db, append_message, get_history, clear_session  # type: ignore
+    chat_db_path = os.path.join(BASE_DIR, "chat.db")
+    CHAT_CONN = init_db(chat_db_path)
 
     @app.get("/", response_class=HTMLResponse)
     async def index(request: Request):
         return templates.TemplateResponse("index.html", {"request": request})
+    @app.get("/chat", response_class=HTMLResponse)
+    async def chat(request: Request):
+        return templates.TemplateResponse("chat.html", {"request": request})
+
+    @app.post("/api/chat/send")
+    async def api_chat_send(text: str = Form(...), session: str | None = Form(None)):
+        from packages.providers.router import LLMRouter  # type: ignore
+        from packages.providers.openrouter_client import extract_json_block  # type: ignore
+        cfg = load_config(None)
+        router = LLMRouter(cfg)
+        sid = session or ("s-" + os.urandom(4).hex())
+        # 构造上下文：system + 历史消息
+        history = get_history(CHAT_CONN, sid, limit=100)
+        msgs = [{"role":"system","content":"你是 AgentOS 助手。请用简洁中文回答。若识别到可执行任务，返回一个JSON对象：{\"action\":{\"type\":\"run\",\"args\":{...}},\"srs\":{...}}，其中 action.args 支持 run 所需参数（srs_path/data_path/out/planner/executor/critic/reviser/provider）。JSON 之外可附加说明。"}]
+        for m in history:
+            msgs.append({"role": m["role"], "content": m["content"]})
+        msgs.append({"role":"user","content": text})
+        # 记录用户消息
+        append_message(CHAT_CONN, sid, "user", text)
+        # LLM 回复
+        content, meta = router.chat_with_meta(msgs, temperature=0.3, retries=int(cfg.get("llm",{}).get("retries",0)))
+        action = None
+        srs_saved = None
+        # 尝试提取 JSON 动作
+        try:
+            obj = extract_json_block(content)
+            if isinstance(obj, dict):
+                if obj.get("srs"):
+                    # 保存 SRS 至 examples/srs/
+                    sdir = os.path.join(BASE_DIR, "examples", "srs")
+                    os.makedirs(sdir, exist_ok=True)
+                    import time as _t
+                    srs_path = os.path.join(sdir, f"srs_{sid}_{int(_t.time())}.json")
+                    with open(srs_path, "w", encoding="utf-8") as f:
+                        json.dump(obj["srs"], f, ensure_ascii=False, indent=2)
+                    srs_saved = srs_path
+                if obj.get("action"):
+                    action = obj["action"]
+        except Exception:
+            action = None
+        append_message(CHAT_CONN, sid, "assistant", content, json.dumps(action, ensure_ascii=False) if action else None)
+        return JSONResponse({"ok": True, "reply": content, "session": sid, "llm": meta, "action": action, "srs_path": srs_saved})
+
+    @app.get("/api/chat/history")
+    async def api_chat_history(session: str):
+        hx = get_history(CHAT_CONN, session, limit=200)
+        return JSONResponse({"ok": True, "session": session, "history": hx})
+
+    @app.post("/api/chat/clear")
+    async def api_chat_clear(session: str = Form(...)):
+        clear_session(CHAT_CONN, session)
+        return JSONResponse({"ok": True, "session": session})
 
     @app.get("/run", response_class=HTMLResponse)
     async def run_form(request: Request):
@@ -475,7 +531,8 @@ def create_app() -> Any:
         w.writerow([group_by, "count", "avg_score", "pass_rate"])
         for r in rows:
             w.writerow([r[0], r[1], round(r[2] or 0,4), round(r[3] or 0,4)])
-        return PlainTextResponse(buf.getvalue(), media_type="text/csv; charset=utf-8")
+        content = '\ufeff' + buf.getvalue()
+        return PlainTextResponse(content, media_type="text/csv; charset=utf-8")
 
     @app.get("/api/scores/report.html")
     async def api_scores_report_html(request: Request, model: str | None = None, provider: str | None = None, window: str | None = None):
@@ -523,7 +580,8 @@ def create_app() -> Any:
         w.writerow(["trace_id","goal","status","latency_ms","score","pass","model","provider","ts"])
         for r in rows:
             w.writerow(r)
-        return PlainTextResponse(buf.getvalue(), media_type="text/csv; charset=utf-8")
+        content = '\ufeff' + buf.getvalue()
+        return PlainTextResponse(content, media_type="text/csv; charset=utf-8")
 
     return app
 

@@ -16,7 +16,7 @@
         <option value="openai" {% if cur_provider=='openai' %}selected{% endif %}>openai</option>
       </select>
     </label>
-    <span style="color:#666">当前模型: {{cur_model}}</span>
+    <span id="providerHint" style="color:#666">将使用: {{cur_provider}}:{{cur_model}}</span>
   </div>
   <div style="margin-top:8px">
     <label>温度(Planner): <input name="temp_planner" type="number" step="0.1" min="0" max="2" placeholder="默认配置"></label>
@@ -57,4 +57,12 @@ form.addEventListener('submit', async (e) => {
   if(!data.ok){ el.textContent = JSON.stringify(data,null,2); form.querySelector('button[type="submit"]').disabled=false; return; }
   if(data.job_id){ poll(data.job_id); }
 });
+// Provider 切换提示
+const selProv = form.querySelector('select[name="provider"]');
+if(selProv){
+  selProv.addEventListener('change', ()=>{
+    const hp = document.getElementById('providerHint');
+    if(hp) hp.textContent = '将使用: ' + selProv.value + '（模型以配置为准）';
+  });
+}
 </script>

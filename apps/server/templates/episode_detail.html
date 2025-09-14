@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Episode: {{trace_id}}</h2>
+<button id="copyTid" style="margin:4px 0">复制 trace_id</button>
 {% if header %}
 <div style="border:1px solid #ddd; padding:8px; margin:8px 0; background:#fafafa">
   <b>Provider:</b> {{header.provider if header.provider else '-'}}
@@ -46,6 +47,12 @@
 <script>
   const toast = document.getElementById('toast');
   function show(msg, ok=true){ toast.style.color = ok ? '#0a7' : '#a00'; toast.textContent = msg; setTimeout(()=>toast.textContent='', 4000); }
+  const btnCopy = document.getElementById('copyTid');
+  if(btnCopy){
+    btnCopy.addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText('{{trace_id}}'); show('已复制 trace_id'); }catch(e){ show('复制失败', false); }
+    });
+  }
   document.getElementById('replayForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
     const fd = new FormData(e.target);
