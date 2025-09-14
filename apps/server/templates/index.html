@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>AgentOS 管理台</h2>
+<p>最小闭环：提交运行、查看 Episodes、导出与查询得分。</p>
+<ul>
+  <li>运行：目前通过 CLI 触发，后续提供 /run 表单。</li>
+  <li>Episodes：查看最近任务与事件。</li>
+  <li>Scores：查看汇总与最近得分。</li>
+  <li>配置：编辑 config.json（后续提供界面）。</li>
+  <li>提示模板：packages/prompts/（可版本化/灰度）。</li>
+  <li>安全：Envelope 脱敏与签名校验（本地技能）。</li>
+</ul>
+{% endblock %}

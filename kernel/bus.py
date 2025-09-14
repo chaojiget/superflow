@@ -95,13 +95,32 @@ class OutboxBus:
                     header.setdefault("model", llm_meta.get("model"))
                     header.setdefault("request_id", llm_meta.get("request_id"))
                     header.setdefault("temperature", llm_meta.get("temperature"))
-        # 统计 attempts（粗略：查找最大 attempts）
+        # 统计 attempts（粗略：查找最大 attempts）、usage 累计与 cost 求和
         attempts = 0
+        usage_sum: Dict[str, float] = {}
+        total_cost: float = 0.0
         for ev in self._events:
             pay = ev.get("payload")
             if isinstance(pay, dict) and isinstance(pay.get("llm"), dict):
                 attempts = max(attempts, int(pay["llm"].get("attempts", 1)))
+                u = pay["llm"].get("usage")
+                if isinstance(u, dict):
+                    for k, v in u.items():
+                        try:
+                            usage_sum[k] = usage_sum.get(k, 0.0) + float(v)
+                        except Exception:
+                            pass
+            # envelope 级 cost（如果调用 append 传入）
+            c = ev.get("cost")
+            try:
+                if c is not None:
+                    total_cost += float(c)
+            except Exception:
+                pass
         header["attempts"] = attempts
+        if usage_sum:
+            header["usage"] = {k: round(v, 4) for k, v in usage_sum.items()}
+        header["cost"] = round(total_cost, 6)
 
         episode = {
             "trace_id": self._trace_id,

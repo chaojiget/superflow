@@ -502,21 +502,42 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
         params.append(until)
     wsql = (" WHERE " + " AND ".join(where)) if where else ""
 
-    # 汇总统计
+    # 汇总统计 + p50/p95 延迟
     qsum = f"SELECT COUNT(1), AVG(score), AVG(pass), AVG(latency_ms) FROM scores{wsql}"
     row = cur.execute(qsum, params).fetchone()
     total = row[0] or 0
     avg_score = round(row[1], 4) if row[1] is not None else None
     pass_rate = round(row[2], 4) if row[2] is not None else None
     avg_latency = int(row[3]) if row[3] is not None else None
+    # 取全部延迟到内存计算 p50/p95（数据量小可接受）
+    lats = [r[0] for r in cur.execute(f"SELECT latency_ms FROM scores{wsql}", params).fetchall() if r[0] is not None]
+    p50 = p95 = None
+    if lats:
+        lats_sorted = sorted(lats)
+        def _pct(arr, p):
+            import math
+            if not arr:
+                return None
+            k = max(0, min(len(arr)-1, int(math.ceil(p/100.0*len(arr))) - 1))
+            return arr[k]
+        p50 = _pct(lats_sorted, 50)
+        p95 = _pct(lats_sorted, 95)
     print(f"总数={total}  平均分={avg_score}  通过率={pass_rate}  平均延迟ms={avg_latency}")
 
-    # 分组统计
+    # 分组统计（可选导出 CSV）
     if args.group_by in ("model", "provider"):
         qgrp = f"SELECT {args.group_by}, COUNT(1) c, AVG(score) s, AVG(pass) p FROM scores{wsql} GROUP BY {args.group_by} ORDER BY s DESC"
         rows = cur.execute(qgrp, params).fetchall()
         for m, c, s, p in rows:
             print(f"{args.group_by}={m}  count={c}  avg_score={round(s or 0,4)}  pass_rate={round(p or 0,4)}")
+        if getattr(args, "group_csv_out", None):
+            import csv as __csv
+            with open(args.group_csv_out, "w", encoding="utf-8", newline="") as f:
+                w = __csv.writer(f)
+                w.writerow([args.group_by, "count", "avg_score", "pass_rate"])
+                for m, c, s, p in rows:
+                    w.writerow([m, c, round(s or 0,4), round(p or 0,4)])
+            print(f"group csv exported: {args.group_csv_out}")
 
     # TopN
     qtop = f"SELECT trace_id, score, pass, model, provider, ts FROM scores{wsql} ORDER BY score DESC LIMIT ?"
@@ -545,7 +566,7 @@ def cmd_scoreboard_query(args: argparse.Namespace) -> None:
         html = [
             "<html><head><meta charset='utf-8'><style>table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}</style></head><body>",
             f"<h3>Scoreboard {since or ''} ~ {until or ''}</h3>",
-            f"<p>Total={total} AvgScore={avg_score} PassRate={pass_rate} AvgLatency={avg_latency}ms</p>",
+            f"<p>Total={total} AvgScore={avg_score} PassRate={pass_rate} AvgLatency={avg_latency}ms P50={p50}ms P95={p95}ms</p>",
         ]
         html += _tbl("按模型汇总", ["model", "count", "avg_score", "pass_rate"], _rows_model)
         html += _tbl("按提供商汇总", ["provider", "count", "avg_score", "pass_rate"], _rows_provider)
@@ -640,7 +661,17 @@ def cmd_replay_sqlite(args: argparse.Namespace) -> None:
     if not os.path.exists(db):
         print(f"sqlite 不存在: {db}", file=sys.stderr)
         sys.exit(1)
+    if args.list:
+        conn = sqlite3.connect(db)
+        rows = conn.execute("SELECT trace_id, goal, status, created_ts FROM episodes ORDER BY created_ts DESC LIMIT 50").fetchall()
+        for tr, goal, st, ts in rows:
+            print(f"{tr}  {st}  {ts}  {goal}")
+        conn.close()
+        return
     conn = sqlite3.connect(db)
+    if not args.trace:
+        print("请使用 --list 查看可用 trace 或提供 --trace 前缀", file=sys.stderr)
+        sys.exit(2)
     cand = conn.execute("SELECT trace_id FROM episodes WHERE trace_id LIKE ? ORDER BY created_ts DESC", (args.trace + '%',)).fetchall()
     if not cand:
         print(f"未找到 trace: {args.trace}", file=sys.stderr)
@@ -665,7 +696,20 @@ def cmd_replay_sqlite(args: argparse.Namespace) -> None:
             print(f"{trace_id} 无 review.scored 事件", file=sys.stderr)
             sys.exit(1)
         rv = _json.loads(ev[0])
-        print(_json.dumps({"trace_id": trace_id, **rv}, ensure_ascii=False))
+        if args.review_only:
+            # 仅打印关键要点
+            m = rv.get("llm", {}) if isinstance(rv, dict) else {}
+            out = {
+                "trace_id": trace_id,
+                "score": rv.get("score"),
+                "pass": rv.get("pass"),
+                "reasons": rv.get("reasons"),
+                "model": m.get("model"),
+                "provider": m.get("provider"),
+            }
+            print(_json.dumps(out, ensure_ascii=False))
+        else:
+            print(_json.dumps({"trace_id": trace_id, **rv}, ensure_ascii=False))
         return
     # 复跑（本地 skills）
     srs = sense or {}
@@ -729,6 +773,7 @@ def main():
     p_scoreq.add_argument("--group-by", choices=["model", "provider", "none"], default="none", help="按维度分组统计")
     p_scoreq.add_argument("--window", default=None, help="窗口期，如 7d/24h，若提供将覆盖 --since/--until")
     p_scoreq.add_argument("--html-out", default=None, help="导出 HTML 报表路径")
+    p_scoreq.add_argument("--group-csv-out", default=None, help="分组摘要另存为 CSV")
     p_scoreq.set_defaults(func=cmd_scoreboard_query)
 
     # Episodes 查询
@@ -742,8 +787,10 @@ def main():
     # 直接从 SQLite 回放/复跑
     p_rsql = sub.add_parser("replay-sqlite", help="从 SQLite Outbox 回放/复跑")
     p_rsql.add_argument("--db", default="episodes.db")
-    p_rsql.add_argument("--trace", required=True, help="trace id 前缀")
+    p_rsql.add_argument("--trace", required=False, help="trace id 前缀")
+    p_rsql.add_argument("--list", action="store_true", help="列出近期 trace")
     p_rsql.add_argument("--rerun", action="store_true", help="使用本地 skills 复跑并覆盖原输出")
+    p_rsql.add_argument("--review-only", action="store_true", help="仅打印评分要点(分数/通过/原因/模型/提供商)")
     p_rsql.add_argument("--out", default=None, help="复跑输出路径(默认使用原 artifacts.output_path)")
     p_rsql.set_defaults(func=cmd_replay_sqlite)
 

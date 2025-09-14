@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Episodes</h2>
+<table>
+  <thead>
+    <tr><th>trace_id</th><th>status</th><th>created</th><th>goal</th></tr>
+  </thead>
+  <tbody>
+    {% for it in items %}
+    <tr>
+      <td>{{it.trace_id}}</td>
+      <td>{{it.status}}</td>
+      <td>{{it.created_ts if it.created_ts else '-'}}</td>
+      <td>{{it.goal if it.goal else '-'}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+ </table>
+{% endblock %}
