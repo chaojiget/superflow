@@ -64,6 +64,14 @@ def create_app() -> Any:
     app = FastAPI(title="AgentOS Console")
     tpl_dir = os.path.join(os.path.dirname(__file__), "templates")
     templates = Jinja2Templates(directory=tpl_dir)
+    # 挂载本地静态资源（CSS/JS），离线可用
+    try:
+        static_dir = os.path.join(os.path.dirname(__file__), "static")
+        if os.path.isdir(static_dir):
+            app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    except Exception:
+        # 静态目录不存在也不影响运行
+        pass
     # Chat DB
     from .chat_db import init_db, append_message, get_history, clear_session, upsert_workflow, list_workflows, get_workflow, schedule_job, list_jobs, due_jobs, mark_job_result, get_job  # type: ignore
     chat_db_path = os.environ.get('CHAT_DB_PATH') or os.path.join(BASE_DIR, "chat.db")

@@ -1,36 +1,63 @@
-<h2>运行最小闭环</h2>
-<form id="runForm" method="post" action="/api/run">
-  <div><label>SRS 路径: <input name="srs_path" value="examples/srs/weekly_report.json" style="width:420px"></label></div>
-  <div><label>数据 CSV: <input name="data_path" value="examples/data/weekly.csv" style="width:420px"></label></div>
-  <div><label>输出路径: <input name="out_path" value="reports/weekly_report.md" style="width:420px"></label></div>
-  <div>
-    <label>Planner: <select name="planner"><option>llm</option><option>rules</option></select></label>
-    <label>Executor: <select name="executor"><option>llm</option><option>skills</option></select></label>
-    <label>Critic: <select name="critic"><option>llm</option><option>rules</option></select></label>
-    <label>Reviser: <select name="reviser"><option>llm</option><option>rules</option></select></label>
-  </div>
-  <div style="margin-top:8px">
-    <label>Provider: 
-      <select name="provider">
-        <option value="openrouter" {% if cur_provider=='openrouter' %}selected{% endif %}>openrouter</option>
-        <option value="openai" {% if cur_provider=='openai' %}selected{% endif %}>openai</option>
-      </select>
-    </label>
-    <span id="providerHint" style="color:#666">将使用: {{cur_provider}}:{{cur_model}}</span>
-  </div>
-  <div style="margin-top:8px">
-    <label>温度(Planner): <input name="temp_planner" type="number" step="0.1" min="0" max="2" placeholder="默认配置"></label>
-    <label>温度(Executor): <input name="temp_executor" type="number" step="0.1" min="0" max="2" placeholder="默认配置"></label>
-    <label>温度(Critic): <input name="temp_critic" type="number" step="0.1" min="0" max="2" placeholder="默认配置"></label>
-    <label>温度(Reviser): <input name="temp_reviser" type="number" step="0.1" min="0" max="2" placeholder="默认配置"></label>
-  </div>
-  <div style="margin-top:8px">
-    <label>重试次数: <input name="retries" type="number" min="0" placeholder="默认配置"></label>
-    <label>CSV片段最大行数: <input name="max_rows" type="number" min="1" placeholder="默认配置"></label>
-  </div>
-  <div style="margin-top:8px"><button type="submit">运行</button></div>
-</form>
-<pre id="runResult" style="background:#f7f7f7; padding:8px; margin-top:8px"></pre>
+<div class="card">
+  <h3 style="margin-top:0">运行最小闭环</h3>
+  <form id="runForm" method="post" action="/api/run">
+    <div class="kv">
+      <label for="srs_path">SRS 路径</label>
+      <input id="srs_path" name="srs_path" type="text" value="examples/srs/weekly_report.json" placeholder="examples/srs/weekly_report.json" />
+
+      <label for="data_path">数据 CSV</label>
+      <input id="data_path" name="data_path" type="text" value="examples/data/weekly.csv" placeholder="examples/data/weekly.csv" />
+
+      <label for="out_path">输出路径</label>
+      <input id="out_path" name="out_path" type="text" value="reports/weekly_report.md" placeholder="reports/weekly_report.md" />
+
+      <label>Planner</label>
+      <select name="planner"><option>llm</option><option>rules</option></select>
+
+      <label>Executor</label>
+      <select name="executor"><option>llm</option><option>skills</option></select>
+
+      <label>Critic</label>
+      <select name="critic"><option>llm</option><option>rules</option></select>
+
+      <label>Reviser</label>
+      <select name="reviser"><option>llm</option><option>rules</option></select>
+
+      <label>Provider</label>
+      <div class="row">
+        <select name="provider">
+          <option value="openrouter" {% if cur_provider=='openrouter' %}selected{% endif %}>openrouter</option>
+          <option value="openai" {% if cur_provider=='openai' %}selected{% endif %}>openai</option>
+        </select>
+        <span id="providerHint" class="hint" style="align-self:center">将使用: {{cur_provider}}:{{cur_model}}</span>
+      </div>
+
+      <label>温度(Planner)</label>
+      <input name="temp_planner" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
+
+      <label>温度(Executor)</label>
+      <input name="temp_executor" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
+
+      <label>温度(Critic)</label>
+      <input name="temp_critic" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
+
+      <label>温度(Reviser)</label>
+      <input name="temp_reviser" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
+
+      <label>重试次数</label>
+      <input name="retries" type="number" min="0" placeholder="默认配置">
+
+      <label>CSV片段最大行数</label>
+      <input name="max_rows" type="number" min="1" placeholder="默认配置">
+    </div>
+    <div style="margin-top:12px"><button type="submit">▶ 运行</button></div>
+  </form>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <div class="hint" style="margin-bottom:6px">运行输出</div>
+  <pre id="runResult"></pre>
+</div>
 <script>
 const form = document.getElementById('runForm');
 const el = document.getElementById('runResult');

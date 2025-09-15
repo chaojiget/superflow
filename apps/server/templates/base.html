@@ -2,26 +2,53 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>AgentOS Console</title>
-  <style>
-    body{font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px}
-    nav a{margin-right:12px}
-    table{border-collapse: collapse; margin-top: 12px}
-    td,th{border:1px solid #ddd; padding:6px 10px}
-    th{background:#fafafa}
-    .kpi{margin: 8px 0}
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}?v=1"/>
 </head>
 <body>
-  <nav>
-    <a href="/">首页</a>
-    <a href="/episodes">Episodes</a>
-    <a href="/scores">Scores</a>
-    <a href="/run">Run</a>
-    <a href="/chat">Chat</a>
-    <a href="/workflows">Workflows</a>
-    <a href="/config">Config</a>
-  </nav>
-  {% block content %}{% endblock %}
+  <header class="topbar">
+    <div class="brand">⚙️ AgentOS Console</div>
+    <nav class="nav" id="topnav">
+      <a href="/">首页</a>
+      <a href="/episodes">Episodes</a>
+      <a href="/scores">Scores</a>
+      <a href="/run">Run</a>
+      <a href="/chat">Chat</a>
+      <a href="/workflows">Workflows</a>
+      <a href="/config">Config</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <span class="badge" id="envBadge" title="当前模型与提供商来自配置">CFG</span>
+      <button id="btnTheme" title="切换主题">🌓</button>
+    </div>
+  </header>
+  <main class="container fade-in">
+    {% block content %}{% endblock %}
+  </main>
+  <script>
+    // 主题切换（本地存储）
+    (function(){
+      const k='theme';
+      const saved = localStorage.getItem(k);
+      if(saved){ document.documentElement.setAttribute('data-theme', saved); }
+      document.getElementById('btnTheme')?.addEventListener('click', ()=>{
+        const cur = document.documentElement.getAttribute('data-theme') || 'light';
+        const nxt = (cur === 'dark') ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nxt);
+        localStorage.setItem(k, nxt);
+      });
+    })();
+    // 激活当前导航
+    (function(){
+      const p = location.pathname.replace(/\/$/, '') || '/';
+      document.querySelectorAll('#topnav a').forEach(a=>{
+        const href = a.getAttribute('href') || '';
+        const hp = href.replace(/\/$/, '') || '/';
+        if(hp === p) a.classList.add('active');
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -1,23 +1,30 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>AgentOS 管理台</h2>
-<div id="tabs">
+<div class="row" style="align-items:center; margin-bottom:8px">
+  <h2 style="margin:0">AgentOS 管理台 <span class="badge primary">最小闭环</span></h2>
+  <span class="spacer"></span>
+  <span id="tabHint" class="hint"></span>
+  <span id="loadingSpin" class="spinner" style="display:none"></span>
+</div>
+<div id="tabs" style="margin-bottom:8px">
   <button class="tab active" data-path="/embed/run">运行</button>
   <button class="tab" data-path="/embed/episodes">Episodes</button>
   <button class="tab" data-path="/embed/scores">Scores</button>
-  <span id="tabHint" style="margin-left:8px;color:#666"></span>
 </div>
-<div id="tabContent" style="border:1px solid #ddd; margin-top:8px; background:#fff; padding:8px; min-height:60vh"></div>
+<div id="tabContent" class="card slide-up" style="min-height:60vh"></div>
 <script>
   const tabs = document.querySelectorAll('#tabs .tab');
   const content = document.getElementById('tabContent');
   const hint = document.getElementById('tabHint');
+  const loading = document.getElementById('loadingSpin');
   async function load(path){
     hint.textContent = '加载中…';
+    if(loading) loading.style.display = 'inline-block';
     const r = await fetch(path);
     const html = await r.text();
     content.innerHTML = html;
     hint.textContent = '';
+    if(loading) loading.style.display = 'none';
     bindHandlers();
   }
   async function pollRun(jobId, outEl, btn){
@@ -50,7 +57,7 @@
         e.preventDefault();
         const btn = form.querySelector('button[type="submit"]');
         if(btn) btn.disabled = true;
-        if(outEl) outEl.textContent = '启动中…';
+        if(outEl) outEl.innerHTML = '<span class="spinner"></span> 启动中…';
         const fd = new FormData(form);
         const resp = await fetch(form.action, {method:'POST', body:fd});
         const data = await resp.json();
@@ -115,10 +122,4 @@
   }
   load(def);
 </script>
-<style>
-  #tabs .tab{padding:6px 12px; border:1px solid #ddd; background:#f8f8f8; cursor:pointer; margin-right:6px}
-  #tabs .tab.active{background:#e6f2ff; border-color:#99c2ff}
-  #tabs .tab:hover{background:#f0f0f0}
-  @media (max-width: 900px){ iframe{ height: 60vh } }
-</style>
 {% endblock %}
