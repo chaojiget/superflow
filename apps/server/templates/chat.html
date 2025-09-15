@@ -1,42 +1,54 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Chat</h2>
-<div id="chatLayout" style="display:flex; gap:12px">
-  <div id="wsPane" style="flex:0 0 32%; border:1px solid #ddd; background:#fff; padding:8px; height:70vh; overflow:auto">
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px">
+<div class="row" style="align-items:center; margin-bottom:8px">
+  <h2 style="margin:0">Chat</h2>
+  <span class="spacer"></span>
+  <button id="btnWs" class="btn ghost">📁 工作区</button>
+  <span id="chatHint" class="hint"></span>
+  <span id="chatSpin" class="spinner" style="display:none"></span>
+</div>
+
+<div id="chatPane">
+  <div id="chatBox" class="chat-box"></div>
+  <form id="chatForm" class="sticky-input" method="post" action="/api/chat/send">
+    <input type="hidden" name="session" id="chatSession">
+    <input name="text" style="width:70%" placeholder="请输入需求…"> <button type="submit">发送</button>
+    <div class="hint" style="margin-top:4px">提示：描述你的需求可生成 SRS 草稿或运行建议。点击右上“工作区”可浏览/编辑文件并插入到对话。</div>
+  </form>
+  <div id="actionBox" class="card" style="margin-top:8px"></div>
+</div>
+
+<!-- 工作区抽屉 -->
+<div class="drawer" id="wsDrawer">
+  <div class="backdrop"></div>
+  <div class="drawer-panel">
+    <div class="drawer-header">
       <b>Workspace</b>
-      <input id="wsToken" placeholder="Admin Token(可选)" style="flex:1; max-width:200px">
+      <input id="wsToken" placeholder="Admin Token(可选)" style="flex:1; max-width:220px">
+      <button id="btnCloseWs" class="btn ghost">关闭</button>
     </div>
-    <div style="color:#666; font-size:12px">当前: <span id="wsCwd"></span></div>
-    <div id="wsTree" style="margin-top:6px"></div>
-    <hr>
-    <div id="wsPreviewWrap" style="display:none">
-      <div style="margin-bottom:6px"><span id="wsSel"></span></div>
-      <textarea id="wsContent" style="width:100%; height:200px; font-family:monospace"></textarea>
-      <div style="margin-top:6px">
-        <button id="btnInsert">插入到对话</button>
-        <button id="btnSave">保存</button>
-        <span id="wsHint" style="margin-left:6px; color:#666"></span>
+    <div class="drawer-body">
+      <div class="hint">当前: <span id="wsCwd"></span></div>
+      <div id="wsTree" style="margin-top:6px"></div>
+      <hr>
+      <div id="wsPreviewWrap" style="display:none">
+        <div style="margin-bottom:6px"><span id="wsSel"></span></div>
+        <textarea id="wsContent" style="height:200px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"></textarea>
+        <div style="margin-top:6px">
+          <button id="btnInsert">插入到对话</button>
+          <button id="btnSave">保存</button>
+          <span id="wsHint" class="hint" style="margin-left:6px"></span>
+        </div>
       </div>
     </div>
   </div>
-  <div id="chatPane" style="flex:1 1 auto">
-    <div id="chatBox" style="border:1px solid #ddd; padding:8px; height:60vh; overflow:auto; background:#fff"></div>
-    <form id="chatForm" method="post" action="/api/chat/send" style="margin-top:8px">
-      <input type="hidden" name="session" id="chatSession">
-      <input name="text" style="width:70%" placeholder="请输入需求…"> <button type="submit">发送</button>
-      <span id="chatHint" style="margin-left:8px;color:#666"></span>
-      <div style="color:#999; font-size:12px; margin-top:4px">提示：你可以描述一个需求，我会生成 SRS 草稿或建议如何在运行页执行。左侧可浏览/编辑本地文件并插入到对话。</div>
-    </form>
-    <div id="actionBox" style="margin-top:8px"></div>
-  </div>
-  
 </div>
 <script>
 const box = document.getElementById('chatBox');
 const form = document.getElementById('chatForm');
 const sess = document.getElementById('chatSession');
 const hint = document.getElementById('chatHint');
+const spin = document.getElementById('chatSpin');
 const actionBox = document.getElementById('actionBox');
 const wsTree = document.getElementById('wsTree');
 const wsCwd = document.getElementById('wsCwd');
@@ -45,14 +57,23 @@ const wsSel = document.getElementById('wsSel');
 const wsContent = document.getElementById('wsContent');
 const wsHint = document.getElementById('wsHint');
 const wsToken = document.getElementById('wsToken');
+const wsDrawer = document.getElementById('wsDrawer');
+const btnWs = document.getElementById('btnWs');
+const btnCloseWs = document.getElementById('btnCloseWs');
+const wsBackdrop = wsDrawer?.querySelector('.backdrop');
 if(!sess.value){ sess.value = 's-'+Math.random().toString(16).slice(2,10); }
 
 // Chat 区域
+function fmtTime(){ const d = new Date(); return d.toTimeString().slice(0,5); }
 function append(role, text){
-  const div = document.createElement('div');
-  div.style.margin='6px 0';
-  div.innerHTML = '<b>'+role+':</b> ' + text.replace(/\n/g,'<br>');
-  box.appendChild(div); box.scrollTop = box.scrollHeight;
+  const me = role === '你' || role === 'user';
+  const wrap = document.createElement('div');
+  wrap.className = 'msg'+(me?' user':'');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = (me?'<b>你</b>':'<b>助手</b>') + ' · <span class="meta">'+fmtTime()+'</span><br>' + String(text).replace(/\n/g,'<br>');
+  wrap.appendChild(bubble);
+  box.appendChild(wrap); box.scrollTop = box.scrollHeight;
 }
 async function loadHistory(){
   const resp = await fetch('/api/chat/history?session='+encodeURIComponent(sess.value));
@@ -68,10 +89,10 @@ form.addEventListener('submit', async (e)=>{
   const text = fd.get('text');
   if(!text) return;
   append('你', String(text));
-  form.text.value=''; hint.textContent='思考中…';
+  form.text.value=''; hint.textContent='思考中…'; if(spin) spin.style.display='inline-block';
   const resp = await fetch(form.action, {method:'POST', body:fd});
   const data = await resp.json();
-  hint.textContent='';
+  hint.textContent=''; if(spin) spin.style.display='none';
   if(data.ok){ append('助手', data.reply); }
   else{ append('系统', '发送失败'); }
   // 渲染 action 卡片
@@ -79,7 +100,7 @@ form.addEventListener('submit', async (e)=>{
   if(data.action && data.action.type==='run'){
     const args = data.action.args || {};
     const div = document.createElement('div');
-    div.style.border='1px solid #ddd'; div.style.padding='8px'; div.style.background='#fff';
+    div.className = 'card';
     div.innerHTML = '<b>执行建议</b> — type=run' +
       '<div>args: <pre>'+JSON.stringify(args,null,2)+'</pre></div>' +
       (data.srs_path?('<div>SRS 已保存: '+data.srs_path+'</div>'):'') +
@@ -160,6 +181,13 @@ document.getElementById('btnSave')?.addEventListener('click', async ()=>{
   wsHint.textContent = j.ok ? '已保存' : ('保存失败: '+(j.error||''));
   setTimeout(()=>{ wsHint.textContent=''; }, 2000);
 });
+
+// Drawer 交互
+function openWs(){ wsDrawer?.classList.add('open'); }
+function closeWs(){ wsDrawer?.classList.remove('open'); }
+btnWs?.addEventListener('click', openWs);
+btnCloseWs?.addEventListener('click', closeWs);
+wsBackdrop?.addEventListener('click', closeWs);
 
 // 首次加载
 loadHistory();

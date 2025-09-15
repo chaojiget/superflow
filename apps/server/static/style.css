@@ -155,3 +155,28 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .kv { display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; align-items: center; }
 @media (max-width: 640px) { .kv { grid-template-columns: 1fr; } }
 
+/* Drawer（工作区抽屉） */
+.drawer { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+.drawer .backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, .35); opacity: 0; transition: opacity .2s ease; }
+.drawer-panel { position: absolute; left: 0; top: 0; bottom: 0; width: min(380px, 92vw); background: var(--panel); border-right: 1px solid var(--border); box-shadow: var(--shadow); transform: translateX(-100%); transition: transform .24s ease-out; display: flex; flex-direction: column; }
+.drawer.open { pointer-events: auto; }
+.drawer.open .backdrop { opacity: 1; }
+.drawer.open .drawer-panel { transform: translateX(0); }
+.drawer-header { display: flex; gap: 8px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.drawer-body { padding: 12px 14px; overflow: auto; }
+
+/* Chat 样式 */
+.chat-box { border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); padding: 12px; height: 60vh; overflow: auto; }
+.sticky-input { position: sticky; bottom: 0; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 8px 10px; margin-top: 8px; }
+.msg { display: flex; margin: 8px 0; }
+.msg .bubble { max-width: 75%; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 85%, var(--primary-100)); }
+.msg.user { justify-content: flex-end; }
+.msg.user .bubble { background: var(--primary); color: #fff; border-color: var(--primary); }
+.msg .meta { font-size: 12px; color: var(--muted); margin: 4px 8px; }
+
+/* Ghost 按钮 */
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); box-shadow: none; }
+.btn.ghost:hover { background: color-mix(in srgb, var(--panel) 85%, var(--primary-100)); }
+
+/* 文本域 */
+textarea { border: 1px solid var(--border); background: var(--panel); color: var(--text); padding: 8px 10px; border-radius: 10px; outline: none; width: 100%; }
