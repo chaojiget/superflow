@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Job #{{job.id}} — Workflow #{{wf.id}} {{wf.name}}</h2>
+<div class="kpi">状态: <b>{{job.status}}</b>；计划时间: {{job.run_at}}；创建: {{job.created_ts}}</div>
+<div style="margin:6px 0"><input id="jobToken" placeholder="Admin Token(可选)" style="max-width:240px"> <button id="btnRetry">重试</button> <span id="jobHint" style="margin-left:8px;color:#666"></span></div>
+<h3>步骤结果</h3>
+<table>
+  <thead><tr><th>#</th><th>type</th><th>ok</th><th>耗时(ms)</th><th>trace_id/输出</th><th>操作</th></tr></thead>
+  <tbody>
+  {% for s in steps %}
+    <tr>
+      <td>{{loop.index}}</td>
+      <td>{{s.type}}</td>
+      <td>{{s.ok}}</td>
+      <td>{{s.duration_ms or '-'}}</td>
+      <td>
+        {% if s.result and s.result.trace_id %}
+          <a href="/episodes/{{s.result.trace_id}}" target="_blank">{{s.result.trace_id}}</a>
+        {% else %}
+          <pre style="max-width:640px; white-space:pre-wrap">{{s.result}}</pre>
+        {% endif %}
+        {% if s.result and s.result.out %}
+          <div><a href="/download?path={{s.result.out}}">下载产物</a></div>
+        {% endif %}
+      </td>
+      <td><button class="btnRetryStep" data-step="{{loop.index0}}">重试此步</button></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+<script>
+const btn=document.getElementById('btnRetry'); const hint=document.getElementById('jobHint'); const tok=document.getElementById('jobToken');
+btn.addEventListener('click', async ()=>{
+  const fd=new FormData(); fd.append('job_id','{{job.id}}');
+  const headers={}; if(tok.value) headers['X-Admin-Token']=tok.value;
+  hint.textContent='提交重试…';
+  const r=await fetch('/api/jobs/retry', {method:'POST', body:fd, headers});
+  const d=await r.json();
+  hint.textContent=d.ok ? ('已安排 job='+d.job_id) : ('失败: '+(d.error||''));
+});
+document.querySelectorAll('.btnRetryStep').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const fd=new FormData(); fd.append('job_id','{{job.id}}'); fd.append('step_index', btn.getAttribute('data-step'));
+    const headers={}; if(tok.value) headers['X-Admin-Token']=tok.value;
+    hint.textContent='提交单步重试…';
+    const r=await fetch('/api/jobs/retry-step', {method:'POST', body:fd, headers});
+    const d=await r.json();
+    hint.textContent=d.ok ? ('已安排 job='+d.job_id) : ('失败: '+(d.error||''));
+  });
+});
+</script>
+{% endblock %}

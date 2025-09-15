@@ -4,6 +4,7 @@
 <h3>定义</h3>
 <pre style="background:#f7f7f7; padding:8px">{{wf.definition_json}}</pre>
 <h3>调度</h3>
+<div style="margin:6px 0"><input id="jobToken" placeholder="Admin Token(可选)" style="max-width:240px"></div>
 <form method="post" action="/api/jobs/schedule" id="jobForm">
   <input type="hidden" name="workflow_id" value="{{wf.id}}">
   <label>延时(秒): <input type="number" name="after_seconds" value="5"></label>
@@ -12,15 +13,20 @@
 </form>
 <h3>任务</h3>
 <table>
-  <thead><tr><th>ID</th><th>状态</th><th>运行时间</th><th>创建时间</th></tr></thead>
+  <thead><tr><th>ID</th><th>状态</th><th>运行时间</th><th>创建时间</th><th>操作</th></tr></thead>
   <tbody>
   {% for j in jobs %}
-    <tr><td>{{j.id}}</td><td>{{j.status}}</td><td>{{j.run_at}}</td><td>{{j.created_ts}}</td></tr>
+    <tr><td>{{j.id}}</td><td>{{j.status}}</td><td>{{j.run_at}}</td><td>{{j.created_ts}}</td><td><a href="/jobs/{{j.id}}">详情</a></td></tr>
   {% endfor %}
   </tbody>
 </table>
 <script>
-const jf=document.getElementById('jobForm'); const jh=document.getElementById('jobHint');
-jf.addEventListener('submit', async (e)=>{e.preventDefault(); const fd=new FormData(jf); const r=await fetch(jf.action,{method:'POST',body:fd}); const d=await r.json(); jh.textContent=d.ok?('已安排 job='+d.job_id+' @ '+d.run_at):'安排失败';});
+const jf=document.getElementById('jobForm'); const jh=document.getElementById('jobHint'); const jt=document.getElementById('jobToken');
+jf.addEventListener('submit', async (e)=>{
+  e.preventDefault(); const fd=new FormData(jf);
+  const headers={}; if(jt.value) headers['X-Admin-Token']=jt.value;
+  const r=await fetch(jf.action,{method:'POST',body:fd, headers});
+  const d=await r.json(); jh.textContent=d.ok?('已安排 job='+d.job_id+' @ '+d.run_at):('安排失败: '+(d.error||''));
+});
 </script>
 {% endblock %}

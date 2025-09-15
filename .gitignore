@@ -58,8 +58,10 @@ coverage.xml
 episodes/
 reports/
 chat.db
+chat_test.db
 episodes.db
 scores.sqlite
+audit/
 
 # Misc
 __pypackages__/

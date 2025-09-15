@@ -1,21 +1,53 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Chat</h2>
-<div id="chatBox" style="border:1px solid #ddd; padding:8px; height:60vh; overflow:auto; background:#fff"></div>
-<form id="chatForm" method="post" action="/api/chat/send" style="margin-top:8px">
-  <input type="hidden" name="session" id="chatSession">
-  <input name="text" style="width:70%" placeholder="请输入需求…"> <button type="submit">发送</button>
-  <span id="chatHint" style="margin-left:8px;color:#666"></span>
-  <div style="color:#999; font-size:12px; margin-top:4px">提示：你可以描述一个需求，我会生成 SRS 草稿或建议如何在运行页执行。</div>
-</form>
-<div id="actionBox" style="margin-top:8px"></div>
+<div id="chatLayout" style="display:flex; gap:12px">
+  <div id="wsPane" style="flex:0 0 32%; border:1px solid #ddd; background:#fff; padding:8px; height:70vh; overflow:auto">
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px">
+      <b>Workspace</b>
+      <input id="wsToken" placeholder="Admin Token(可选)" style="flex:1; max-width:200px">
+    </div>
+    <div style="color:#666; font-size:12px">当前: <span id="wsCwd"></span></div>
+    <div id="wsTree" style="margin-top:6px"></div>
+    <hr>
+    <div id="wsPreviewWrap" style="display:none">
+      <div style="margin-bottom:6px"><span id="wsSel"></span></div>
+      <textarea id="wsContent" style="width:100%; height:200px; font-family:monospace"></textarea>
+      <div style="margin-top:6px">
+        <button id="btnInsert">插入到对话</button>
+        <button id="btnSave">保存</button>
+        <span id="wsHint" style="margin-left:6px; color:#666"></span>
+      </div>
+    </div>
+  </div>
+  <div id="chatPane" style="flex:1 1 auto">
+    <div id="chatBox" style="border:1px solid #ddd; padding:8px; height:60vh; overflow:auto; background:#fff"></div>
+    <form id="chatForm" method="post" action="/api/chat/send" style="margin-top:8px">
+      <input type="hidden" name="session" id="chatSession">
+      <input name="text" style="width:70%" placeholder="请输入需求…"> <button type="submit">发送</button>
+      <span id="chatHint" style="margin-left:8px;color:#666"></span>
+      <div style="color:#999; font-size:12px; margin-top:4px">提示：你可以描述一个需求，我会生成 SRS 草稿或建议如何在运行页执行。左侧可浏览/编辑本地文件并插入到对话。</div>
+    </form>
+    <div id="actionBox" style="margin-top:8px"></div>
+  </div>
+  
+</div>
 <script>
 const box = document.getElementById('chatBox');
 const form = document.getElementById('chatForm');
 const sess = document.getElementById('chatSession');
 const hint = document.getElementById('chatHint');
 const actionBox = document.getElementById('actionBox');
+const wsTree = document.getElementById('wsTree');
+const wsCwd = document.getElementById('wsCwd');
+const wsPreviewWrap = document.getElementById('wsPreviewWrap');
+const wsSel = document.getElementById('wsSel');
+const wsContent = document.getElementById('wsContent');
+const wsHint = document.getElementById('wsHint');
+const wsToken = document.getElementById('wsToken');
 if(!sess.value){ sess.value = 's-'+Math.random().toString(16).slice(2,10); }
+
+// Chat 区域
 function append(role, text){
   const div = document.createElement('div');
   div.style.margin='6px 0';
@@ -76,7 +108,61 @@ form.addEventListener('submit', async (e)=>{
     });
   }
 });
-// 首次加载历史
+
+// Workspace 区域
+async function wsLs(path){
+  const r = await fetch('/api/ws/ls?path='+encodeURIComponent(path||'.'));
+  return await r.json();
+}
+async function wsRead(path){
+  const r = await fetch('/api/ws/read?path='+encodeURIComponent(path));
+  return await r.json();
+}
+async function wsWrite(path, content){
+  const fd = new FormData(); fd.append('path', path); fd.append('content', content);
+  const headers = {};
+  if(wsToken.value){ headers['X-Admin-Token'] = wsToken.value; }
+  const r = await fetch('/api/ws/write', {method:'POST', body:fd, headers});
+  return await r.json();
+}
+function renderTree(cwd, dirs, files){
+  wsCwd.textContent = cwd || '/';
+  const ul = document.createElement('ul'); ul.style.listStyle='none'; ul.style.paddingLeft='0';
+  const up = document.createElement('li');
+  up.innerHTML = '<a href="#">..</a>';
+  up.addEventListener('click', (e)=>{ e.preventDefault(); const parent = cwd? cwd.split('/').slice(0,-1).join('/') : ''; loadDir(parent); });
+  ul.appendChild(up);
+  for(const d of dirs){
+    const li = document.createElement('li'); li.innerHTML = '📁 <a href="#">'+d+'</a>';
+    li.querySelector('a').addEventListener('click', (e)=>{ e.preventDefault(); loadDir((cwd?cwd+'/':'')+d); });
+    ul.appendChild(li);
+  }
+  for(const f of files){
+    const li = document.createElement('li'); li.innerHTML = '📄 <a href="#">'+f.name+'</a> <span style="color:#999; font-size:12px">('+ (f.size||'') +')</span>';
+    li.querySelector('a').addEventListener('click', async (e)=>{ e.preventDefault(); const rel = (cwd?cwd+'/':'')+f.name; const j = await wsRead(rel); if(j.ok){ wsPreviewWrap.style.display='block'; wsSel.textContent = rel; wsContent.value = j.content; wsHint.textContent=''; } else { wsHint.textContent = j.error||'读取失败'; }});
+    ul.appendChild(li);
+  }
+  wsTree.innerHTML=''; wsTree.appendChild(ul);
+}
+async function loadDir(path){
+  const j = await wsLs(path||'.');
+  if(j.ok){ renderTree(j.cwd, j.dirs||[], j.files||[]); }
+}
+document.getElementById('btnInsert')?.addEventListener('click', ()=>{
+  if(!wsSel.textContent) return;
+  const text = '请参考文件 '+wsSel.textContent+" 的内容：\n\n```\n"+wsContent.value+"\n```\n";
+  form.text.value = text;
+});
+document.getElementById('btnSave')?.addEventListener('click', async ()=>{
+  const p = wsSel.textContent; if(!p) return;
+  wsHint.textContent = '保存中…';
+  const j = await wsWrite(p, wsContent.value);
+  wsHint.textContent = j.ok ? '已保存' : ('保存失败: '+(j.error||''));
+  setTimeout(()=>{ wsHint.textContent=''; }, 2000);
+});
+
+// 首次加载
 loadHistory();
+loadDir('examples');
 </script>
 {% endblock %}

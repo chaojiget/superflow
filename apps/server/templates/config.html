@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Config</h2>
+<div style="margin:6px 0"><input id="cfgToken" placeholder="Admin Token(可选)" style="max-width:240px"></div>
 <form id="cfgForm" method="post" action="/api/config" style="max-width:720px">
   <fieldset>
     <legend>LLM</legend>
@@ -32,10 +33,54 @@
     <legend>Security</legend>
     <label>admin_token: <input name="security.admin_token" value="{{cfg.security.admin_token or ''}}"></label>
   </fieldset>
-  <button type="submit">保存</button> <span id="cfgHint" style="margin-left:8px;color:#666"></span>
+  <button type="button" id="btnPreview">预览变更</button>
+  <button type="submit">保存</button>
+  <button type="button" id="btnRollback">回滚到上次备份</button>
+  <span id="cfgHint" style="margin-left:8px;color:#666"></span>
 </form>
+<div id="cfgDiff" style="margin-top:10px"></div>
+<h3>变更日志</h3>
+<div><button id="btnLoadChanges">加载最近变更</button></div>
+<div id="cfgChanges" style="margin-top:6px"></div>
 <script>
-const f=document.getElementById('cfgForm'); const h=document.getElementById('cfgHint');
-f.addEventListener('submit', async (e)=>{e.preventDefault(); const fd=new FormData(f); const r=await fetch(f.action,{method:'POST',body:fd}); const d=await r.json(); h.textContent=d.ok?'已保存（config.json.bak 已备份）':'保存失败';});
+const f=document.getElementById('cfgForm'); const h=document.getElementById('cfgHint'); const tok=document.getElementById('cfgToken');
+const diffBox=document.getElementById('cfgDiff'); const btnLoad=document.getElementById('btnLoadChanges'); const changesBox=document.getElementById('cfgChanges');
+const btnPreview=document.getElementById('btnPreview'); const btnRollback=document.getElementById('btnRollback');
+f.addEventListener('submit', async (e)=>{
+  e.preventDefault(); const fd=new FormData(f);
+  const headers={}; if(tok.value) headers['X-Admin-Token']=tok.value;
+  const r=await fetch(f.action,{method:'POST',body:fd, headers}); const d=await r.json();
+  h.textContent=d.ok?'已保存':('保存失败: '+(d.error||''));
+  if(d.ok && Array.isArray(d.changes)){
+    let html='<h3>本次变更</h3><table><thead><tr><th>Key</th><th>旧值</th><th>新值</th></tr></thead><tbody>';
+    for(const c of d.changes){ html+=`<tr><td>${c.key}</td><td>${JSON.stringify(c.old)}</td><td>${JSON.stringify(c.new)}</td></tr>`; }
+    html+='</tbody></table>';
+    diffBox.innerHTML=html;
+  }
+});
+btnPreview.addEventListener('click', async ()=>{
+  const fd=new FormData(f); const headers={}; if(tok.value) headers['X-Admin-Token']=tok.value;
+  const r=await fetch('/api/config/diff',{method:'POST', body:fd, headers}); const d=await r.json();
+  if(d.ok){
+    let html='<h3>预览变更</h3><table><thead><tr><th>Key</th><th>旧值</th><th>新值</th></tr></thead><tbody>';
+    for(const c of d.changes){ html+=`<tr><td>${c.key}</td><td>${JSON.stringify(c.old)}</td><td>${JSON.stringify(c.new)}</td></tr>`; }
+    html+='</tbody></table>';
+    diffBox.innerHTML=html;
+  }
+});
+btnRollback.addEventListener('click', async ()=>{
+  const headers={}; if(tok.value) headers['X-Admin-Token']=tok.value;
+  const r=await fetch('/api/config/rollback',{method:'POST', headers}); const d=await r.json();
+  h.textContent=d.ok ? '已回滚至上次备份' : ('回滚失败: '+(d.error||''));
+});
+btnLoad.addEventListener('click', async ()=>{
+  const r=await fetch('/api/config/changes'); const d=await r.json();
+  if(d.ok){
+    let html='<table><thead><tr><th>时间</th><th>变更条目数</th></tr></thead><tbody>';
+    for(const it of d.items){ html+=`<tr><td>${it.ts}</td><td>${(it.changes||[]).length}</td></tr>`; }
+    html+='</tbody></table>';
+    changesBox.innerHTML=html;
+  }
+});
 </script>
 {% endblock %}

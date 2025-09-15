@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 def init_db(path: str = "chat.db") -> sqlite3.Connection:
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    conn = sqlite3.connect(path)
+    # 允许跨线程使用（FastAPI 测试与后台线程都可能访问）
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.executescript(SCHEMA)
     return conn
 
@@ -133,3 +134,20 @@ def due_jobs(conn: sqlite3.Connection, now_iso: str) -> List[Dict[str, Any]]:
 def mark_job_result(conn: sqlite3.Connection, job_id: int, status: str, result_json: str) -> None:
     conn.execute("UPDATE jobs SET status=?, result_json=? WHERE id=?", (status, result_json, int(job_id)))
     conn.commit()
+
+def get_job(conn: sqlite3.Connection, job_id: int) -> Optional[Dict[str, Any]]:
+    row = conn.execute(
+        "SELECT id, workflow_id, status, run_at, args_json, result_json, created_ts FROM jobs WHERE id=?",
+        (int(job_id),),
+    ).fetchone()
+    if not row:
+        return None
+    return {
+        "id": row[0],
+        "workflow_id": row[1],
+        "status": row[2],
+        "run_at": row[3],
+        "args_json": row[4],
+        "result_json": row[5],
+        "created_ts": row[6],
+    }

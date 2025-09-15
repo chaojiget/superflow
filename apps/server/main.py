@@ -16,7 +16,7 @@ import threading
 
 try:
     from fastapi import FastAPI, Request, Form
-    from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, PlainTextResponse
+    from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, PlainTextResponse, FileResponse
     from fastapi.staticfiles import StaticFiles
     from fastapi.templating import Jinja2Templates
 except Exception as e:  # pragma: no cover
@@ -65,8 +65,8 @@ def create_app() -> Any:
     tpl_dir = os.path.join(os.path.dirname(__file__), "templates")
     templates = Jinja2Templates(directory=tpl_dir)
     # Chat DB
-    from .chat_db import init_db, append_message, get_history, clear_session, upsert_workflow, list_workflows, get_workflow, schedule_job, list_jobs, due_jobs, mark_job_result  # type: ignore
-    chat_db_path = os.path.join(BASE_DIR, "chat.db")
+    from .chat_db import init_db, append_message, get_history, clear_session, upsert_workflow, list_workflows, get_workflow, schedule_job, list_jobs, due_jobs, mark_job_result, get_job  # type: ignore
+    chat_db_path = os.environ.get('CHAT_DB_PATH') or os.path.join(BASE_DIR, "chat.db")
     CHAT_CONN = init_db(chat_db_path)
 
     # 简易后台 Job 调度（每5秒扫描待执行）
@@ -78,22 +78,74 @@ def create_app() -> Any:
                 now_iso = datetime.utcnow().isoformat() + 'Z'
                 for j in due_jobs(CHAT_CONN, now_iso):
                     try:
-                        args = json.loads(j.get('args_json') or '{}') if isinstance(j, dict) else {}
-                        import sys as _sys, subprocess
-                        cmd: List[str] = [_sys.executable, os.path.join(BASE_DIR, 'apps', 'console', 'min_loop.py'), 'run',
-                                          '--srs', args.get('srs_path', 'examples/srs/weekly_report.json'),
-                                          '--data', args.get('data_path', 'examples/data/weekly.csv'),
-                                          '--out', args.get('out', 'reports/weekly_report.md')]
-                        for k in ('planner','executor','critic','reviser'):
-                            if args.get(k): cmd += [f'--{k}', args[k]]
-                        if args.get('provider'): cmd += ['--provider', args['provider']]
-                        res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-                        ok = res.returncode == 0
+                        # 读取工作流定义，支持单 action 或 steps 序列
+                        wf = get_workflow(CHAT_CONN, j.get('workflow_id')) if isinstance(j, dict) else None
+                        wf_obj = {}
                         try:
-                            out = json.loads((res.stdout or '').strip().splitlines()[-1])
+                            wf_obj = json.loads((wf or {}).get('definition_json') or '{}')
                         except Exception:
-                            out = {'raw': (res.stdout or '')[-2000:]}
-                        mark_job_result(CHAT_CONN, int(j.get('id')), 'done' if ok else 'failed', json.dumps(out, ensure_ascii=False))
+                            wf_obj = {}
+                        steps: List[Dict[str, Any]] = []
+                        if isinstance(wf_obj, dict) and isinstance(wf_obj.get('steps'), list):
+                            # steps: [{type:'run', args:{...}}, ...]
+                            steps = [x for x in wf_obj.get('steps') if isinstance(x, dict)]
+                        elif isinstance(wf_obj, dict) and isinstance(wf_obj.get('action'), dict):
+                            steps = [wf_obj.get('action')]  # type: ignore
+                        else:
+                            # 兜底：使用 args_json 作为单步运行
+                            a0 = json.loads(j.get('args_json') or '{}') if isinstance(j, dict) else {}
+                            steps = [{"type": "run", "args": a0}]
+
+                        # 顺序执行步骤
+                        import sys as _sys, subprocess
+                        step_results: List[Dict[str, Any]] = []
+                        last_ok = True
+                        for idx, stp in enumerate(steps):
+                            stype = (stp.get('type') or 'run') if isinstance(stp, dict) else 'run'
+                            args = (stp.get('args') or {}) if isinstance(stp, dict) else {}
+                            # 简单变量替换：{prev.trace_id}
+                            def _subst(val: Any) -> Any:
+                                if isinstance(val, str) and '{prev.trace_id}' in val and step_results:
+                                    ptid = step_results[-1].get('result', {}).get('trace_id')
+                                    return val.replace('{prev.trace_id}', str(ptid))
+                                return val
+                            if isinstance(args, dict):
+                                args = {k: _subst(v) for k, v in args.items()}
+
+                            if stype == 'run':
+                                cmd: List[str] = [_sys.executable, os.path.join(BASE_DIR, 'apps', 'console', 'min_loop.py'), 'run',
+                                                  '--srs', args.get('srs_path', 'examples/srs/weekly_report.json'),
+                                                  '--data', args.get('data_path', 'examples/data/weekly.csv'),
+                                                  '--out', args.get('out', f'reports/weekly_report_{j.get("id")}_{idx}.md')]
+                                for k in ('planner','executor','critic','reviser'):
+                                    if args.get(k): cmd += [f'--{k}', str(args[k])]
+                                if args.get('provider'): cmd += ['--provider', str(args['provider'])]
+                            elif stype == 'replay':
+                                # 支持回放(非网络)，参数: trace/out/rerun(bool)
+                                cmd = [_sys.executable, os.path.join(BASE_DIR, 'apps', 'console', 'min_loop.py'), 'replay']
+                                if args.get('trace'): cmd += ['--trace', str(args['trace'])]
+                                if args.get('last'): cmd += ['--last']
+                                if args.get('rerun'): cmd += ['--rerun']
+                                if args.get('out'): cmd += ['--out', str(args['out'])]
+                            else:
+                                step_results.append({'type': stype, 'ok': False, 'error': f'unknown step type: {stype}'})
+                                last_ok = False
+                                break
+                            import time as _t
+                            t0s = _t.time()
+                            res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+                            dur_ms = int((_t.time() - t0s) * 1000)
+                            ok = res.returncode == 0
+                            try:
+                                parsed = json.loads((res.stdout or '').strip().splitlines()[-1])
+                            except Exception:
+                                parsed = {'raw': (res.stdout or '')[-2000:]}
+                            step_results.append({'type': stype, 'ok': ok, 'args': args, 'result': parsed, 'stderr': (res.stderr or '')[-1000:], 'duration_ms': dur_ms})
+                            if not ok:
+                                last_ok = False
+                                break
+                        summary = {'ok': last_ok, 'steps': step_results}
+                        mark_job_result(CHAT_CONN, int(j.get('id')), 'done' if last_ok else 'failed', json.dumps(summary, ensure_ascii=False))
                     except Exception as e:
                         mark_job_result(CHAT_CONN, int(j.get('id')), 'failed', json.dumps({'error': str(e)}, ensure_ascii=False))
             except Exception:
@@ -120,15 +172,41 @@ def create_app() -> Any:
         return templates.TemplateResponse('config.html', {'request': request, 'cfg': cfg_obj})
 
     @app.get('/api/config')
-    async def api_config():
-        return JSONResponse(load_config(None))
+    async def api_config(request: Request):
+        cfgs = load_config(None)
+        if (cfgs.get('security', {}) or {}).get('protect_get'):
+            try: _require_admin(request)
+            except Exception: return JSONResponse({'ok': False, 'error':'unauthorized'}, status_code=401)
+        return JSONResponse(cfgs)
+
+    @app.get('/api/config/changes')
+    async def api_config_changes(request: Request, limit: int = 20):
+        cfgs = load_config(None)
+        if (cfgs.get('security', {}) or {}).get('protect_get'):
+            try: _require_admin(request)
+            except Exception: return JSONResponse({'ok': False, 'error':'unauthorized'}, status_code=401)
+        log_path = os.path.join(BASE_DIR, 'audit', 'config_changes.log')
+        items: List[Dict[str, Any]] = []
+        if os.path.exists(log_path):
+            try:
+                with open(log_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()[-int(limit):]
+                for ln in lines:
+                    try:
+                        items.append(json.loads(ln))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        return JSONResponse({'ok': True, 'items': items})
 
     @app.post('/api/config')
     async def api_config_save(request: Request):
         try: _require_admin(request)
         except Exception: return JSONResponse({'ok': False, 'error':'unauthorized'}, status_code=401)
         form = await request.form()
-        cfg = load_config(None)
+        old_cfg = load_config(None)
+        cfg = json.loads(json.dumps(old_cfg))  # 深拷贝
         # 赋值工具
         def set_in(obj, path, val):
             keys = path.split('.')
@@ -149,6 +227,90 @@ def create_app() -> Any:
             shutil.copyfile(cfg_path, cfg_path + f'.bak')
         with open(cfg_path, 'w', encoding='utf-8') as f:
             json.dump(cfg, f, ensure_ascii=False, indent=2)
+        # 计算 diff & 写变更日志
+        def _flatten(d: Dict[str, Any], prefix: str = '') -> Dict[str, Any]:
+            out: Dict[str, Any] = {}
+            for k, v in (d or {}).items():
+                kk = f"{prefix}.{k}" if prefix else k
+                if isinstance(v, dict):
+                    out.update(_flatten(v, kk))
+                else:
+                    out[kk] = v
+            return out
+        flat_old = _flatten(old_cfg if isinstance(old_cfg, dict) else {})
+        flat_new = _flatten(cfg if isinstance(cfg, dict) else {})
+        changes = []
+        for k in sorted(set(list(flat_old.keys()) + list(flat_new.keys()))):
+            ov = flat_old.get(k)
+            nv = flat_new.get(k)
+            if ov != nv:
+                changes.append({'key': k, 'old': ov, 'new': nv})
+        try:
+            from datetime import datetime as _dt
+            audit_dir = os.path.join(BASE_DIR, 'audit'); os.makedirs(audit_dir, exist_ok=True)
+            log_path = os.path.join(audit_dir, 'config_changes.log')
+            rec = {'ts': _dt.utcnow().isoformat()+'Z', 'changes': changes}
+            with open(log_path, 'a', encoding='utf-8') as lf:
+                lf.write(json.dumps(rec, ensure_ascii=False) + '\n')
+        except Exception:
+            pass
+        return JSONResponse({'ok': True, 'changes': changes})
+
+    @app.post('/api/config/diff')
+    async def api_config_diff(request: Request):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error':'unauthorized'}, status_code=401)
+        form = await request.form()
+        old_cfg = load_config(None)
+        cfg = json.loads(json.dumps(old_cfg))
+        def set_in(obj, path, val):
+            keys = path.split('.')
+            cur = obj
+            for k in keys[:-1]:
+                cur = cur.setdefault(k, {})
+            cur[keys[-1]] = val
+        for k,v in form.items():
+            if k == 'llm.retries' or k == 'llm.max_rows':
+                try: v = int(v)
+                except Exception: v = 0
+            set_in(cfg, k, v)
+        def _flatten(d: Dict[str, Any], prefix: str = '') -> Dict[str, Any]:
+            out: Dict[str, Any] = {}
+            for k, v in (d or {}).items():
+                kk = f"{prefix}.{k}" if prefix else k
+                if isinstance(v, dict):
+                    out.update(_flatten(v, kk))
+                else:
+                    out[kk] = v
+            return out
+        flat_old = _flatten(old_cfg if isinstance(old_cfg, dict) else {})
+        flat_new = _flatten(cfg if isinstance(cfg, dict) else {})
+        changes = []
+        for k in sorted(set(list(flat_old.keys()) + list(flat_new.keys()))):
+            ov = flat_old.get(k); nv = flat_new.get(k)
+            if ov != nv: changes.append({'key': k, 'old': ov, 'new': nv})
+        return JSONResponse({'ok': True, 'changes': changes})
+
+    @app.post('/api/config/rollback')
+    async def api_config_rollback(request: Request):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error':'unauthorized'}, status_code=401)
+        cfg_path = os.path.join(BASE_DIR, 'config.json')
+        bak = cfg_path + '.bak'
+        if not os.path.exists(bak):
+            return JSONResponse({'ok': False, 'error': 'no backup'}, status_code=404)
+        import shutil
+        shutil.copyfile(bak, cfg_path)
+        # 记录审计
+        try:
+            from datetime import datetime as _dt
+            audit_dir = os.path.join(BASE_DIR, 'audit'); os.makedirs(audit_dir, exist_ok=True)
+            log_path = os.path.join(audit_dir, 'config_changes.log')
+            rec = {'ts': _dt.utcnow().isoformat()+'Z', 'rollback': True}
+            with open(log_path, 'a', encoding='utf-8') as lf:
+                lf.write(json.dumps(rec, ensure_ascii=False) + '\n')
+        except Exception:
+            pass
         return JSONResponse({'ok': True})
 
     @app.post("/api/chat/send")
@@ -200,15 +362,33 @@ def create_app() -> Any:
         clear_session(CHAT_CONN, session)
         return JSONResponse({"ok": True, "session": session})
 
-    # 轻量鉴权（Admin Token + 可选 IP 白名单）
+    # 轻量鉴权（Admin Token + 可选 IP 白名单 + 可选 Basic Auth）
     def _require_admin(req: Request) -> None:
         cfgs = load_config(None)
         allow = (cfgs.get('security', {}) or {}).get('ip_allowlist')
         if allow and getattr(req.client, 'host', None) not in allow:
             raise Exception('forbidden')
+        # 1) X-Admin-Token
         token = os.environ.get('ADMIN_TOKEN') or (cfgs.get('security', {}) or {}).get('admin_token')
-        if token and req.headers.get('x-admin-token') != str(token):
+        if token and req.headers.get('x-admin-token') == str(token):
+            return
+        # 2) Basic Auth（可选）
+        basic = (cfgs.get('security', {}) or {}).get('basic_auth') or {}
+        user = basic.get('username'); pwd = basic.get('password')
+        auth = req.headers.get('authorization') or req.headers.get('Authorization')
+        if user and pwd and auth and auth.lower().startswith('basic '):
+            try:
+                import base64
+                raw = base64.b64decode(auth.split(' ',1)[1]).decode('utf-8')
+                u, p = raw.split(':', 1)
+                if u == str(user) and p == str(pwd):
+                    return
+            except Exception:
+                pass
+        # 3) 若配置了凭据则必须提供，否则拒绝；未配置则默认放行
+        if token or (user and pwd):
             raise Exception('unauthorized')
+        return
 
     # Workflows
     @app.get('/workflows', response_class=HTMLResponse)
@@ -227,12 +407,17 @@ def create_app() -> Any:
         return templates.TemplateResponse('workflow_detail.html', {'request': request, 'wf': wf, 'jobs': jobs})
 
     @app.post('/api/workflows')
-    async def api_workflows(name: str = Form(...), definition_json: str = Form(...)):
+    async def api_workflows(request: Request, name: str = Form(...), definition_json: str = Form(...)):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error': 'unauthorized'}, status_code=401)
         _id = upsert_workflow(CHAT_CONN, name, definition_json)
         return JSONResponse({'ok': True, 'id': _id})
 
     @app.post('/api/jobs/schedule')
-    async def api_jobs_schedule(workflow_id: int = Form(...), after_seconds: int = Form(0)):
+    async def api_jobs_schedule(request: Request, workflow_id: int = Form(...), after_seconds: int = Form(0)):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error': 'unauthorized'}, status_code=401)
+        from datetime import datetime, timedelta
         run_at = (datetime.utcnow() + timedelta(seconds=int(after_seconds))).isoformat() + 'Z'
         wf = get_workflow(CHAT_CONN, workflow_id)
         args_json = '{}'
@@ -245,6 +430,75 @@ def create_app() -> Any:
             pass
         jid = schedule_job(CHAT_CONN, int(workflow_id), run_at, args_json)
         return JSONResponse({'ok': True, 'job_id': jid, 'run_at': run_at})
+
+    @app.get('/jobs/{job_id}', response_class=HTMLResponse)
+    async def job_detail_page(request: Request, job_id: int):
+        try: _require_admin(request)
+        except Exception: return PlainTextResponse('unauthorized', status_code=401)
+        job = get_job(CHAT_CONN, job_id)
+        wf = get_workflow(CHAT_CONN, (job or {}).get('workflow_id') or 0)
+        # 解析结果
+        steps = []
+        try:
+            rj = (job or {}).get('result_json')
+            obj = json.loads(rj) if rj else {}
+            steps = obj.get('steps', []) if isinstance(obj, dict) else []
+        except Exception:
+            steps = []
+        return templates.TemplateResponse('job_detail.html', {'request': request, 'job': job, 'wf': wf, 'steps': steps})
+
+    @app.post('/api/jobs/retry')
+    async def api_jobs_retry(request: Request, job_id: int = Form(...)):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error': 'unauthorized'}, status_code=401)
+        jb = get_job(CHAT_CONN, int(job_id))
+        if not jb: return JSONResponse({'ok': False, 'error': 'job not found'}, status_code=404)
+        from datetime import datetime
+        run_at = datetime.utcnow().isoformat() + 'Z'
+        jid = schedule_job(CHAT_CONN, int(jb['workflow_id']), run_at, jb.get('args_json') or '{}')
+        return JSONResponse({'ok': True, 'job_id': jid, 'run_at': run_at})
+
+    @app.post('/api/jobs/retry-step')
+    async def api_jobs_retry_step(request: Request, job_id: int = Form(...), step_index: int = Form(...)):
+        try: _require_admin(request)
+        except Exception: return JSONResponse({'ok': False, 'error': 'unauthorized'}, status_code=401)
+        jb = get_job(CHAT_CONN, int(job_id))
+        if not jb: return JSONResponse({'ok': False, 'error': 'job not found'}, status_code=404)
+        try:
+            obj = json.loads(jb.get('result_json') or '{}')
+            stps = obj.get('steps', [])
+            st = stps[int(step_index)] if (isinstance(stps, list) and 0 <= int(step_index) < len(stps)) else None
+            if not st: return JSONResponse({'ok': False, 'error': 'step not found'}, status_code=404)
+            args_override = {'steps': [{ 'type': st.get('type', 'run'), 'args': st.get('args', {}) }]}
+            from datetime import datetime
+            run_at = datetime.utcnow().isoformat() + 'Z'
+            jid = schedule_job(CHAT_CONN, int(jb['workflow_id']), run_at, json.dumps(args_override, ensure_ascii=False))
+            return JSONResponse({'ok': True, 'job_id': jid, 'run_at': run_at})
+        except Exception as e:
+            return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
+
+    @app.get('/api/jobs/get')
+    async def api_jobs_get(job_id: int):
+        jb = get_job(CHAT_CONN, int(job_id))
+        if not jb: return JSONResponse({'ok': False, 'error': 'not found'}, status_code=404)
+        steps = []
+        try:
+            rj = jb.get('result_json')
+            obj = json.loads(rj) if rj else {}
+            steps = obj.get('steps', []) if isinstance(obj, dict) else []
+        except Exception:
+            steps = []
+        return JSONResponse({'ok': True, 'job': jb, 'steps': steps})
+
+    @app.get('/download')
+    async def download_file(path: str):
+        # 基础安全：限制在 BASE_DIR 内
+        p = os.path.abspath(os.path.join(BASE_DIR, path))
+        if not os.path.commonpath([p, BASE_DIR]) == os.path.commonpath([BASE_DIR]):
+            return PlainTextResponse('forbidden', status_code=403)
+        if not os.path.exists(p) or not os.path.isfile(p):
+            return PlainTextResponse('not found', status_code=404)
+        return FileResponse(p, filename=os.path.basename(p))
 
     @app.get("/run", response_class=HTMLResponse)
     async def run_form(request: Request):
@@ -610,6 +864,111 @@ def create_app() -> Any:
             opts_provider = [r[0] for r in conn.execute("SELECT DISTINCT provider FROM scores WHERE provider IS NOT NULL ORDER BY provider").fetchall()]
             conn.close()
         return templates.TemplateResponse("scores_partial.html", {"request": request, "total": total, "avg_score": avg_score, "pass_rate": pass_rate, "avg_latency": avg_latency, "p50": p50, "p95": p95, "rows": rows, "rows_model": rows_model if 'rows_model' in locals() else [], "rows_provider": rows_provider if 'rows_provider' in locals() else [], "opts_model": opts_model if 'opts_model' in locals() else [], "opts_provider": opts_provider if 'opts_provider' in locals() else [], "cur_model": model or "", "cur_provider": provider or ""})
+
+    # -----------------------------
+    # Workspace API (/api/ws/*)
+    # -----------------------------
+    def _ws_cfg():
+        cfg = load_config(None)
+        ws = cfg.get('workspace', {}) if isinstance(cfg.get('workspace', {}), dict) else {}
+        root = ws.get('root') or BASE_DIR
+        allow = ws.get('allow_suffixes') or ['.md', '.txt', '.json', '.yaml', '.yml', '.py', '.csv']
+        max_r_kb = int(ws.get('max_read_size_kb', 512))
+        max_w_kb = int(ws.get('max_write_size_kb', 512))
+        return root, [s.lower() for s in allow], max_r_kb, max_w_kb
+
+    def _safe_path(root: str, rel: str) -> str:
+        rel = rel or '.'
+        p = os.path.abspath(os.path.join(root, rel))
+        if not os.path.commonpath([p, root]) == os.path.commonpath([root]):
+            raise ValueError('path outside root')
+        return p
+
+    @app.get('/api/ws/ls')
+    async def api_ws_ls(path: str = '.'):
+        root, allow, _mr, _mw = _ws_cfg()
+        try:
+            p = _safe_path(root, path)
+            if not os.path.isdir(p):
+                return JSONResponse({'ok': False, 'error': 'not a directory'}, status_code=400)
+            items = os.listdir(p)
+            dirs = []
+            files = []
+            for name in sorted(items):
+                full = os.path.join(p, name)
+                if os.path.isdir(full):
+                    dirs.append(name)
+                else:
+                    ext = os.path.splitext(name)[1].lower()
+                    if ext in allow:
+                        try:
+                            st = os.stat(full)
+                            files.append({'name': name, 'size': st.st_size, 'mtime': __import__('datetime').datetime.utcfromtimestamp(st.st_mtime).isoformat()+'Z'})
+                        except Exception:
+                            files.append({'name': name})
+            rel = os.path.relpath(p, root)
+            if rel == '.': rel = ''
+            return JSONResponse({'ok': True, 'cwd': rel, 'dirs': dirs, 'files': files, 'root': root})
+        except Exception as e:
+            return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
+
+    @app.get('/api/ws/read')
+    async def api_ws_read(path: str):
+        root, allow, max_r_kb, _mw = _ws_cfg()
+        try:
+            p = _safe_path(root, path)
+            if not os.path.isfile(p):
+                return JSONResponse({'ok': False, 'error': 'not a file'}, status_code=400)
+            ext = os.path.splitext(p)[1].lower()
+            if ext not in allow:
+                return JSONResponse({'ok': False, 'error': 'suffix not allowed'}, status_code=400)
+            st = os.stat(p)
+            if st.st_size > max_r_kb * 1024:
+                return JSONResponse({'ok': False, 'error': f'file too large (> {max_r_kb} KB)'}, status_code=400)
+            with open(p, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+            return JSONResponse({'ok': True, 'path': path, 'content': content})
+        except Exception as e:
+            return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
+
+    @app.post('/api/ws/write')
+    async def api_ws_write(request: Request):
+        try: _require_admin(request)
+        except Exception:
+            return JSONResponse({'ok': False, 'error': 'unauthorized'}, status_code=401)
+        root, allow, _mr, max_w_kb = _ws_cfg()
+        form = await request.form()
+        path = str(form.get('path') or '')
+        content = str(form.get('content') or '')
+        try:
+            p = _safe_path(root, path)
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            ext = os.path.splitext(p)[1].lower()
+            if ext not in allow:
+                return JSONResponse({'ok': False, 'error': 'suffix not allowed'}, status_code=400)
+            if len(content.encode('utf-8')) > max_w_kb * 1024:
+                return JSONResponse({'ok': False, 'error': f'content too large (> {max_w_kb} KB)'}, status_code=400)
+            with open(p, 'w', encoding='utf-8') as f:
+                f.write(content)
+            # 审计
+            try:
+                from datetime import datetime as _dt
+                audit_dir = os.path.join(BASE_DIR, 'audit'); os.makedirs(audit_dir, exist_ok=True)
+                log_path = os.path.join(audit_dir, 'ws_writes.log')
+                rec = {
+                    'ts': _dt.utcnow().isoformat()+'Z',
+                    'path': os.path.relpath(p, root),
+                    'bytes': len(content.encode('utf-8')),
+                    'ip': getattr(request.client, 'host', None),
+                    'user': (request.headers.get('Authorization') or request.headers.get('authorization') or request.headers.get('x-admin-token') or '')[:128]
+                }
+                with open(log_path, 'a', encoding='utf-8') as af:
+                    af.write(json.dumps(rec, ensure_ascii=False) + '\n')
+            except Exception:
+                pass
+            return JSONResponse({'ok': True, 'path': path})
+        except Exception as e:
+            return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
 
     @app.get("/api/scores/group.csv")
     async def api_scores_group_csv(model: str | None = None, provider: str | None = None, window: str | None = None, group_by: str = "model"):

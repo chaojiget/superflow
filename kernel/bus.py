@@ -78,7 +78,7 @@ class OutboxBus:
         if labels is not None:
             ev["labels"] = labels
         if cost is not None:
-            ev["cost"] = float(cost)
+            ev["cost"] = cost
         self._validate_envelope(ev)
         self._events.append(ev)
 
@@ -161,7 +161,8 @@ class OutboxBus:
             if not isinstance(ev[k], t):
                 raise TypeError(f"Envelope 字段类型错误: {k}")
         optional = {
-            "budget_ctx": dict,
+            # budget_ctx 交由 JSON Schema 校验，以便在启用时抛出 jsonschema.ValidationError
+            # "budget_ctx": dict,
             "authz": dict,
             "labels": dict,
             "cost": (int, float),

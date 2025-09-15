@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Workflows</h2>
+<div style="margin:6px 0"><input id="wfToken" placeholder="Admin Token(可选)" style="max-width:240px"></div>
 <form method="post" action="/api/workflows" id="wfForm">
   <label>名称: <input name="name" required></label><br>
   <label>定义(JSON):<br>
@@ -21,7 +22,12 @@
   </tbody>
 </table>
 <script>
-const f=document.getElementById('wfForm'); const h=document.getElementById('wfHint');
-f.addEventListener('submit', async (e)=>{e.preventDefault(); const fd=new FormData(f); const r=await fetch(f.action,{method:'POST',body:fd}); const d=await r.json(); h.textContent=d.ok?'已保存 ID='+d.id:'保存失败';});
+const f=document.getElementById('wfForm'); const h=document.getElementById('wfHint'); const t=document.getElementById('wfToken');
+f.addEventListener('submit', async (e)=>{
+  e.preventDefault(); const fd=new FormData(f);
+  const headers={}; if(t.value) headers['X-Admin-Token']=t.value;
+  const r=await fetch(f.action,{method:'POST',body:fd, headers});
+  const d=await r.json(); h.textContent=d.ok?'已保存 ID='+d.id:'保存失败';
+});
 </script>
 {% endblock %}
