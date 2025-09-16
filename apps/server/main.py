@@ -13,7 +13,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import threading
 import uuid
 
@@ -210,6 +210,176 @@ def create_app() -> Any:
                 return json.load(f)
         except Exception:
             return None
+
+    def _list_episode_items(limit: int = 100) -> List[Dict[str, Any]]:
+        cfg = load_config(None)
+        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
+        items: List[Dict[str, Any]] = []
+        if backend == "sqlite":
+            import sqlite3
+
+            db = (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db")
+            if os.path.exists(db):
+                conn = sqlite3.connect(db)
+                rows = conn.execute(
+                    "SELECT trace_id, goal, status, created_ts, header_json, latency_ms FROM episodes ORDER BY created_ts DESC LIMIT ?",
+                    (int(limit),),
+                ).fetchall()
+                for tr, goal, st, ts, hj, lat in rows:
+                    provider = model = attempts = cost = None
+                    if hj:
+                        try:
+                            header_obj = json.loads(hj)
+                            provider = header_obj.get("provider")
+                            model = header_obj.get("model")
+                            attempts = header_obj.get("attempts")
+                            cost = header_obj.get("cost")
+                        except Exception:
+                            provider = model = attempts = cost = None
+                    items.append(
+                        {
+                            "trace_id": tr,
+                            "goal": goal,
+                            "status": st,
+                            "created_ts": ts,
+                            "provider": provider,
+                            "model": model,
+                            "attempts": attempts,
+                            "cost": cost,
+                            "latency_ms": lat,
+                        }
+                    )
+                conn.close()
+        else:
+            ep_dir = os.path.join(BASE_DIR, "episodes")
+            if os.path.isdir(ep_dir):
+                files = [f for f in os.listdir(ep_dir) if f.endswith(".json")]
+                files.sort(key=lambda f: os.path.getmtime(os.path.join(ep_dir, f)), reverse=True)
+                for f in files[: int(limit)]:
+                    p = os.path.join(ep_dir, f)
+                    try:
+                        with open(p, "r", encoding="utf-8") as fp:
+                            ep = json.load(fp)
+                        status = ep.get("status", "-")
+                        goal = ep.get("goal", "-")
+                        header = ep.get("header", {}) or {}
+                        provider = header.get("provider")
+                        model = header.get("model")
+                        attempts = header.get("attempts")
+                        cost = header.get("cost")
+                        latency_ms = ep.get("latency_ms")
+                    except Exception:
+                        status = "-"
+                        goal = "-"
+                        provider = model = attempts = cost = latency_ms = None
+                    created_ts = __import__("datetime").datetime.utcfromtimestamp(os.path.getmtime(p)).isoformat() + "Z"
+                    items.append(
+                        {
+                            "trace_id": f[:-5],
+                            "goal": goal,
+                            "status": status,
+                            "created_ts": created_ts,
+                            "provider": provider,
+                            "model": model,
+                            "attempts": attempts,
+                            "cost": cost,
+                            "latency_ms": latency_ms,
+                        }
+                    )
+        return items
+
+    def _load_episode_detail_info(trace_id: str) -> Optional[Dict[str, Any]]:
+        cfg = load_config(None)
+        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
+        if backend == "sqlite":
+            import sqlite3
+
+            db = (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db")
+            if not os.path.exists(db):
+                return None
+            conn = sqlite3.connect(db)
+            row = conn.execute(
+                "SELECT goal, status, latency_ms, header_json, sense_json, plan_json, artifacts_json, created_ts FROM episodes WHERE trace_id=?",
+                (trace_id,),
+            ).fetchone()
+            if not row:
+                conn.close()
+                return None
+            events_rows = conn.execute(
+                "SELECT ts, type, payload_json FROM events WHERE trace_id=? ORDER BY id ASC",
+                (trace_id,),
+            ).fetchall()
+            conn.close()
+            header = {}
+            sense = plan = artifacts = None
+            try:
+                header = json.loads(row[3]) if row[3] else {}
+            except Exception:
+                header = {}
+            try:
+                sense = json.loads(row[4]) if row[4] else None
+            except Exception:
+                sense = None
+            try:
+                plan = json.loads(row[5]) if row[5] else None
+            except Exception:
+                plan = None
+            try:
+                artifacts = json.loads(row[6]) if row[6] else None
+            except Exception:
+                artifacts = None
+            events: List[Dict[str, Any]] = []
+            review = None
+            for ts, tp, pj in events_rows:
+                try:
+                    payload = json.loads(pj)
+                except Exception:
+                    payload = {}
+                events.append({"ts": ts, "type": tp, "payload": payload})
+                if tp == "review.scored":
+                    review = payload
+            return {
+                "trace_id": trace_id,
+                "goal": row[0],
+                "status": row[1],
+                "latency_ms": row[2],
+                "header": header,
+                "sense": sense,
+                "plan": plan,
+                "artifacts": artifacts,
+                "events": events,
+                "review": review,
+                "created_ts": row[7],
+            }
+        path = os.path.join(BASE_DIR, "episodes", f"{trace_id}.json")
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, "r", encoding="utf-8") as fp:
+                ep = json.load(fp)
+        except Exception:
+            return None
+        events = ep.get("events", [])
+        review = None
+        if isinstance(events, list):
+            for ev in events:
+                if isinstance(ev, dict) and ev.get("type") == "review.scored":
+                    review = ev.get("payload")
+                    break
+        created_ts = __import__("datetime").datetime.utcfromtimestamp(os.path.getmtime(path)).isoformat() + "Z"
+        return {
+            "trace_id": trace_id,
+            "goal": ep.get("goal"),
+            "status": ep.get("status"),
+            "latency_ms": ep.get("latency_ms"),
+            "header": ep.get("header", {}),
+            "sense": ep.get("sense"),
+            "plan": ep.get("plan"),
+            "artifacts": ep.get("artifacts", {}),
+            "events": events,
+            "review": review,
+            "created_ts": created_ts,
+        }
 
     # Chat DB
     from .chat_db import init_db, append_message, get_history, clear_session, upsert_workflow, list_workflows, get_workflow, schedule_job, list_jobs, due_jobs, mark_job_result, get_job  # type: ignore
@@ -509,6 +679,40 @@ def create_app() -> Any:
                 opts[opt_key] = body.get(opt_key)
         job_id = _enqueue_job(opts)
         return JSONResponse({'ok': True, 'job_id': job_id, 'out_path': out_path})
+
+    @app.post('/agent/approve')
+    async def agent_approve(request: Request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        decision = str(body.get('decision') or '')
+        job_ref = body.get('job_id')
+        trace_ref = body.get('trace_id')
+        note = body.get('note')
+        record = {
+            'ts': datetime.utcnow().isoformat() + 'Z',
+            'decision': decision,
+            'job_id': str(job_ref) if job_ref is not None else None,
+            'trace_id': str(trace_ref) if trace_ref is not None else None,
+            'note': note,
+        }
+        jid = record['job_id']
+        if jid:
+            job = JOBS.get(jid)
+            if isinstance(job, dict):
+                approvals = job.setdefault('approvals', [])
+                if isinstance(approvals, list):
+                    approvals.append(record)
+        try:
+            audit_dir = os.path.join(BASE_DIR, 'audit')
+            os.makedirs(audit_dir, exist_ok=True)
+            log_path = os.path.join(audit_dir, 'approvals.log')
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(record, ensure_ascii=False) + '\n')
+        except Exception:
+            pass
+        return JSONResponse({'ok': True, 'record': record})
 
     @app.post('/api/config/rollback')
     async def api_config_rollback(request: Request):
@@ -1072,91 +1276,36 @@ def create_app() -> Any:
 
     @app.get("/episodes", response_class=HTMLResponse)
     async def episodes(request: Request):
-        cfg = load_config(None)
-        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
-        items = []
-        if backend == "sqlite":
-            import sqlite3
-            db = (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db")
-            if os.path.exists(db):
-                conn = sqlite3.connect(db)
-                rows = conn.execute("SELECT trace_id, goal, status, created_ts, header_json FROM episodes ORDER BY created_ts DESC LIMIT 100").fetchall()
-                items = []
-                for tr, goal, st, ts, hj in rows:
-                    provider = model = attempts = cost = None
-                    if hj:
-                        try:
-                            h = json.loads(hj)
-                            provider = h.get('provider')
-                            model = h.get('model')
-                            attempts = h.get('attempts')
-                            cost = h.get('cost')
-                        except Exception:
-                            pass
-                    items.append({"trace_id": tr, "goal": goal, "status": st, "created_ts": ts, "provider": provider, "model": model, "attempts": attempts, "cost": cost})
-                conn.close()
-        else:
-            ep_dir = os.path.join(BASE_DIR, "episodes")
-            if os.path.isdir(ep_dir):
-                files = [f for f in os.listdir(ep_dir) if f.endswith(".json")]
-                files.sort(key=lambda f: os.path.getmtime(os.path.join(ep_dir, f)), reverse=True)
-                items = []
-                for f in files[:100]:
-                    p = os.path.join(ep_dir, f)
-                    try:
-                        ep = json.load(open(p, "r", encoding="utf-8"))
-                        status = ep.get("status", "-")
-                        header = ep.get("header", {}) or {}
-                        provider = header.get("provider")
-                        model = header.get("model")
-                        attempts = header.get("attempts")
-                        cost = header.get("cost")
-                        goal = ep.get("goal", "-")
-                    except Exception:
-                        status = "-"; provider = model = attempts = cost = goal = None
-                    created_ts = __import__('datetime').datetime.utcfromtimestamp(os.path.getmtime(p)).isoformat() + 'Z'
-                    items.append({"trace_id": f[:-5], "status": status, "created_ts": created_ts, "goal": goal or '-', "provider": provider, "model": model, "attempts": attempts, "cost": cost})
+        items = _list_episode_items(100)
         return templates.TemplateResponse("episodes.html", {"request": request, "items": items})
 
     @app.get("/episodes/{trace_id}", response_class=HTMLResponse)
     async def episode_detail(request: Request, trace_id: str):
-        cfg = load_config(None)
-        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
-        events = []
-        review = None
-        header = {}
-        if backend == "sqlite":
-            import sqlite3
-            db = (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db")
-            if os.path.exists(db):
-                conn = sqlite3.connect(db)
-                # header
-                rowh = conn.execute("SELECT header_json FROM episodes WHERE trace_id=?", (trace_id,)).fetchone()
-                if rowh and rowh[0]:
-                    try:
-                        header = json.loads(rowh[0])
-                    except Exception:
-                        header = {}
-                rows = conn.execute("SELECT ts, type, payload_json FROM events WHERE trace_id=? ORDER BY id ASC", (trace_id,)).fetchall()
-                for ts, tp, pj in rows:
-                    try:
-                        payload = json.loads(pj)
-                    except Exception:
-                        payload = {}
-                    events.append({"ts": ts, "type": tp, "payload": payload})
-                    if tp == "review.scored":
-                        review = payload
-                conn.close()
-        else:
-            path = os.path.join(BASE_DIR, "episodes", f"{trace_id}.json")
-            if os.path.exists(path):
-                ep = json.load(open(path, "r", encoding="utf-8"))
-                header = ep.get("header", {}) or {}
-                for ev in ep.get("events", []):
-                    events.append({"ts": ev.get("ts"), "type": ev.get("type"), "payload": ev.get("payload", {})})
-                    if ev.get("type") == "review.scored":
-                        review = ev.get("payload")
-        return templates.TemplateResponse("episode_detail.html", {"request": request, "trace_id": trace_id, "events": events, "review": review, "header": header})
+        detail = _load_episode_detail_info(trace_id)
+        if not detail:
+            detail = {"events": [], "review": None, "header": {}}
+        return templates.TemplateResponse(
+            "episode_detail.html",
+            {
+                "request": request,
+                "trace_id": trace_id,
+                "events": detail.get("events", []),
+                "review": detail.get("review"),
+                "header": detail.get("header", {}),
+            },
+        )
+
+    @app.get("/api/episodes")
+    async def api_episodes(limit: int = 20):
+        items = _list_episode_items(int(limit))
+        return JSONResponse({"ok": True, "items": items})
+
+    @app.get("/api/episodes/{trace_id}")
+    async def api_episode_detail(trace_id: str):
+        detail = _load_episode_detail_info(trace_id)
+        if not detail:
+            return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+        return JSONResponse({"ok": True, "episode": detail})
 
     @app.post("/api/replay")
     async def api_replay(request: Request, trace_id: str = Form(...)):
@@ -1286,35 +1435,16 @@ def create_app() -> Any:
 
     @app.get("/embed/episodes", response_class=HTMLResponse)
     async def embed_episodes(request: Request):
-        # 复用 /episodes 数据
-        response = await episodes(request)  # type: ignore
-        # 模板中 include episodes.html，所以仅需要重渲染容器模板
-        cfg = load_config(None)
-        backend = (cfg.get("outbox", {}) or {}).get("backend", "json")
-        items = []
-        if backend == "sqlite":
-            import sqlite3
-            db = (cfg.get("outbox", {}) or {}).get("sqlite_path", "episodes.db")
-            if os.path.exists(db):
-                conn = sqlite3.connect(db)
-                rows = conn.execute("SELECT trace_id, goal, status, created_ts FROM episodes ORDER BY created_ts DESC LIMIT 100").fetchall()
-                items = [{"trace_id": tr, "goal": goal, "status": st, "created_ts": ts} for tr, goal, st, ts in rows]
-                conn.close()
-        else:
-            ep_dir = os.path.join(BASE_DIR, "episodes")
-            if os.path.isdir(ep_dir):
-                files = [f for f in os.listdir(ep_dir) if f.endswith(".json")]
-                files.sort(key=lambda f: os.path.getmtime(os.path.join(ep_dir, f)), reverse=True)
-                for f in files[:100]:
-                    p = os.path.join(ep_dir, f)
-                    try:
-                        ep = json.load(open(p, "r", encoding="utf-8"))
-                        status = ep.get("status", "-")
-                        goal = ep.get("goal", "-")
-                    except Exception:
-                        status = goal = "-"
-                    created_ts = __import__('datetime').datetime.utcfromtimestamp(os.path.getmtime(p)).isoformat() + 'Z'
-                    items.append({"trace_id": f[:-5], "status": status, "created_ts": created_ts, "goal": goal})
+        items_full = _list_episode_items(100)
+        items = [
+            {
+                "trace_id": it.get("trace_id"),
+                "goal": it.get("goal"),
+                "status": it.get("status"),
+                "created_ts": it.get("created_ts"),
+            }
+            for it in items_full
+        ]
         return templates.TemplateResponse("episodes_partial.html", {"request": request, "items": items})
 
     @app.get("/embed/scores", response_class=HTMLResponse)

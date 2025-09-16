@@ -9,15 +9,59 @@
   <span id="chatSpin" class="spinner" style="display:none"></span>
 </div>
 
-<div id="chatPane">
-  <div id="chatBox" class="chat-box"></div>
-  <form id="chatForm" class="sticky-input" method="post" action="/api/chat/send">
-    <input type="hidden" name="session" id="chatSession">
-    <input name="text" style="width:70%" placeholder="请输入需求…"> <button type="submit">发送</button>
-    <div class="hint" style="margin-top:4px">提示：描述你的需求可生成 SRS 草稿或运行建议。点击右上“工作区”可浏览/编辑文件并插入到对话。</div>
-  </form>
-  <div id="actionBox" class="card" style="margin-top:8px"></div>
-  <div id="toolsPanel" class="card" style="margin-top:8px; display:none"></div>
+<div class="chat-layout" id="chatLayout">
+  <div class="chat-main">
+    <div id="chatBox" class="chat-box"></div>
+    <form id="chatForm" class="sticky-input" method="post" action="/api/chat/send">
+      <input type="hidden" name="session" id="chatSession">
+      <input name="text" style="width:70%" placeholder="请输入需求…"> <button type="submit">发送</button>
+      <div class="hint" style="margin-top:4px">提示：描述你的需求可生成 SRS 草稿或运行建议。点击右上“工作区”可浏览/编辑文件并插入到对话。</div>
+    </form>
+    <div id="actionBox" class="card"></div>
+    <div id="toolsPanel" class="card" style="display:none"></div>
+  </div>
+  <aside class="task-sidebar">
+    <div class="card" id="taskPanel">
+      <div class="task-panel-header">
+        <h3>任务列表</h3>
+        <button id="refreshTasks" class="btn ghost small">刷新</button>
+      </div>
+      <div class="hint">实时关注最小闭环的执行状态与审批请求。</div>
+      <div id="budgetBanner" class="budget-banner">
+        <div class="budget-title">预算提示</div>
+        <div id="budgetMessage"></div>
+        <div id="budgetPayload" class="budget-meta"></div>
+        <div style="margin-top:6px; display:flex; justify-content:flex-end">
+          <button id="budgetDismiss" class="btn ghost small">知道了</button>
+        </div>
+      </div>
+      <div class="task-group" data-group="running">
+        <div class="task-group-header">进行中</div>
+        <div class="task-list" id="taskListRunning"></div>
+        <div class="task-empty" id="taskEmptyRunning">暂无进行中任务</div>
+      </div>
+      <div class="task-group" data-group="approval">
+        <div class="task-group-header">待审批</div>
+        <div class="task-list" id="taskListApproval"></div>
+        <div class="task-empty" id="taskEmptyApproval">暂无审批任务</div>
+      </div>
+      <div class="task-group" data-group="done">
+        <div class="task-group-header">已完成</div>
+        <div class="task-list" id="taskListDone"></div>
+        <div class="task-empty" id="taskEmptyDone">暂无历史记录</div>
+      </div>
+    </div>
+    <div class="card" id="taskDetailCard" style="display:none">
+      <div class="task-detail-header">
+        <div>
+          <div id="taskDetailTitle">Episode</div>
+          <div class="hint" id="taskDetailSubtitle"></div>
+        </div>
+        <button id="taskDetailClose" class="btn ghost small">关闭</button>
+      </div>
+      <div id="taskDetailBody" class="task-detail-body"></div>
+    </div>
+  </aside>
 </div>
 
 <!-- 工作区抽屉 -->
@@ -45,213 +89,26 @@
     </div>
   </div>
 </div>
-<script>
-const box = document.getElementById('chatBox');
-const form = document.getElementById('chatForm');
-const sess = document.getElementById('chatSession');
-const hint = document.getElementById('chatHint');
-const spin = document.getElementById('chatSpin');
-const actionBox = document.getElementById('actionBox');
-const wsTree = document.getElementById('wsTree');
-const wsCwd = document.getElementById('wsCwd');
-const wsPreviewWrap = document.getElementById('wsPreviewWrap');
-const wsSel = document.getElementById('wsSel');
-const wsContent = document.getElementById('wsContent');
-const wsHint = document.getElementById('wsHint');
-const wsToken = document.getElementById('wsToken');
-const wsDrawer = document.getElementById('wsDrawer');
-const btnWs = document.getElementById('btnWs');
-const btnTools = document.getElementById('btnTools');
-const btnCloseWs = document.getElementById('btnCloseWs');
-const wsBackdrop = wsDrawer?.querySelector('.backdrop');
-if(!sess.value){ sess.value = 's-'+Math.random().toString(16).slice(2,10); }
 
-// Chat 区域
-function fmtTime(){ const d = new Date(); return d.toTimeString().slice(0,5); }
-function append(role, text){
-  const me = role === '你' || role === 'user';
-  const wrap = document.createElement('div');
-  wrap.className = 'msg'+(me?' user':'');
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble';
-  bubble.innerHTML = (me?'<b>你</b>':'<b>助手</b>') + ' · <span class="meta">'+fmtTime()+'</span><br>' + String(text).replace(/\n/g,'<br>');
-  wrap.appendChild(bubble);
-  box.appendChild(wrap); box.scrollTop = box.scrollHeight;
-}
-async function loadHistory(){
-  const resp = await fetch('/api/chat/history?session='+encodeURIComponent(sess.value));
-  const data = await resp.json();
-  if(data.ok){
-    box.innerHTML='';
-    for(const m of data.history){ append(m.role==='user'?'你':'助手', m.content); }
-  }
-}
-form.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const fd = new FormData(form);
-  const text = fd.get('text');
-  if(!text) return;
-  append('你', String(text));
-  form.text.value=''; hint.textContent='思考中…'; if(spin) spin.style.display='inline-block';
-  const resp = await fetch(form.action, {method:'POST', body:fd});
-  const data = await resp.json();
-  hint.textContent=''; if(spin) spin.style.display='none';
-  if(data.ok){ append('助手', data.reply); }
-  else{ append('系统', '发送失败'); }
-  // 渲染 action 卡片
-  actionBox.innerHTML='';
-  if(data.action && data.action.type==='run'){
-    const args = data.action.args || {};
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = '<b>执行建议</b> — type=run' +
-      '<div>args: <pre>'+JSON.stringify(args,null,2)+'</pre></div>' +
-      (data.srs_path?('<div>SRS 已保存: '+data.srs_path+'</div>'):'') +
-      '<button id="btnRunNow">立即运行</button> <button id="btnEditRun">编辑并运行</button>';
-    actionBox.appendChild(div);
-    const btn = div.querySelector('#btnRunNow');
-    btn.addEventListener('click', async ()=>{
-      const fd2 = new FormData();
-      fd2.append('srs_path', args.srs_path || 'examples/srs/weekly_report.json');
-      fd2.append('data_path', args.data_path || 'examples/data/weekly.csv');
-      fd2.append('out_path', args.out || 'reports/weekly_report.md');
-      fd2.append('planner', args.planner || 'llm');
-      fd2.append('executor', args.executor || 'llm');
-      fd2.append('critic', args.critic || 'llm');
-      fd2.append('reviser', args.reviser || 'llm');
-      if(args.provider) fd2.append('provider', args.provider);
-      hint.textContent='开始执行…';
-      const r2 = await fetch('/api/run', {method:'POST', body:fd2});
-      const j2 = await r2.json();
-      hint.textContent = j2.ok ? ('已提交，job='+ (j2.job_id||'')) : '提交失败';
-    });
-    const btnEdit = div.querySelector('#btnEditRun');
-    btnEdit.addEventListener('click', ()=>{
-      try{ localStorage.setItem('runArgs', JSON.stringify(args)); }catch(e){}
-      location.href = '/?tab=run';
-    });
-  }
-});
+<!-- 审批弹窗 -->
+<div class="modal" id="approvalModal" aria-hidden="true">
+  <div class="modal-backdrop"></div>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <span>审批请求</span>
+      <button id="approvalClose" class="btn ghost small">关闭</button>
+    </div>
+    <div class="modal-body">
+      <div id="approvalMessage"></div>
+      <pre id="approvalPayload" style="display:none"></pre>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" data-action="reject">终止任务</button>
+      <button class="btn ghost" data-action="downgrade">降级执行</button>
+      <button class="btn" data-action="approve">继续执行</button>
+    </div>
+  </div>
+</div>
 
-// Workspace 区域
-async function wsLs(path){
-  const r = await fetch('/api/ws/ls?path='+encodeURIComponent(path||'.'));
-  return await r.json();
-}
-async function wsRead(path){
-  const r = await fetch('/api/ws/read?path='+encodeURIComponent(path));
-  return await r.json();
-}
-async function wsWrite(path, content){
-  const fd = new FormData(); fd.append('path', path); fd.append('content', content);
-  const headers = {};
-  if(wsToken.value){ headers['X-Admin-Token'] = wsToken.value; }
-  const r = await fetch('/api/ws/write', {method:'POST', body:fd, headers});
-  return await r.json();
-}
-function renderTree(cwd, dirs, files){
-  wsCwd.textContent = cwd || '/';
-  const ul = document.createElement('ul'); ul.style.listStyle='none'; ul.style.paddingLeft='0';
-  const up = document.createElement('li');
-  up.innerHTML = '<a href="#">..</a>';
-  up.addEventListener('click', (e)=>{ e.preventDefault(); const parent = cwd? cwd.split('/').slice(0,-1).join('/') : ''; loadDir(parent); });
-  ul.appendChild(up);
-  for(const d of dirs){
-    const li = document.createElement('li'); li.innerHTML = '📁 <a href="#">'+d+'</a>';
-    li.querySelector('a').addEventListener('click', (e)=>{ e.preventDefault(); loadDir((cwd?cwd+'/':'')+d); });
-    ul.appendChild(li);
-  }
-  for(const f of files){
-    const li = document.createElement('li'); li.innerHTML = '📄 <a href="#">'+f.name+'</a> <span style="color:#999; font-size:12px">('+ (f.size||'') +')</span>';
-    li.querySelector('a').addEventListener('click', async (e)=>{ e.preventDefault(); const rel = (cwd?cwd+'/':'')+f.name; const j = await wsRead(rel); if(j.ok){ wsPreviewWrap.style.display='block'; wsSel.textContent = rel; wsContent.value = j.content; wsHint.textContent=''; } else { wsHint.textContent = j.error||'读取失败'; }});
-    ul.appendChild(li);
-  }
-  wsTree.innerHTML=''; wsTree.appendChild(ul);
-}
-async function loadDir(path){
-  const j = await wsLs(path||'.');
-  if(j.ok){ renderTree(j.cwd, j.dirs||[], j.files||[]); }
-}
-document.getElementById('btnInsert')?.addEventListener('click', ()=>{
-  if(!wsSel.textContent) return;
-  const text = '请参考文件 '+wsSel.textContent+" 的内容：\n\n```\n"+wsContent.value+"\n```\n";
-  form.text.value = text;
-});
-document.getElementById('btnSave')?.addEventListener('click', async ()=>{
-  const p = wsSel.textContent; if(!p) return;
-  wsHint.textContent = '保存中…';
-  const j = await wsWrite(p, wsContent.value);
-  wsHint.textContent = j.ok ? '已保存' : ('保存失败: '+(j.error||''));
-  setTimeout(()=>{ wsHint.textContent=''; }, 2000);
-});
-
-// Drawer 交互
-function openWs(){ wsDrawer?.classList.add('open'); }
-function closeWs(){ wsDrawer?.classList.remove('open'); }
-btnWs?.addEventListener('click', openWs);
-btnCloseWs?.addEventListener('click', closeWs);
-wsBackdrop?.addEventListener('click', closeWs);
-
-// 首次加载
-loadHistory();
-loadDir('examples');
-
-// 工具面板
-async function loadTools(server){
-  const resp = await fetch('/api/mcp/tools?server='+(server||'api'));
-  const j = await resp.json();
-  const panel = document.getElementById('toolsPanel');
-  if(!panel) return;
-  if(!j.ok){ panel.style.display='block'; panel.innerHTML = '<b>工具</b><div class="hint">加载失败: '+(j.error||'')+'</div>'; return; }
-  const serverId = j.server || 'api';
-  let html = '<div style="display:flex;gap:8px;align-items:center"><b>工具</b><label>server:</label><input id="toolServer" value="'+serverId+'" style="width:120px"></div>';
-  if(!j.tools || !j.tools.length){ html += '<div class="hint">无可用工具</div>'; panel.innerHTML = html; panel.style.display='block'; return; }
-  html += '<div style="margin-top:6px">';
-  for(const t of j.tools){
-    const dn = (t.name||'');
-    const desc = (t.description||'');
-    html += '<div style="border-top:1px solid #eee; padding:6px 0">'
-      + '<div><b>'+dn+'</b></div>'
-      + (desc?('<div class="hint">'+desc+'</div>'):'')
-      + '<div style="display:flex;gap:6px;align-items:center;margin-top:4px">'
-      + '<span class="hint">args(JSON):</span>'
-      + '<input id="arg_'+dn+'" style="flex:1" value="{}">'
-      + '<button data-tool="'+dn+'">调用</button>'
-      + '</div>'
-      + '</div>';
-  }
-  html += '</div>';
-  panel.innerHTML = html; panel.style.display='block';
-  panel.querySelectorAll('button[data-tool]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const tool = btn.getAttribute('data-tool');
-      const server = document.getElementById('toolServer').value || 'api';
-      const argInput = document.getElementById('arg_'+tool);
-      let argsJson = '{}';
-      try{ argsJson = argInput.value || '{}'; }catch(e){}
-      const fd = new FormData(); fd.append('server', server); fd.append('tool', tool); fd.append('args_json', argsJson);
-      hint.textContent='执行 '+tool+'…'; if(spin) spin.style.display='inline-block';
-      try{
-        const resp2 = await fetch('/api/mcp/call', {method:'POST', body: fd});
-        const j2 = await resp2.json();
-        if(j2.ok){
-          const res = j2.result || {}; const txt = res.text || (res.structured?JSON.stringify(res.structured):'');
-          append('助手', '[MCP '+server+'.'+tool+']\n'+(txt||'<no result>'));
-        } else {
-          append('系统', '调用失败: '+(j2.error||''));
-        }
-      }catch(e){
-        append('系统', '调用失败: '+String(e));
-      } finally {
-        hint.textContent=''; if(spin) spin.style.display='none';
-      }
-    });
-  });
-}
-btnTools?.addEventListener('click', ()=>{
-  const panel = document.getElementById('toolsPanel');
-  if(panel.style.display==='none'){ loadTools('api'); }
-  else { panel.style.display='none'; }
-});
-</script>
+<script type="module" src="{{ url_for('static', path='chat/index.js') }}"></script>
 {% endblock %}
