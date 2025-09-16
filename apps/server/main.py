@@ -13,7 +13,7 @@ import asyncio
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 import threading
 import uuid
 
@@ -27,7 +27,11 @@ except Exception as e:  # pragma: no cover
     # 占位，避免导入失败影响其它模块
     FastAPI = None  # type: ignore
 
+from packages.agents.rue_parser import RueParseError, RueParser
+
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+_RUE_PARSER = RueParser()
 
 
 def load_config(path: str | None = None) -> Dict[str, Any]:
@@ -157,6 +161,89 @@ def create_app() -> Any:
         with open(abs_path, "w", encoding="utf-8") as f:
             json.dump(srs, f, ensure_ascii=False, indent=2)
         return os.path.relpath(abs_path, BASE_DIR)
+
+    def _safe_float(val: Any) -> Optional[float]:
+        if val is None:
+            return None
+        if isinstance(val, (int, float)):
+            return float(val)
+        if isinstance(val, str):
+            text = val.strip()
+            if not text:
+                return None
+            try:
+                return float(text)
+            except ValueError:
+                return None
+        return None
+
+    def _sanitize_overrides(body: Dict[str, Any]) -> Dict[str, Any]:
+        overrides: Dict[str, Any] = {}
+        constraints = body.get("constraints")
+        if isinstance(constraints, list):
+            overrides["constraints"] = [str(item) for item in constraints if isinstance(item, (str, int, float)) and str(item).strip()]
+        params = body.get("params")
+        if isinstance(params, dict):
+            overrides["params"] = dict(params)
+        acceptance = body.get("acceptance")
+        if isinstance(acceptance, list):
+            cleaned: List[Dict[str, Any]] = []
+            for item in acceptance:
+                if not isinstance(item, dict):
+                    continue
+                if not any(item.get(key) for key in ("then", "id", "given", "when")):
+                    continue
+                cleaned_item: Dict[str, Any] = {}
+                for key in ("id", "given", "when", "then"):
+                    if key in item:
+                        cleaned_item[key] = item[key]
+                cleaned.append(cleaned_item)
+            if cleaned:
+                overrides["acceptance"] = cleaned
+        inputs = body.get("inputs")
+        if isinstance(inputs, dict):
+            overrides["inputs"] = dict(inputs)
+        goal = body.get("goal")
+        if isinstance(goal, str) and goal.strip():
+            overrides["goal"] = goal.strip()
+        for key in ("budget_usd", "budget", "budget_cny"):
+            if body.get(key) is not None:
+                overrides[key] = body.get(key)
+        return overrides
+
+    def _merge_overrides(srs: Dict[str, Any], overrides: Dict[str, Any]) -> None:
+        if not overrides:
+            return
+        if "constraints" in overrides:
+            existing = [str(item) for item in srs.get("constraints", []) if isinstance(item, (str, int, float))]
+            for item in overrides.get("constraints", []):
+                text = str(item).strip()
+                if text and text not in existing:
+                    existing.append(text)
+            srs["constraints"] = existing
+        if "params" in overrides:
+            params = dict(srs.get("params", {}))
+            params.update(overrides["params"])
+            srs["params"] = params
+        if "acceptance" in overrides:
+            acc = list(srs.get("acceptance", []))
+            for item in overrides.get("acceptance", []):
+                if isinstance(item, dict):
+                    acc.append(item)
+            srs["acceptance"] = acc
+        if "inputs" in overrides:
+            inputs = dict(srs.get("inputs", {}))
+            inputs.update({k: v for k, v in overrides.get("inputs", {}).items() if v is not None})
+            srs["inputs"] = inputs
+        usd_val = _safe_float(overrides.get("budget_usd"))
+        if usd_val is None:
+            usd_val = _safe_float(overrides.get("budget"))
+        if usd_val is not None:
+            srs["budget_usd"] = float(usd_val)
+        else:
+            cny_val = _safe_float(overrides.get("budget_cny"))
+            if cny_val is not None:
+                srs["budget_usd"] = round(cny_val * _RUE_PARSER.cny_to_usd_rate, 4)
 
     def _build_min_loop_cmd(opts: Dict[str, Any]) -> List[str]:
         import sys as _sys
@@ -448,26 +535,36 @@ def create_app() -> Any:
         except Exception:
             return JSONResponse({'ok': False, 'error': 'invalid_json'}, status_code=400)
         query = str(body.get('query') or '').strip()
+        if not query:
+            return JSONResponse(
+                {'ok': False, 'error': 'need_more_info', 'message': '请提供任务需求描述。', 'missing': ['query']},
+                status_code=400,
+            )
         data_path = body.get('data_path') or body.get('csv_path')
         if isinstance(body.get('inputs'), dict):
             data_path = body['inputs'].get('csv_path', data_path)
         if not data_path:
             data_path = 'examples/data/weekly.csv'
-        srs = _default_srs(query, data_path)
-        if isinstance(body.get('constraints'), list):
-            vals = [str(x) for x in body['constraints'] if isinstance(x, str)]
-            if vals:
-                srs['constraints'] = vals
-        if isinstance(body.get('params'), dict):
-            srs.setdefault('params', {}).update(body['params'])
-        if isinstance(body.get('acceptance'), list):
-            srs['acceptance'] = body['acceptance']
-        budget = body.get('budget_cny') or body.get('budget_usd')
-        if budget is not None:
-            try:
-                srs['budget_usd'] = float(budget)
-            except Exception:
-                pass
+        overrides = _sanitize_overrides(body)
+        parser_info: Dict[str, Any] = {'source': 'fallback'}
+        spec = None
+        try:
+            spec = _RUE_PARSER.parse(query, data_path=data_path, overrides=dict(overrides))
+            parser_info['source'] = 'rue'
+            if spec.metadata:
+                parser_info['metadata'] = dict(spec.metadata)
+        except RueParseError as exc:
+            if exc.kind == 'insufficient':
+                message = str(exc) or '信息不足'
+                return JSONResponse({'ok': False, 'error': 'need_more_info', 'message': message, 'missing': exc.missing}, status_code=400)
+            parser_info['metadata'] = {'error': str(exc)}
+        except Exception as exc:  # pragma: no cover - 防御
+            parser_info['metadata'] = {'error': str(exc)}
+        if spec is not None:
+            srs = spec.to_dict()
+        else:
+            srs = _default_srs(query, data_path)
+            _merge_overrides(srs, overrides)
         srs_path = _save_srs(srs)
         out_path = body.get('out_path') or f"reports/{os.path.splitext(os.path.basename(srs_path))[0]}.md"
         run_args: Dict[str, Any] = {
@@ -482,7 +579,9 @@ def create_app() -> Any:
         for opt_key in ['provider', 'temp_planner', 'temp_executor', 'temp_critic', 'temp_reviser', 'retries', 'max_rows']:
             if body.get(opt_key) is not None:
                 run_args[opt_key] = body.get(opt_key)
-        return JSONResponse({'ok': True, 'srs_path': srs_path, 'srs': srs, 'run': run_args})
+        if not parser_info.get('metadata'):
+            parser_info.pop('metadata', None)
+        return JSONResponse({'ok': True, 'spec_source': parser_info.get('source', 'fallback'), 'parser': parser_info, 'srs_path': srs_path, 'srs': srs, 'run': run_args})
 
     @app.post('/agent/run')
     async def agent_run(request: Request):
