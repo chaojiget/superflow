@@ -493,6 +493,8 @@ export class TaskManager {
   }
 
   _handleFinal(task, msg) {
+    if (!task) return;
+    const oldId = task.id;
     task.status = 'done';
     const traceId = msg.trace_id || (msg.result && msg.result.trace_id) || task.traceId;
     if (traceId) {
@@ -501,6 +503,15 @@ export class TaskManager {
         this.tasks.delete(task.id);
         task.id = newId;
         this.tasks.set(newId, task);
+        if (task.element) {
+          task.element.dataset.taskId = newId;
+        }
+        if (this.detail && this.detail.currentId === oldId) {
+          this.detail.currentId = newId;
+        }
+        if (this.budget && this.budget.currentTaskId === oldId) {
+          this.budget.currentTaskId = newId;
+        }
       }
       task.traceId = traceId;
     }
@@ -515,7 +526,7 @@ export class TaskManager {
     this.hideBudgetNotice();
     this._setTaskGroup(task, 'done');
     this._updateTaskElement(task);
-    if (this.detail.currentId === task.id) {
+    if (this.detail && this.detail.currentId === task.id) {
       this._fetchEpisodeDetail(task);
     }
   }
