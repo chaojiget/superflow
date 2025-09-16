@@ -8,6 +8,7 @@ SPEC:
 
 from __future__ import annotations
 
+import json
 import os
 import sqlite3
 from datetime import datetime
@@ -27,6 +28,21 @@ CREATE TABLE IF NOT EXISTS messages (
   role TEXT,
   content TEXT,
   action_json TEXT
+);
+CREATE TABLE IF NOT EXISTS approvals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  trace_id TEXT,
+  session_id TEXT,
+  action TEXT,
+  decision TEXT,
+  payload_json TEXT,
+  created_ts TEXT,
+  resolved_ts TEXT
+);
+CREATE TABLE IF NOT EXISTS task_stack (
+  session_id TEXT PRIMARY KEY,
+  stack_json TEXT,
+  updated_ts TEXT
 );
 CREATE TABLE IF NOT EXISTS workflows (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -151,3 +167,123 @@ def get_job(conn: sqlite3.Connection, job_id: int) -> Optional[Dict[str, Any]]:
         "result_json": row[5],
         "created_ts": row[6],
     }
+
+
+# Approvals -----------------------------------------------------------------
+def log_approval(
+    conn: sqlite3.Connection,
+    trace_id: str,
+    decision: str,
+    *,
+    action: Optional[str] = None,
+    session_id: Optional[str] = None,
+    payload: Optional[Dict[str, Any]] = None,
+    resolved: bool = True,
+) -> int:
+    """记录一次审批动作，返回审批记录 ID。"""
+
+    now = datetime.utcnow().isoformat() + "Z"
+    payload_json = json.dumps(payload, ensure_ascii=False) if payload is not None else None
+    resolved_ts = now if resolved else None
+    cur = conn.execute(
+        "INSERT INTO approvals(trace_id, session_id, action, decision, payload_json, created_ts, resolved_ts) VALUES (?,?,?,?,?,?,?)",
+        (trace_id, session_id, action, decision, payload_json, now, resolved_ts),
+    )
+    conn.commit()
+    return int(cur.lastrowid)
+
+
+def update_approval(
+    conn: sqlite3.Connection,
+    approval_id: int,
+    decision: str,
+    payload: Optional[Dict[str, Any]] = None,
+    *,
+    resolved: bool = True,
+) -> None:
+    """更新指定审批记录的决策与附加信息。"""
+
+    now = datetime.utcnow().isoformat() + "Z"
+    payload_json = json.dumps(payload, ensure_ascii=False) if payload is not None else None
+    resolved_ts = now if resolved else None
+    conn.execute(
+        "UPDATE approvals SET decision=?, payload_json=?, resolved_ts=? WHERE id=?",
+        (decision, payload_json, resolved_ts, int(approval_id)),
+    )
+    conn.commit()
+
+
+def list_approvals(
+    conn: sqlite3.Connection,
+    *,
+    limit: int = 50,
+    status: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    sql = "SELECT id, trace_id, session_id, action, decision, payload_json, created_ts, resolved_ts FROM approvals"
+    params: Tuple[Any, ...]
+    if status is None:
+        sql += " ORDER BY id DESC LIMIT ?"
+        params = (int(limit),)
+    else:
+        sql += " WHERE decision=? ORDER BY id DESC LIMIT ?"
+        params = (status, int(limit))
+    rows = conn.execute(sql, params).fetchall()
+    out: List[Dict[str, Any]] = []
+    for row in rows:
+        payload_obj = None
+        if row[5]:
+            try:
+                payload_obj = json.loads(row[5])
+            except Exception:
+                payload_obj = row[5]
+        out.append(
+            {
+                "id": row[0],
+                "trace_id": row[1],
+                "session_id": row[2],
+                "action": row[3],
+                "decision": row[4],
+                "payload": payload_obj,
+                "created_ts": row[6],
+                "resolved_ts": row[7],
+            }
+        )
+    return out
+
+
+# Task stack -----------------------------------------------------------------
+def save_task_stack(conn: sqlite3.Connection, session_id: str, stack: Dict[str, Any]) -> None:
+    """保存任务栈（JSON 对象），若已存在则覆盖。"""
+
+    now = datetime.utcnow().isoformat() + "Z"
+    stack_json = json.dumps(stack, ensure_ascii=False)
+    conn.execute(
+        "INSERT INTO task_stack(session_id, stack_json, updated_ts) VALUES (?,?,?) ON CONFLICT(session_id) DO UPDATE SET stack_json=excluded.stack_json, updated_ts=excluded.updated_ts",
+        (session_id, stack_json, now),
+    )
+    conn.commit()
+
+
+def load_task_stack(conn: sqlite3.Connection, session_id: str) -> Optional[Dict[str, Any]]:
+    row = conn.execute("SELECT stack_json FROM task_stack WHERE session_id=?", (session_id,)).fetchone()
+    if not row or not row[0]:
+        return None
+    try:
+        return json.loads(row[0])
+    except Exception:
+        return None
+
+
+def list_task_stacks(conn: sqlite3.Connection, limit: int = 20) -> List[Dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT session_id, stack_json, updated_ts FROM task_stack ORDER BY updated_ts DESC LIMIT ?",
+        (int(limit),),
+    ).fetchall()
+    out: List[Dict[str, Any]] = []
+    for session_id, stack_json, updated_ts in rows:
+        try:
+            stack_obj = json.loads(stack_json) if stack_json else None
+        except Exception:
+            stack_obj = None
+        out.append({"session_id": session_id, "stack": stack_obj, "updated_ts": updated_ts})
+    return out
