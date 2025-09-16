@@ -62,9 +62,11 @@ chat_test.db
 episodes.db
 scores.sqlite
 audit/
+workspace/
 
 # Misc
 __pypackages__/
 *.tmp
 *.bak
 Thumbs.db
+examples/*

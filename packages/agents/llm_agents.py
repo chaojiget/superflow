@@ -15,13 +15,14 @@ from typing import Any, Dict, Tuple
 
 from packages.agents.interfaces import Planner, Executor, Critic, Reviser
 from packages.agents.registry import register
-from packages.providers.openrouter_client import OpenRouterClient, extract_json_block
+from packages.providers.interfaces import LLMChatProvider
+from packages.providers.openrouter_client import extract_json_block
 from packages.prompts.loader import load_pair, render
 
 
 @register("planner", "llm")
 class PlannerLLM(Planner):
-    def __init__(self, client: OpenRouterClient) -> None:
+    def __init__(self, client: LLMChatProvider) -> None:
         self.client = client
         self.last_meta: Dict[str, Any] = {}
 
@@ -51,7 +52,7 @@ class PlannerLLM(Planner):
 
 @register("executor", "llm")
 class ExecutorLLM(Executor):
-    def __init__(self, client: OpenRouterClient) -> None:
+    def __init__(self, client: LLMChatProvider) -> None:
         self.client = client
         self.last_meta: Dict[str, Any] = {}
 
@@ -78,7 +79,7 @@ class ExecutorLLM(Executor):
 
 @register("critic", "llm")
 class CriticLLM(Critic):
-    def __init__(self, client: OpenRouterClient) -> None:
+    def __init__(self, client: LLMChatProvider) -> None:
         self.client = client
         self.last_meta: Dict[str, Any] = {}
 
@@ -107,7 +108,7 @@ class CriticLLM(Critic):
 
 @register("reviser", "llm")
 class ReviserLLM(Reviser):
-    def __init__(self, client: OpenRouterClient) -> None:
+    def __init__(self, client: LLMChatProvider) -> None:
         self.client = client
         self.last_meta: Dict[str, Any] = {}
 

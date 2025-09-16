@@ -25,6 +25,21 @@
   },
   "scoreboard": {
     "episodes_dir": "episodes"
+  },
+  "ui": {
+    "offline_notice": false
+  },
+  "mcp": {
+    "servers": [
+      {
+        "id": "api",
+        "transport": "streamable-http",
+        "url": "http://127.0.0.1:3001/mcp"
+      }
+    ]
+  },
+  "agent": {
+    "auto_proceed": true,
+    "react_loops": 3
   }
 }
-

@@ -85,8 +85,12 @@ class OpenRouterClient:
         max_tokens: Optional[int] = None,
         retries: int = 0,
     ) -> (str, Dict[str, Any]):
-        """同 chat，但返回 (content, meta)。包含 provider/model/usage/status/attempts/request_id。"""
+        """同 chat，但返回 (content, meta)。包含 provider/model/usage/status/attempts/request_id。
+        增强：对 429/5xx 实施指数退避重试，并尊重 Retry-After 头。
+        """
         import requests
+        import time
+        import random
 
         url = f"{self.base_url.rstrip('/')}/chat/completions"
         headers = {
@@ -125,10 +129,23 @@ class OpenRouterClient:
                     "temperature": temperature,
                 }
                 return content, meta
-            # retry on 429/5xx within limit
-            if attempts > max(0, retries) or status < 500 and status != 429:
+            # 非可重试错误（4xx 除 429）
+            if status < 500 and status != 429:
                 raise RuntimeError(f"OpenRouter 调用失败: {status} {resp.text[:200]}")
-            last_err = f"{status}"
+            # 可重试错误（429/5xx）：若超过重试次数则抛出
+            if attempts > max(0, retries):
+                raise RuntimeError(f"OpenRouter 调用失败: {status} {resp.text[:200]}")
+            # 指数退避，尊重 Retry-After
+            retry_after = resp.headers.get("Retry-After")
+            delay = None
+            try:
+                if retry_after:
+                    delay = float(retry_after)
+            except Exception:
+                delay = None
+            if delay is None:
+                delay = min(8.0, (2 ** (attempts - 1))) + random.uniform(0, 0.5)
+            time.sleep(delay)
 
 
 def extract_json_block(text: str) -> Dict[str, Any]:

@@ -4,6 +4,7 @@
   <h2 style="margin:0">Chat</h2>
   <span class="spacer"></span>
   <button id="btnWs" class="btn ghost">📁 工作区</button>
+  <button id="btnTools" class="btn ghost">🔧 工具</button>
   <span id="chatHint" class="hint"></span>
   <span id="chatSpin" class="spinner" style="display:none"></span>
 </div>
@@ -16,6 +17,7 @@
     <div class="hint" style="margin-top:4px">提示：描述你的需求可生成 SRS 草稿或运行建议。点击右上“工作区”可浏览/编辑文件并插入到对话。</div>
   </form>
   <div id="actionBox" class="card" style="margin-top:8px"></div>
+  <div id="toolsPanel" class="card" style="margin-top:8px; display:none"></div>
 </div>
 
 <!-- 工作区抽屉 -->
@@ -59,6 +61,7 @@ const wsHint = document.getElementById('wsHint');
 const wsToken = document.getElementById('wsToken');
 const wsDrawer = document.getElementById('wsDrawer');
 const btnWs = document.getElementById('btnWs');
+const btnTools = document.getElementById('btnTools');
 const btnCloseWs = document.getElementById('btnCloseWs');
 const wsBackdrop = wsDrawer?.querySelector('.backdrop');
 if(!sess.value){ sess.value = 's-'+Math.random().toString(16).slice(2,10); }
@@ -192,5 +195,63 @@ wsBackdrop?.addEventListener('click', closeWs);
 // 首次加载
 loadHistory();
 loadDir('examples');
+
+// 工具面板
+async function loadTools(server){
+  const resp = await fetch('/api/mcp/tools?server='+(server||'api'));
+  const j = await resp.json();
+  const panel = document.getElementById('toolsPanel');
+  if(!panel) return;
+  if(!j.ok){ panel.style.display='block'; panel.innerHTML = '<b>工具</b><div class="hint">加载失败: '+(j.error||'')+'</div>'; return; }
+  const serverId = j.server || 'api';
+  let html = '<div style="display:flex;gap:8px;align-items:center"><b>工具</b><label>server:</label><input id="toolServer" value="'+serverId+'" style="width:120px"></div>';
+  if(!j.tools || !j.tools.length){ html += '<div class="hint">无可用工具</div>'; panel.innerHTML = html; panel.style.display='block'; return; }
+  html += '<div style="margin-top:6px">';
+  for(const t of j.tools){
+    const dn = (t.name||'');
+    const desc = (t.description||'');
+    html += '<div style="border-top:1px solid #eee; padding:6px 0">'
+      + '<div><b>'+dn+'</b></div>'
+      + (desc?('<div class="hint">'+desc+'</div>'):'')
+      + '<div style="display:flex;gap:6px;align-items:center;margin-top:4px">'
+      + '<span class="hint">args(JSON):</span>'
+      + '<input id="arg_'+dn+'" style="flex:1" value="{}">'
+      + '<button data-tool="'+dn+'">调用</button>'
+      + '</div>'
+      + '</div>';
+  }
+  html += '</div>';
+  panel.innerHTML = html; panel.style.display='block';
+  panel.querySelectorAll('button[data-tool]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const tool = btn.getAttribute('data-tool');
+      const server = document.getElementById('toolServer').value || 'api';
+      const argInput = document.getElementById('arg_'+tool);
+      let argsJson = '{}';
+      try{ argsJson = argInput.value || '{}'; }catch(e){}
+      const fd = new FormData(); fd.append('server', server); fd.append('tool', tool); fd.append('args_json', argsJson);
+      hint.textContent='执行 '+tool+'…'; if(spin) spin.style.display='inline-block';
+      try{
+        const resp2 = await fetch('/api/mcp/call', {method:'POST', body: fd});
+        const j2 = await resp2.json();
+        if(j2.ok){
+          const res = j2.result || {}; const txt = res.text || (res.structured?JSON.stringify(res.structured):'');
+          append('助手', '[MCP '+server+'.'+tool+']\n'+(txt||'<no result>'));
+        } else {
+          append('系统', '调用失败: '+(j2.error||''));
+        }
+      }catch(e){
+        append('系统', '调用失败: '+String(e));
+      } finally {
+        hint.textContent=''; if(spin) spin.style.display='none';
+      }
+    });
+  });
+}
+btnTools?.addEventListener('click', ()=>{
+  const panel = document.getElementById('toolsPanel');
+  if(panel.style.display==='none'){ loadTools('api'); }
+  else { panel.style.display='none'; }
+});
 </script>
 {% endblock %}

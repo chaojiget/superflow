@@ -51,7 +51,7 @@
   function bindHandlers(){
     // 运行页拦截提交，避免跳转
     const form = content.querySelector('#runForm');
-    if(form){
+    if(form && form.dataset.managed !== 'true'){
       const outEl = content.querySelector('#runResult');
       form.addEventListener('submit', async (e)=>{
         e.preventDefault();

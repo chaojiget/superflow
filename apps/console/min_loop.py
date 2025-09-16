@@ -36,6 +36,7 @@ from packages.agents.interfaces import Planner, Executor, Critic, Reviser  # typ
 from packages.agents.registry import get as get_plugin  # type: ignore
 import packages.agents.llm_agents  # noqa: F401  # 引入以触发注册
 import packages.agents.rule_agents  # noqa: F401  # 引入以触发注册
+import packages.agents.mcp_agents  # noqa: F401  # 引入以触发注册
 from packages.config.loader import load_config  # type: ignore
 from packages.agents.skills_registry import verify_skills  # type: ignore
 
@@ -183,6 +184,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     else:
         bus = OutboxBus(episodes_dir="episodes")
     trace_id = bus.new_trace(goal=srs.get("goal", "weekly-report"))
+    emit_progress("perceive", "start", "加载 SRS", {"srs_path": args.srs, "trace_id": trace_id})
     guardian = BudgetGuardian(budget_usd=float(srs.get("budget_usd", 0.0) or 0.0), timeout_ms=120000)
 
     # 记录感知
@@ -201,6 +203,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     planner, executor, critic, reviser, _ctx = build_plugins(planner_name, executor_name, critic_name, reviser_name, need_client, cfg)
     ctx = {"csv_excerpt": csv_excerpt, "rows": rows}
 
+    emit_progress("plan", "start", f"使用 {planner.name()} 规划")
     print(f"[PLAN] 使用 {planner.name()} 生成计划…")
     ctx_plan = dict(ctx)
     ctx_plan.update({
@@ -213,8 +216,15 @@ def cmd_run(args: argparse.Namespace) -> None:
     if hasattr(planner, "last_meta"):
         payload["llm"] = getattr(planner, "last_meta")
     bus.append("plan.generated", payload)
+    emit_progress(
+        "plan",
+        "done",
+        "规划完成",
+        {"steps": len(plan.get("steps", [])), "impl": planner.name()},
+    )
 
     guardian.check()
+    emit_progress("execute", "start", f"使用 {executor.name()} 执行")
     print(f"[EXEC] 使用 {executor.name()} 执行…")
     # 风险：执行本地技能时校验签名
     if executor_name == "skills" and cfg.get("risk", {}).get("check_skills", True):
@@ -227,8 +237,15 @@ def cmd_run(args: argparse.Namespace) -> None:
     })
     md_text, exec_ctx = executor.execute(srs, plan, ctx_exec)
     bus.append("exec.output", {"impl": executor.name(), **exec_ctx})
+    emit_progress(
+        "execute",
+        "done",
+        "执行完成",
+        {"impl": executor.name(), "metrics": exec_ctx.get("metrics", {})},
+    )
 
     guardian.check()
+    emit_progress("review", "start", f"使用 {critic.name()} 评审")
     print(f"[REVIEW] 使用 {critic.name()} 打分…")
     ctx_review = {
         "temperature": (args.temp_critic if args.temp_critic is not None else cfg.get("llm", {}).get("temperature", {}).get("critic", 0.0)),
@@ -241,9 +258,16 @@ def cmd_run(args: argparse.Namespace) -> None:
     if hasattr(critic, "last_meta"):
         pay["llm"] = getattr(critic, "last_meta")
     bus.append("review.scored", pay)
+    emit_progress(
+        "review",
+        "done" if bool(rv.get("pass")) else "failed",
+        "评审完成",
+        {"score": rv.get("score"), "pass": rv.get("pass")},
+    )
 
     # 一次修补
     if not bool(rv.get("pass")):
+        emit_progress("revise", "start", f"使用 {reviser.name()} 修订")
         print(f"[PATCH] 使用 {reviser.name()} 修订报告…")
         ctx_patch = {
             "temperature": (args.temp_reviser if args.temp_reviser is not None else cfg.get("llm", {}).get("temperature", {}).get("reviser", 0.4)),
@@ -262,18 +286,27 @@ def cmd_run(args: argparse.Namespace) -> None:
         if hasattr(critic, "last_meta"):
             pay2["llm"] = getattr(critic, "last_meta")
         bus.append("review.scored", pay2)
+        emit_progress(
+            "revise",
+            "done" if bool(rv.get("pass")) else "failed",
+            "修订完成",
+            {"score": rv.get("score"), "pass": rv.get("pass")},
+        )
 
     # Write output
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(md_text)
+    emit_progress("deliver", "start", "已生成报告", {"out_path": out_path})
 
     status = "success" if rv["pass"] else "failed"
-    bus.finalize(status=status, artifacts={"output_path": out_path, "plan": plan})  # 写入 Episode 文件
+    ep_path = bus.finalize(status=status, artifacts={"output_path": out_path, "plan": plan})  # 写入 Episode 文件
+    emit_progress("record", "done", "Episode 已写入", {"episode_path": ep_path, "status": status})
 
     # 如需生成可重复执行的离线脚本
     if getattr(args, "emit_script", False):
         script_path = write_replay_script(trace_id, srs, plan, out_path)
         bus.append("artifact.script", {"path": script_path})
+        emit_progress("record", "artifact", "已生成回放脚本", {"path": script_path})
 
     print(json.dumps({
         "trace_id": trace_id,
@@ -809,3 +842,15 @@ def main():
 
 if __name__ == "__main__":
     main()
+def emit_progress(stage: str, status: str, message: str | None = None, extra: Dict[str, Any] | None = None) -> None:
+    payload: Dict[str, Any] = {
+        "kind": "progress",
+        "stage": stage,
+        "status": status,
+        "ts": datetime.utcnow().isoformat() + "Z",
+    }
+    if message:
+        payload["message"] = message
+    if extra:
+        payload["extra"] = extra
+    print(json.dumps(payload, ensure_ascii=False), flush=True)

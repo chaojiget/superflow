@@ -1,112 +1,308 @@
+<style>
+  .progress-list {list-style:none; padding-left:0; margin:8px 0;}
+  .progress-list li {border-left:4px solid #cbd5f5; padding:6px 12px; margin-bottom:6px; background:#0f172a08; border-radius:4px;}
+  .progress-list li.active {border-left-color:#3b82f6; background:#1d4ed80d;}
+  .progress-list li.done {border-left-color:#16a34a; background:#14532d0d;}
+  .progress-list li.failed {border-left-color:#dc2626; background:#7f1d1d0d;}
+  .progress-list .stage-title {font-weight:600; margin-right:6px;}
+  .progress-list .stage-meta {font-size:12px; color:#64748b; margin-left:4px;}
+  .progress-extra {margin-top:12px;}
+  .log-area {max-height:220px; overflow-y:auto; margin-top:6px; background:#0f172a10; border-radius:6px; padding:8px; border:1px solid rgba(15,23,42,0.08);}
+  .event-item {margin-bottom:8px;}
+  .event-item pre {background:#0f172a12; padding:6px; border-radius:4px; overflow:auto; font-size:12px;}
+  .progress-detail{background:#ecfeff; border-left:4px solid #06b6d4;}
+</style>
+
 <div class="card">
-  <h3 style="margin-top:0">运行最小闭环</h3>
-  <form id="runForm" method="post" action="/api/run">
+  <h3 style="margin-top:0">步骤 1 · Intake → SRS</h3>
+  <div class="kv">
+    <label for="intakeQuery">需求描述</label>
+    <textarea id="intakeQuery" placeholder="例如：请根据 weekly.csv 生成一份含摘要与 Top10 的周报" style="min-height:90px"></textarea>
+
+    <label for="intakeData">数据 CSV</label>
+    <input id="intakeData" type="text" value="examples/data/weekly.csv" placeholder="examples/data/weekly.csv" />
+
+    <label for="intakeBudget">预算 (USD，可选)</label>
+    <input id="intakeBudget" type="number" step="0.1" min="0" placeholder="0" />
+  </div>
+  <div class="row" style="margin-top:8px; align-items:center">
+    <button id="btnIntake">✨ 生成 SRS</button>
+    <span id="intakeHint" class="hint" style="margin-left:12px"></span>
+  </div>
+  <div style="margin-top:12px">
+    <div class="hint">SRS 预览（生成后自动保存在 <code>workspace/srs</code>）</div>
+    <textarea id="srsPreview" style="height:200px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" readonly></textarea>
+    <div class="hint" style="margin-top:4px">SRS 路径：<span id="srsPath">-</span></div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:12px">
+  <h3 style="margin-top:0">步骤 2 · 运行最小闭环</h3>
+  <form id="runForm" data-managed="true">
     <div class="kv">
-      <label for="srs_path">SRS 路径</label>
-      <input id="srs_path" name="srs_path" type="text" value="examples/srs/weekly_report.json" placeholder="examples/srs/weekly_report.json" />
+      <label>SRS 路径</label>
+      <input name="srs_path" type="text" placeholder="workspace/srs/auto_xxx.json" required />
 
-      <label for="data_path">数据 CSV</label>
-      <input id="data_path" name="data_path" type="text" value="examples/data/weekly.csv" placeholder="examples/data/weekly.csv" />
+      <label>数据 CSV</label>
+      <input name="data_path" type="text" placeholder="examples/data/weekly.csv" required />
 
-      <label for="out_path">输出路径</label>
-      <input id="out_path" name="out_path" type="text" value="reports/weekly_report.md" placeholder="reports/weekly_report.md" />
+      <label>输出 Markdown</label>
+      <input name="out_path" type="text" value="reports/weekly_report.md" placeholder="reports/weekly_report.md" />
 
       <label>Planner</label>
-      <select name="planner"><option>llm</option><option>rules</option></select>
+      <select name="planner"><option value="llm" selected>llm</option><option value="rules">rules</option></select>
 
       <label>Executor</label>
-      <select name="executor"><option>llm</option><option>skills</option></select>
+      <select name="executor"><option value="llm" selected>llm</option><option value="skills">skills</option></select>
 
       <label>Critic</label>
-      <select name="critic"><option>llm</option><option>rules</option></select>
+      <select name="critic"><option value="llm" selected>llm</option><option value="rules">rules</option></select>
 
       <label>Reviser</label>
-      <select name="reviser"><option>llm</option><option>rules</option></select>
+      <select name="reviser"><option value="llm" selected>llm</option><option value="rules">rules</option></select>
 
       <label>Provider</label>
-      <div class="row">
-        <select name="provider">
-          <option value="openrouter" {% if cur_provider=='openrouter' %}selected{% endif %}>openrouter</option>
-          <option value="openai" {% if cur_provider=='openai' %}selected{% endif %}>openai</option>
-        </select>
-        <span id="providerHint" class="hint" style="align-self:center">将使用: {{cur_provider}}:{{cur_model}}</span>
-      </div>
+      <select name="provider">
+        <option value="">默认配置</option>
+        <option value="openrouter">openrouter</option>
+        <option value="openai">openai</option>
+      </select>
 
-      <label>温度(Planner)</label>
-      <input name="temp_planner" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
-
-      <label>温度(Executor)</label>
-      <input name="temp_executor" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
-
-      <label>温度(Critic)</label>
-      <input name="temp_critic" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
-
-      <label>温度(Reviser)</label>
-      <input name="temp_reviser" type="number" step="0.1" min="0" max="2" placeholder="默认配置">
+      <label>CSV片段最大行</label>
+      <input name="max_rows" type="number" min="1" placeholder="默认配置" />
 
       <label>重试次数</label>
-      <input name="retries" type="number" min="0" placeholder="默认配置">
-
-      <label>CSV片段最大行数</label>
-      <input name="max_rows" type="number" min="1" placeholder="默认配置">
+      <input name="retries" type="number" min="0" placeholder="默认配置" />
     </div>
-    <div style="margin-top:12px"><button type="submit">▶ 运行</button></div>
+    <div style="margin-top:12px">
+      <button type="submit">▶ 运行最小闭环</button>
+      <span id="runHint" class="hint" style="margin-left:12px"></span>
+    </div>
   </form>
 </div>
 
 <div class="card" style="margin-top:12px">
-  <div class="hint" style="margin-bottom:6px">运行输出</div>
-  <pre id="runResult"></pre>
+  <h3 style="margin-top:0">步骤 3 · 事件流 & 结果</h3>
+  <div id="eventStatus" class="hint">尚未开始。</div>
+  <div id="progressContainer" style="margin-top:8px">
+    <ul id="progressList" class="progress-list"></ul>
+    <div class="progress-extra">
+      <button id="toggleLogs" class="btn ghost">查看执行日志</button>
+      <div id="eventStream" class="log-area" style="display:none"></div>
+    </div>
+  </div>
+  <div class="hint" style="margin-top:8px">最终结果</div>
+  <pre id="finalResult" style="max-height:200px; overflow:auto"></pre>
 </div>
+
 <script>
-const form = document.getElementById('runForm');
-const el = document.getElementById('runResult');
-async function poll(jobId){
-  while(true){
-    await new Promise(r=>setTimeout(r, 1000));
-    const r = await fetch('/api/run/status?job_id='+encodeURIComponent(jobId));
-    const st = await r.json();
-    if(st.done){
-      el.textContent = JSON.stringify(st.result || st, null, 2);
-      form.querySelector('button[type="submit"]').disabled = false;
-      return;
-    }
-    el.textContent = '运行中…(job ' + jobId + ')';
-  }
-}
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  form.querySelector('button[type="submit"]').disabled = true;
-  el.textContent = '启动中…';
-  const fd = new FormData(form);
-  const resp = await fetch(form.action, { method: 'POST', body: fd });
-  const data = await resp.json();
-  if(!data.ok){ el.textContent = JSON.stringify(data,null,2); form.querySelector('button[type="submit"]').disabled=false; return; }
-  if(data.job_id){ poll(data.job_id); }
-});
-// Provider 切换提示
-const selProv = form.querySelector('select[name="provider"]');
-if(selProv){
-  selProv.addEventListener('change', ()=>{
-    const hp = document.getElementById('providerHint');
-    if(hp) hp.textContent = '将使用: ' + selProv.value + '（模型以配置为准）';
+const intakeBtn = document.getElementById('btnIntake');
+const intakeQuery = document.getElementById('intakeQuery');
+const intakeData = document.getElementById('intakeData');
+const intakeBudget = document.getElementById('intakeBudget');
+const intakeHint = document.getElementById('intakeHint');
+const srsPreview = document.getElementById('srsPreview');
+const srsPathEl = document.getElementById('srsPath');
+const runForm = document.getElementById('runForm');
+const runHint = document.getElementById('runHint');
+const eventStatus = document.getElementById('eventStatus');
+const eventStream = document.getElementById('eventStream');
+const progressList = document.getElementById('progressList');
+const toggleLogs = document.getElementById('toggleLogs');
+const finalResult = document.getElementById('finalResult');
+let currentJob = null;
+
+const stageMeta = [
+  {id:'perceive', label:'感知'},
+  {id:'plan', label:'规划'},
+  {id:'execute', label:'执行'},
+  {id:'review', label:'评审'},
+  {id:'revise', label:'修补'},
+  {id:'record', label:'记账'},
+  {id:'deliver', label:'交付'},
+];
+const stageState = {};
+stageMeta.forEach(s=>{ stageState[s.id] = {status:'pending', message:'待开始'}; });
+
+function renderStages(){
+  if(!progressList) return;
+  progressList.innerHTML='';
+  stageMeta.forEach(stage=>{
+    const state = stageState[stage.id] || {status:'pending', message:''};
+    const li = document.createElement('li');
+    const status = (state.status || '').toLowerCase();
+    li.className = (status === 'done' || status === 'success' || status === 'artifact' || status === 'completed') ? 'done' : (status === 'failed' || status === 'error') ? 'failed' : (status === 'start' || status === 'running' || status === 'in_progress') ? 'active' : '';
+    const label = `${stage.label}`;
+    const msg = state.message ? `<div>${state.message}</div>` : '';
+    const meta = state.ts ? `<span class="stage-meta">${state.ts}</span>` : '';
+    li.innerHTML = `<div><span class="stage-title">${label}</span>${meta} <span class="stage-meta">${state.status || 'pending'}</span></div>${msg}`;
+    progressList.appendChild(li);
   });
 }
-// 预填参数（来自 localStorage.runArgs）
-try {
-  const raw = localStorage.getItem('runArgs');
-  if(raw){
-    const args = JSON.parse(raw);
-    if(args.srs_path) form.querySelector('input[name="srs_path"]').value = args.srs_path;
-    if(args.data_path) form.querySelector('input[name="data_path"]').value = args.data_path;
-    if(args.out) form.querySelector('input[name="out_path"]').value = args.out;
-    if(args.planner) form.querySelector('select[name="planner"]').value = args.planner;
-    if(args.executor) form.querySelector('select[name="executor"]').value = args.executor;
-    if(args.critic) form.querySelector('select[name="critic"]').value = args.critic;
-    if(args.reviser) form.querySelector('select[name="reviser"]').value = args.reviser;
-    if(args.provider) form.querySelector('select[name="provider"]').value = args.provider;
-    // 使用一次后清除
-    localStorage.removeItem('runArgs');
+renderStages();
+
+function updateStageProgress(data){
+  const stageId = data.stage || 'other';
+  let meta = stageMeta.find(s => s.id === stageId);
+  if(!meta){
+    meta = {id: stageId, label: stageId};
+    stageMeta.push(meta);
   }
-} catch(e) {}
+  if(!stageState[stageId]) stageState[stageId] = {status:'pending', message:''};
+  const state = stageState[stageId];
+  if(data.status) state.status = data.status;
+  if(data.message) state.message = data.message;
+  if(data.ts) state.ts = data.ts;
+  if(data.extra) state.extra = data.extra;
+  renderStages();
+  if(data.extra && eventStream){
+    const extraDiv = document.createElement('div');
+    extraDiv.className = 'event-item progress-detail';
+    extraDiv.innerHTML = `<div><b>${meta.label}</b> · ${state.status || ''}</div><pre>${JSON.stringify(data.extra, null, 2)}</pre>`;
+    eventStream.appendChild(extraDiv);
+  }
+}
+
+toggleLogs?.addEventListener('click', ()=>{
+  if(!eventStream) return;
+  const show = eventStream.style.display === 'none';
+  eventStream.style.display = show ? 'block' : 'none';
+  toggleLogs.textContent = show ? '隐藏执行日志' : '查看执行日志';
+});
+
+function fillRunForm(runArgs){
+  if(!runArgs) return;
+  for(const [k,v] of Object.entries(runArgs)){
+    const input = runForm.querySelector(`[name="${k}"]`);
+    if(!input || v===undefined || v===null) continue;
+    if(input.tagName === 'SELECT'){
+      const opts = Array.from(input.options).map(o=>o.value);
+      if(opts.includes(String(v))) input.value = v;
+    } else {
+      input.value = v;
+    }
+  }
+}
+
+function appendEvent(evt){
+  const div = document.createElement('div');
+  div.className = 'event-item';
+  if(evt.type === 'log'){
+    const ts = evt.ts ? `<span class="hint">${evt.ts}</span>` : '';
+    div.innerHTML = `<div><b>log</b> ${ts}</div><pre>${evt.line || ''}</pre>`;
+  } else if(evt.type === 'progress'){
+    const data = evt.data || {};
+    updateStageProgress(data);
+    const stage = data.stage || 'stage';
+    const status = data.status || '';
+    const msg = data.message || '';
+    const ts = data.ts ? `<span class="hint">${data.ts}</span>` : '';
+    const extra = data.extra ? `<pre>${JSON.stringify(data.extra, null, 2)}</pre>` : '';
+    div.innerHTML = `<div><b>${stage}</b> · ${status} ${ts}</div>${msg ? `<div>${msg}</div>` : ''}${extra}`;
+  } else {
+    const payload = evt.event ? evt.event : evt;
+    const typ = payload.type || evt.type || 'event';
+    const ts = payload.ts || payload.timestamp || '';
+    const body = payload.payload ? JSON.stringify(payload.payload, null, 2) : JSON.stringify(payload, null, 2);
+    div.innerHTML = `<div><b>${typ}</b> <span class="hint">${ts}</span></div><pre>${body}</pre>`;
+  }
+  eventStream.appendChild(div);
+  eventStream.scrollTop = eventStream.scrollHeight;
+}
+
+intakeBtn.addEventListener('click', async ()=>{
+  intakeHint.textContent = '生成中…';
+  eventStatus.textContent = '等待运行…';
+  try {
+    const payload = {
+      query: intakeQuery.value,
+      data_path: intakeData.value,
+    };
+    if(intakeBudget.value){ payload.budget_usd = Number(intakeBudget.value); }
+    const resp = await fetch('/agent/intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if(!data.ok){ intakeHint.textContent = data.error || '生成失败'; return; }
+    srsPreview.value = JSON.stringify(data.srs, null, 2);
+    srsPathEl.textContent = data.srs_path;
+    fillRunForm(data.run);
+    intakeHint.textContent = '已生成 SRS';
+    runHint.textContent = 'SRS 参数已填充，点击运行开始执行。';
+  } catch(err){
+    intakeHint.textContent = '生成失败: ' + err;
+  }
+});
+
+runForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  runHint.textContent = '启动中…';
+  finalResult.textContent = '';
+  eventStream.innerHTML = '';
+  const formData = new FormData(runForm);
+  const payload = {};
+  for(const [k,v] of formData.entries()){
+    if(v === null || v === '') continue;
+    payload[k] = v;
+  }
+  try{
+    const resp = await fetch('/agent/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if(!data.ok){ runHint.textContent = data.error || '提交失败'; return; }
+    runHint.textContent = '已提交，Job: ' + data.job_id;
+    eventStatus.textContent = '等待事件…';
+    watchJob(data.job_id);
+  } catch(err){
+    runHint.textContent = '提交失败: ' + err;
+  }
+});
+
+function watchJob(jobId){
+  currentJob = jobId;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/agent/events?job_id=${encodeURIComponent(jobId)}`);
+  eventStatus.textContent = 'WebSocket 已连接，等待事件…';
+  ws.onmessage = (ev)=>{
+    try {
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'status'){ eventStatus.textContent = msg.state === 'completed' ? '运行完成，开始回放事件…' : `状态: ${msg.state}`; return; }
+      if(msg.type === 'log'){ appendEvent(msg); eventStatus.textContent = '执行中…'; return; }
+      if(msg.type === 'progress'){ appendEvent(msg); eventStatus.textContent = `阶段: ${(msg.data && msg.data.stage) || ''} (${msg.data && msg.data.status || ''})`; return; }
+      if(msg.type === 'event'){ appendEvent(msg); return; }
+      if(msg.type === 'final'){
+        finalResult.textContent = JSON.stringify(msg.result, null, 2);
+        if(msg.episode && msg.episode.artifacts && msg.episode.artifacts.output_path){
+          const link = document.createElement('div');
+          link.innerHTML = `产物：<a href="/download?path=${encodeURIComponent(msg.episode.artifacts.output_path)}" target="_blank">${msg.episode.artifacts.output_path}</a>`;
+          eventStream.appendChild(link);
+        }
+        eventStatus.textContent = '完成';
+        updateStageProgress({stage:'deliver', status:'done', message:'产物已生成并返回', ts:new Date().toISOString()});
+        ws.close();
+        return;
+      }
+      if(msg.type === 'error'){
+        eventStatus.textContent = '错误: ' + (msg.message || 'unknown');
+        finalResult.textContent = JSON.stringify(msg, null, 2);
+        ws.close();
+      }
+    } catch(err){
+      console.error('event parse fail', err);
+    }
+  };
+  ws.onclose = ()=>{
+    if(eventStatus.textContent.startsWith('状态: pending')){
+      eventStatus.textContent = '连接已关闭';
+    }
+  };
+  ws.onerror = ()=>{
+    eventStatus.textContent = '事件通道异常';
+  };
+}
 </script>
