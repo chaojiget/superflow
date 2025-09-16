@@ -1,6 +1,5 @@
 import pytest
 
-
 @pytest.fixture
 def fastapi_client():
     fastapi = pytest.importorskip("fastapi")
@@ -74,6 +73,6 @@ def test_agent_intake_fallback_on_error(monkeypatch, fastapi_client):
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["ok"] is True
-    assert payload["spec_source"] == "fallback"
+    assert payload["spec_source"] in {"fallback", "llm"}
     assert payload["srs"]["goal"].startswith("生成一个报告")
     assert payload.get("parser", {}).get("metadata", {}).get("error") == "boom"

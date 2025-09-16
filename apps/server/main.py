@@ -547,6 +547,7 @@ def create_app() -> Any:
             data_path = 'examples/data/weekly.csv'
         overrides = _sanitize_overrides(body)
         parser_info: Dict[str, Any] = {'source': 'fallback'}
+        spec_source = 'fallback'
         spec = None
         try:
             spec = _RUE_PARSER.parse(query, data_path=data_path, overrides=dict(overrides))
@@ -560,11 +561,98 @@ def create_app() -> Any:
             parser_info['metadata'] = {'error': str(exc)}
         except Exception as exc:  # pragma: no cover - 防御
             parser_info['metadata'] = {'error': str(exc)}
+
+        llm_meta: Dict[str, Any] | None = None
+        llm_warning: str | None = None
+        llm_spec: Dict[str, Any] | None = None
+
         if spec is not None:
             srs = spec.to_dict()
+            spec_source = 'rue'
         else:
-            srs = _default_srs(query, data_path)
+            base_spec = _default_srs(query, data_path)
+
+            if query:
+                try:
+                    cfg = load_config(None)
+                    from packages.providers.router import LLMRouter  # type: ignore
+                    from packages.providers.openrouter_client import extract_json_block  # type: ignore
+
+                    router = LLMRouter(cfg)
+                    context_parts: List[str] = []
+                    if data_path:
+                        context_parts.append(f"数据 CSV: {data_path}")
+                    if body.get('budget_usd') is not None:
+                        context_parts.append(f"预算 USD: {body.get('budget_usd')}")
+                    if body.get('constraints'):
+                        context_parts.append(f"约束: {json.dumps(body.get('constraints'), ensure_ascii=False)}")
+                    if body.get('acceptance'):
+                        context_parts.append(f"验收: {json.dumps(body.get('acceptance'), ensure_ascii=False)}")
+                    context_text = "\n".join(context_parts)
+
+                    system_prompt = (
+                        "你是任务需求解析助手，负责将用户自然语言需求转换为 TaskSpec(JSON)。"
+                        "仅输出 JSON，字段含义: goal, inputs(csv_path 等), constraints[], params, acceptance[]。"
+                    )
+                    user_prompt = (
+                        f"用户需求:\n{query}\n\n"
+                        "请输出 JSON，对象结构为 {\"task_spec\": {...}}，不要包含额外解释。"
+                    )
+                    if context_text:
+                        user_prompt += f"\n\n附加上下文:\n{context_text}"
+
+                    temperature = float(body.get('temperature') or cfg.get('llm', {}).get('intake_temperature', 0.2) or 0.2)
+                    retries = int(body.get('retries') or cfg.get('llm', {}).get('retries', 0))
+                    content, meta = router.chat_with_meta(
+                        [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        temperature=temperature,
+                        retries=retries,
+                    )
+                    llm_meta = meta
+                    parsed: Dict[str, Any] | None = None
+                    try:
+                        parsed = json.loads(content)
+                    except Exception:
+                        try:
+                            parsed = extract_json_block(content)
+                        except Exception:
+                            parsed = None
+                    if isinstance(parsed, dict):
+                        candidate = (
+                            parsed.get('task_spec')
+                            or parsed.get('TaskSpec')
+                            or parsed.get('srs')
+                            or parsed.get('spec')
+                            or parsed
+                        )
+                        if isinstance(candidate, dict):
+                            llm_spec = candidate
+                except Exception as e:
+                    llm_warning = str(e)
+
+            def _deep_merge(dst: Dict[str, Any], src: Dict[str, Any]) -> Dict[str, Any]:
+                for k, v in (src or {}).items():
+                    if isinstance(v, dict) and isinstance(dst.get(k), dict):
+                        _deep_merge(dst[k], v)
+                    else:
+                        dst[k] = v
+                return dst
+
+            srs = json.loads(json.dumps(base_spec, ensure_ascii=False))  # 深拷贝
+            if isinstance(llm_spec, dict):
+                _deep_merge(srs, llm_spec)
+                spec_source = 'llm'
             _merge_overrides(srs, overrides)
+
+            if isinstance(srs.get('inputs'), dict):
+                srs['inputs'].setdefault('csv_path', data_path)
+            else:
+                srs['inputs'] = {'csv_path': data_path}
+            if not srs.get('goal'):
+                srs['goal'] = query or base_spec.get('goal')
         srs_path = _save_srs(srs)
         out_path = body.get('out_path') or f"reports/{os.path.splitext(os.path.basename(srs_path))[0]}.md"
         run_args: Dict[str, Any] = {
@@ -581,7 +669,20 @@ def create_app() -> Any:
                 run_args[opt_key] = body.get(opt_key)
         if not parser_info.get('metadata'):
             parser_info.pop('metadata', None)
-        return JSONResponse({'ok': True, 'spec_source': parser_info.get('source', 'fallback'), 'parser': parser_info, 'srs_path': srs_path, 'srs': srs, 'run': run_args})
+        resp: Dict[str, Any] = {
+            'ok': True,
+            'spec_source': spec_source or parser_info.get('source', 'fallback'),
+            'parser': parser_info,
+            'srs_path': srs_path,
+            'srs': srs,
+            'task_spec': srs,
+            'run': run_args,
+        }
+        if llm_meta:
+            resp['llm'] = llm_meta
+        if llm_warning:
+            resp['warning'] = llm_warning
+        return JSONResponse(resp)
 
     @app.post('/agent/run')
     async def agent_run(request: Request):
