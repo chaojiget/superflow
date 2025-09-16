@@ -212,7 +212,21 @@ def create_app() -> Any:
             return None
 
     # Chat DB
-    from .chat_db import init_db, append_message, get_history, clear_session, upsert_workflow, list_workflows, get_workflow, schedule_job, list_jobs, due_jobs, mark_job_result, get_job  # type: ignore
+    from .chat_db import (
+        init_db,
+        append_message,
+        get_history,
+        clear_session,
+        upsert_workflow,
+        list_workflows,
+        get_workflow,
+        schedule_job,
+        list_jobs,
+        due_jobs,
+        mark_job_result,
+        get_job,
+        log_approval,
+    )  # type: ignore
     chat_db_path = os.environ.get('CHAT_DB_PATH') or os.path.join(BASE_DIR, "chat.db")
     CHAT_CONN = init_db(chat_db_path)
 
@@ -447,13 +461,92 @@ def create_app() -> Any:
             body = await request.json()
         except Exception:
             return JSONResponse({'ok': False, 'error': 'invalid_json'}, status_code=400)
+
         query = str(body.get('query') or '').strip()
         data_path = body.get('data_path') or body.get('csv_path')
         if isinstance(body.get('inputs'), dict):
             data_path = body['inputs'].get('csv_path', data_path)
         if not data_path:
             data_path = 'examples/data/weekly.csv'
-        srs = _default_srs(query, data_path)
+
+        base_spec = _default_srs(query, data_path)
+        llm_meta: Dict[str, Any] | None = None
+        llm_warning: str | None = None
+        llm_spec: Dict[str, Any] | None = None
+
+        if query:
+            try:
+                cfg = load_config(None)
+                from packages.providers.router import LLMRouter  # type: ignore
+                from packages.providers.openrouter_client import extract_json_block  # type: ignore
+
+                router = LLMRouter(cfg)
+                context_parts: List[str] = []
+                if data_path:
+                    context_parts.append(f"数据 CSV: {data_path}")
+                if body.get('budget_usd') is not None:
+                    context_parts.append(f"预算 USD: {body.get('budget_usd')}")
+                if body.get('constraints'):
+                    context_parts.append(f"约束: {json.dumps(body.get('constraints'), ensure_ascii=False)}")
+                if body.get('acceptance'):
+                    context_parts.append(f"验收: {json.dumps(body.get('acceptance'), ensure_ascii=False)}")
+                context_text = "\n".join(context_parts)
+
+                system_prompt = (
+                    "你是任务需求解析助手，负责将用户自然语言需求转换为 TaskSpec(JSON)。"
+                    "仅输出 JSON，字段含义: goal, inputs(csv_path 等), constraints[], params, acceptance[]。"
+                )
+                user_prompt = (
+                    f"用户需求:\n{query}\n\n"
+                    "请输出 JSON，对象结构为 {\"task_spec\": {...}}，不要包含额外解释。"
+                )
+                if context_text:
+                    user_prompt += f"\n\n附加上下文:\n{context_text}"
+
+                temperature = float(body.get('temperature') or cfg.get('llm', {}).get('intake_temperature', 0.2) or 0.2)
+                retries = int(body.get('retries') or cfg.get('llm', {}).get('retries', 0))
+                content, meta = router.chat_with_meta(
+                    [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=temperature,
+                    retries=retries,
+                )
+                llm_meta = meta
+                parsed: Dict[str, Any] | None = None
+                try:
+                    parsed = json.loads(content)
+                except Exception:
+                    try:
+                        parsed = extract_json_block(content)
+                    except Exception:
+                        parsed = None
+                if isinstance(parsed, dict):
+                    candidate = (
+                        parsed.get('task_spec')
+                        or parsed.get('TaskSpec')
+                        or parsed.get('srs')
+                        or parsed.get('spec')
+                        or parsed
+                    )
+                    if isinstance(candidate, dict):
+                        llm_spec = candidate
+            except Exception as e:
+                llm_warning = str(e)
+
+        def _deep_merge(dst: Dict[str, Any], src: Dict[str, Any]) -> Dict[str, Any]:
+            for k, v in (src or {}).items():
+                if isinstance(v, dict) and isinstance(dst.get(k), dict):
+                    _deep_merge(dst[k], v)
+                else:
+                    dst[k] = v
+            return dst
+
+        srs = json.loads(json.dumps(base_spec, ensure_ascii=False))  # 深拷贝
+        if isinstance(llm_spec, dict):
+            _deep_merge(srs, llm_spec)
+
         if isinstance(body.get('constraints'), list):
             vals = [str(x) for x in body['constraints'] if isinstance(x, str)]
             if vals:
@@ -468,6 +561,16 @@ def create_app() -> Any:
                 srs['budget_usd'] = float(budget)
             except Exception:
                 pass
+
+        srs.setdefault('inputs', {})
+        if isinstance(srs['inputs'], dict):
+            srs['inputs'].setdefault('csv_path', data_path)
+        else:
+            srs['inputs'] = {'csv_path': data_path}
+
+        if not srs.get('goal'):
+            srs['goal'] = query or base_spec.get('goal')
+
         srs_path = _save_srs(srs)
         out_path = body.get('out_path') or f"reports/{os.path.splitext(os.path.basename(srs_path))[0]}.md"
         run_args: Dict[str, Any] = {
@@ -482,7 +585,19 @@ def create_app() -> Any:
         for opt_key in ['provider', 'temp_planner', 'temp_executor', 'temp_critic', 'temp_reviser', 'retries', 'max_rows']:
             if body.get(opt_key) is not None:
                 run_args[opt_key] = body.get(opt_key)
-        return JSONResponse({'ok': True, 'srs_path': srs_path, 'srs': srs, 'run': run_args})
+
+        resp: Dict[str, Any] = {
+            'ok': True,
+            'srs_path': srs_path,
+            'srs': srs,
+            'task_spec': srs,
+            'run': run_args,
+        }
+        if llm_meta:
+            resp['llm'] = llm_meta
+        if llm_warning:
+            resp['warning'] = llm_warning
+        return JSONResponse(resp)
 
     @app.post('/agent/run')
     async def agent_run(request: Request):
@@ -508,7 +623,173 @@ def create_app() -> Any:
             if body.get(opt_key) is not None:
                 opts[opt_key] = body.get(opt_key)
         job_id = _enqueue_job(opts)
-        return JSONResponse({'ok': True, 'job_id': job_id, 'out_path': out_path})
+
+        trace_id: str | None = None
+        try:
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + float(body.get('trace_wait_sec') or 1.5)
+            while loop.time() < deadline:
+                job = JOBS.get(job_id)
+                if job:
+                    trace_id = job.get('trace_id') or (job.get('result') or {}).get('trace_id')
+                    if trace_id or job.get('done'):
+                        break
+                await asyncio.sleep(0.1)
+        except RuntimeError:
+            # 非事件循环环境（测试客户端同步调用）
+            pass
+
+        job = JOBS.get(job_id)
+        if not trace_id and isinstance(job, dict):
+            trace_id = (job.get('result') or {}).get('trace_id')
+
+        resp: Dict[str, Any] = {'ok': True, 'job_id': job_id, 'out_path': out_path}
+        if trace_id:
+            resp['trace_id'] = trace_id
+        return JSONResponse(resp)
+
+    @app.post('/agent/approve')
+    async def agent_approve(request: Request):
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({'ok': False, 'error': 'invalid_json'}, status_code=400)
+
+        trace_id = str(body.get('trace_id') or '').strip()
+        decision = str(body.get('decision') or '').strip()
+        if not trace_id or not decision:
+            return JSONResponse({'ok': False, 'error': 'missing_trace_or_decision'}, status_code=400)
+
+        action = body.get('action')
+        session_id = body.get('session_id')
+        note = body.get('note') or body.get('comment')
+        payload = body.get('payload') if isinstance(body.get('payload'), dict) else {}
+        meta_payload: Dict[str, Any] = {'decision': decision}
+        if action:
+            meta_payload['action'] = action
+        if note:
+            meta_payload['note'] = note
+        if session_id:
+            meta_payload['session_id'] = session_id
+        if payload:
+            meta_payload['payload'] = payload
+        if body.get('by'):
+            meta_payload['by'] = body.get('by')
+
+        approval_id = log_approval(
+            CHAT_CONN,
+            trace_id,
+            decision,
+            action=str(action) if action is not None else None,
+            session_id=str(session_id) if session_id else None,
+            payload=meta_payload,
+        )
+
+        cfg = load_config(None)
+        backend = (cfg.get('outbox', {}) or {}).get('backend', 'json')
+        event = {
+            'msg_id': uuid.uuid4().hex,
+            'trace_id': trace_id,
+            'schema_ver': 'v0',
+            'ts': datetime.utcnow().isoformat() + 'Z',
+            'type': 'guardian.approval',
+            'payload': meta_payload,
+        }
+        if backend == 'sqlite':
+            import sqlite3
+
+            db_path = (cfg.get('outbox', {}) or {}).get('sqlite_path', 'episodes.db')
+            if not os.path.exists(db_path):
+                return JSONResponse({'ok': False, 'error': 'episodes_not_found'}, status_code=404)
+            conn = sqlite3.connect(db_path)
+            try:
+                conn.execute(
+                    "INSERT INTO events(trace_id, msg_id, ts, type, payload_json) VALUES (?,?,?,?,?)",
+                    (
+                        trace_id,
+                        event['msg_id'],
+                        event['ts'],
+                        event['type'],
+                        json.dumps(event['payload'], ensure_ascii=False),
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        else:
+            ep_path = os.path.join(BASE_DIR, 'episodes', f'{trace_id}.json')
+            if not os.path.exists(ep_path):
+                return JSONResponse({'ok': False, 'error': 'episode_not_found'}, status_code=404)
+            try:
+                with open(ep_path, 'r', encoding='utf-8') as f:
+                    episode = json.load(f)
+            except Exception:
+                return JSONResponse({'ok': False, 'error': 'episode_read_failed'}, status_code=500)
+            events = episode.get('events')
+            if not isinstance(events, list):
+                events = []
+            events.append(event)
+            episode['events'] = events
+            tmp_path = ep_path + '.tmp'
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump(episode, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, ep_path)
+
+        return JSONResponse({'ok': True, 'approval_id': approval_id, 'trace_id': trace_id})
+
+    @app.get('/agent/episodes/{trace_id}')
+    async def agent_episode(trace_id: str):
+        cfg = load_config(None)
+        backend = (cfg.get('outbox', {}) or {}).get('backend', 'json')
+        if backend == 'sqlite':
+            import sqlite3
+
+            db_path = (cfg.get('outbox', {}) or {}).get('sqlite_path', 'episodes.db')
+            if not os.path.exists(db_path):
+                return JSONResponse({'ok': False, 'error': 'episodes_not_found'}, status_code=404)
+            conn = sqlite3.connect(db_path)
+            try:
+                row = conn.execute(
+                    "SELECT trace_id, goal, status, latency_ms, header_json, sense_json, plan_json, artifacts_json, created_ts FROM episodes WHERE trace_id=?",
+                    (trace_id,),
+                ).fetchone()
+                if not row:
+                    return JSONResponse({'ok': False, 'error': 'episode_not_found'}, status_code=404)
+                events_rows = conn.execute(
+                    "SELECT msg_id, ts, type, payload_json FROM events WHERE trace_id=? ORDER BY id ASC",
+                    (trace_id,),
+                ).fetchall()
+            finally:
+                conn.close()
+            events: List[Dict[str, Any]] = []
+            for msg_id, ts, tp, payload_json in events_rows:
+                try:
+                    payload_obj = json.loads(payload_json) if payload_json else {}
+                except Exception:
+                    payload_obj = {'raw': payload_json}
+                events.append({'msg_id': msg_id, 'ts': ts, 'type': tp, 'payload': payload_obj})
+            episode = {
+                'trace_id': row[0],
+                'goal': row[1],
+                'status': row[2],
+                'latency_ms': row[3],
+                'header': json.loads(row[4]) if row[4] else {},
+                'sense': json.loads(row[5]) if row[5] else None,
+                'plan': json.loads(row[6]) if row[6] else None,
+                'artifacts': json.loads(row[7]) if row[7] else {},
+                'created_ts': row[8],
+                'events': events,
+            }
+        else:
+            ep_path = os.path.join(BASE_DIR, 'episodes', f'{trace_id}.json')
+            if not os.path.exists(ep_path):
+                return JSONResponse({'ok': False, 'error': 'episode_not_found'}, status_code=404)
+            try:
+                with open(ep_path, 'r', encoding='utf-8') as f:
+                    episode = json.load(f)
+            except Exception:
+                return JSONResponse({'ok': False, 'error': 'episode_read_failed'}, status_code=500)
+        return JSONResponse({'ok': True, 'episode': episode})
 
     @app.post('/api/config/rollback')
     async def api_config_rollback(request: Request):
