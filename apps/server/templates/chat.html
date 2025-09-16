@@ -66,70 +66,206 @@ const btnCloseWs = document.getElementById('btnCloseWs');
 const wsBackdrop = wsDrawer?.querySelector('.backdrop');
 if(!sess.value){ sess.value = 's-'+Math.random().toString(16).slice(2,10); }
 
+let eventSocket = null;
+let eventRetryTimer = null;
+let wsConnected = false;
+
 // Chat 区域
-function fmtTime(){ const d = new Date(); return d.toTimeString().slice(0,5); }
-function append(role, text){
-  const me = role === '你' || role === 'user';
+function fmtTime(ts){
+  if(ts){
+    try{
+      const d = new Date(ts);
+      if(!isNaN(d.getTime())){ return d.toTimeString().slice(0,5); }
+    }catch(e){}
+  }
+  const d = new Date();
+  return d.toTimeString().slice(0,5);
+}
+function append(role, text, ts){
+  const normalized = role === '你' ? 'user' : (role === '助手' ? 'assistant' : (role || 'system'));
+  const me = normalized === 'user';
   const wrap = document.createElement('div');
   wrap.className = 'msg'+(me?' user':'');
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
-  bubble.innerHTML = (me?'<b>你</b>':'<b>助手</b>') + ' · <span class="meta">'+fmtTime()+'</span><br>' + String(text).replace(/\n/g,'<br>');
+  let label = '系统';
+  if(normalized === 'user'){ label = '你'; }
+  else if(normalized === 'assistant'){ label = '助手'; }
+  else if(normalized === 'system'){ label = '系统'; }
+  else { label = normalized; }
+  bubble.innerHTML = '<b>'+label+'</b> · <span class="meta">'+fmtTime(ts)+'</span><br>' + String(text||'').replace(/\n/g,'<br>');
   wrap.appendChild(bubble);
   box.appendChild(wrap); box.scrollTop = box.scrollHeight;
+  return wrap;
+}
+function renderHistory(list){
+  if(!Array.isArray(list)) return;
+  box.innerHTML='';
+  for(const m of list){
+    append(m.role || 'assistant', m.content, m.ts);
+  }
+}
+function handleStatus(state, message){
+  if(!hint) return;
+  if(state === 'thinking' || state === 'pending'){
+    hint.textContent = message || '思考中…';
+    if(spin) spin.style.display='inline-block';
+  } else if(state === 'idle' || state === 'done'){
+    hint.textContent = message || '';
+    if(spin) spin.style.display='none';
+  } else if(state === 'connecting'){
+    hint.textContent = message || '事件连接中…';
+    if(spin) spin.style.display='inline-block';
+  } else if(state === 'error'){
+    hint.textContent = message || '发生错误';
+    if(spin) spin.style.display='none';
+  } else if(state === 'connected'){
+    hint.textContent = message || '';
+    if(spin) spin.style.display='none';
+  }
+}
+function renderAction(action, extras){
+  if(!actionBox) return;
+  actionBox.innerHTML='';
+  if(!action || !action.type) return;
+  if(action.type === 'run'){
+    const args = action.args || {};
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = '<b>执行建议</b> — type=run'
+      + '<div>args: <pre>'+JSON.stringify(args,null,2)+'</pre></div>'
+      + (extras && extras.srs_path ? ('<div>SRS 已保存: '+extras.srs_path+'</div>') : '')
+      + '<button id="btnRunNow">立即运行</button> <button id="btnEditRun">编辑并运行</button>';
+    actionBox.appendChild(div);
+    const btn = div.querySelector('#btnRunNow');
+    if(btn){
+      btn.addEventListener('click', async ()=>{
+        const fd2 = new FormData();
+        fd2.append('srs_path', args.srs_path || 'examples/srs/weekly_report.json');
+        fd2.append('data_path', args.data_path || 'examples/data/weekly.csv');
+        fd2.append('out_path', args.out || 'reports/weekly_report.md');
+        fd2.append('planner', args.planner || 'llm');
+        fd2.append('executor', args.executor || 'llm');
+        fd2.append('critic', args.critic || 'llm');
+        fd2.append('reviser', args.reviser || 'llm');
+        if(args.provider) fd2.append('provider', args.provider);
+        handleStatus('pending', '开始执行…');
+        try{
+          const r2 = await fetch('/api/run', {method:'POST', body:fd2});
+          const j2 = await r2.json();
+          handleStatus('idle', j2.ok ? ('已提交，job='+ (j2.job_id||'')) : '提交失败');
+        }catch(err){
+          handleStatus('error', '提交失败: '+err);
+        }
+      });
+    }
+    const btnEdit = div.querySelector('#btnEditRun');
+    if(btnEdit){
+      btnEdit.addEventListener('click', ()=>{
+        try{ localStorage.setItem('runArgs', JSON.stringify(args)); }catch(e){}
+        location.href = '/?tab=run';
+      });
+    }
+  } else {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.innerHTML = '<b>动作</b><div class="hint">类型: '+action.type+'</div>';
+    actionBox.appendChild(div);
+  }
 }
 async function loadHistory(){
   const resp = await fetch('/api/chat/history?session='+encodeURIComponent(sess.value));
   const data = await resp.json();
   if(data.ok){
-    box.innerHTML='';
-    for(const m of data.history){ append(m.role==='user'?'你':'助手', m.content); }
+    renderHistory(data.history);
   }
+}
+function connectEvents(){
+  if(eventRetryTimer){ clearTimeout(eventRetryTimer); eventRetryTimer = null; }
+  if(eventSocket){
+    try{ eventSocket.close(); }catch(e){}
+    eventSocket = null;
+  }
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = `${proto}://${location.host}/agent/events?session=${encodeURIComponent(sess.value)}`;
+  handleStatus('connecting', '事件连接中…');
+  try{
+    eventSocket = new WebSocket(url);
+  }catch(err){
+    handleStatus('error', '无法连接事件流');
+    eventRetryTimer = setTimeout(connectEvents, 4000);
+    return;
+  }
+  eventSocket.onopen = ()=>{ wsConnected = true; handleStatus('connected', ''); };
+  eventSocket.onmessage = (ev)=>{
+    try{
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'chat.init'){
+        renderHistory(msg.history || []);
+        renderAction(msg.action, msg);
+        return;
+      }
+      if(msg.type === 'chat.message'){
+        append(msg.role || 'assistant', msg.content, msg.ts);
+        renderAction(msg.action, msg);
+        if(msg.role === 'assistant'){ handleStatus('idle', ''); }
+        return;
+      }
+      if(msg.type === 'chat.status'){
+        handleStatus(msg.state, msg.message);
+        return;
+      }
+      if(msg.type === 'chat.action'){
+        renderAction(msg.action, msg);
+        return;
+      }
+      if(msg.type === 'chat.error'){
+        append('system', msg.message || '连接异常', msg.ts);
+        handleStatus('error', msg.message);
+        return;
+      }
+      if(msg.type === 'error'){
+        append('system', msg.message || '事件错误', msg.ts);
+        handleStatus('error', msg.message);
+        return;
+      }
+      if(msg.type === 'ping'){
+        try{ eventSocket?.send(JSON.stringify({type:'pong'})); }catch(e){}
+        return;
+      }
+    }catch(err){ console.warn('ws message parse fail', err); }
+  };
+  eventSocket.onclose = ()=>{
+    wsConnected = false;
+    handleStatus('error', '事件连接断开，准备重试…');
+    if(!eventRetryTimer){
+      eventRetryTimer = setTimeout(connectEvents, 2000);
+    }
+  };
+  eventSocket.onerror = ()=>{ try{ eventSocket?.close(); }catch(e){}; };
 }
 form.addEventListener('submit', async (e)=>{
   e.preventDefault();
   const fd = new FormData(form);
   const text = fd.get('text');
   if(!text) return;
-  append('你', String(text));
-  form.text.value=''; hint.textContent='思考中…'; if(spin) spin.style.display='inline-block';
-  const resp = await fetch(form.action, {method:'POST', body:fd});
-  const data = await resp.json();
-  hint.textContent=''; if(spin) spin.style.display='none';
-  if(data.ok){ append('助手', data.reply); }
-  else{ append('系统', '发送失败'); }
-  // 渲染 action 卡片
-  actionBox.innerHTML='';
-  if(data.action && data.action.type==='run'){
-    const args = data.action.args || {};
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.innerHTML = '<b>执行建议</b> — type=run' +
-      '<div>args: <pre>'+JSON.stringify(args,null,2)+'</pre></div>' +
-      (data.srs_path?('<div>SRS 已保存: '+data.srs_path+'</div>'):'') +
-      '<button id="btnRunNow">立即运行</button> <button id="btnEditRun">编辑并运行</button>';
-    actionBox.appendChild(div);
-    const btn = div.querySelector('#btnRunNow');
-    btn.addEventListener('click', async ()=>{
-      const fd2 = new FormData();
-      fd2.append('srs_path', args.srs_path || 'examples/srs/weekly_report.json');
-      fd2.append('data_path', args.data_path || 'examples/data/weekly.csv');
-      fd2.append('out_path', args.out || 'reports/weekly_report.md');
-      fd2.append('planner', args.planner || 'llm');
-      fd2.append('executor', args.executor || 'llm');
-      fd2.append('critic', args.critic || 'llm');
-      fd2.append('reviser', args.reviser || 'llm');
-      if(args.provider) fd2.append('provider', args.provider);
-      hint.textContent='开始执行…';
-      const r2 = await fetch('/api/run', {method:'POST', body:fd2});
-      const j2 = await r2.json();
-      hint.textContent = j2.ok ? ('已提交，job='+ (j2.job_id||'')) : '提交失败';
-    });
-    const btnEdit = div.querySelector('#btnEditRun');
-    btnEdit.addEventListener('click', ()=>{
-      try{ localStorage.setItem('runArgs', JSON.stringify(args)); }catch(e){}
-      location.href = '/?tab=run';
-    });
+  if(!wsConnected){ append('user', String(text), new Date().toISOString()); }
+  form.text.value='';
+  handleStatus('thinking', '思考中…');
+  try{
+    const resp = await fetch(form.action, {method:'POST', body:fd});
+    const data = await resp.json();
+    if(!data.ok){
+      handleStatus('error', data.error || '发送失败');
+      append('system', data.error || '发送失败', new Date().toISOString());
+    } else if(!wsConnected){
+      append('assistant', data.reply, new Date().toISOString());
+      renderAction(data.action, data);
+      handleStatus('idle', '');
+    }
+  }catch(err){
+    handleStatus('error', '发送失败: '+err);
+    append('system', '发送失败: '+err, new Date().toISOString());
   }
 });
 
@@ -194,6 +330,7 @@ wsBackdrop?.addEventListener('click', closeWs);
 
 // 首次加载
 loadHistory();
+connectEvents();
 loadDir('examples');
 
 // 工具面板

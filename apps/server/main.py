@@ -216,6 +216,43 @@ def create_app() -> Any:
     chat_db_path = os.environ.get('CHAT_DB_PATH') or os.path.join(BASE_DIR, "chat.db")
     CHAT_CONN = init_db(chat_db_path)
 
+    HEARTBEAT_INTERVAL = 20.0
+    chat_event_subscribers: Dict[str, List[asyncio.Queue[Any]]] = {}
+    chat_event_lock = asyncio.Lock()
+
+    async def _chat_subscribe(session_id: str) -> asyncio.Queue[Any]:
+        queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=200)
+        async with chat_event_lock:
+            chat_event_subscribers.setdefault(session_id, []).append(queue)
+        return queue
+
+    async def _chat_unsubscribe(session_id: str, queue: asyncio.Queue[Any]) -> None:
+        async with chat_event_lock:
+            subs = chat_event_subscribers.get(session_id)
+            if subs and queue in subs:
+                subs.remove(queue)
+                if not subs:
+                    chat_event_subscribers.pop(session_id, None)
+
+    async def _publish_chat_event(session_id: str, event: Dict[str, Any]) -> None:
+        payload = dict(event)
+        payload.setdefault('session', session_id)
+        payload.setdefault('ts', datetime.utcnow().isoformat() + 'Z')
+        async with chat_event_lock:
+            subs = list(chat_event_subscribers.get(session_id, []))
+        for q in subs:
+            try:
+                q.put_nowait(payload)
+            except asyncio.QueueFull:
+                try:
+                    q.get_nowait()
+                except Exception:
+                    pass
+                try:
+                    q.put_nowait(payload)
+                except Exception:
+                    pass
+
     # 简易后台 Job 调度（每5秒扫描待执行）
     def _jobs_loop() -> None:
         import time as _t
@@ -543,9 +580,16 @@ def create_app() -> Any:
         history = [{"role": r.get("role"), "content": r.get("content")} for r in history_rows]
         # 记录用户消息
         append_message(CHAT_CONN, sid, "user", text)
+        await _publish_chat_event(sid, {'type': 'chat.message', 'role': 'user', 'content': text})
+        await _publish_chat_event(sid, {'type': 'chat.status', 'state': 'thinking', 'message': '思考中…'})
 
         agent = MCPConversationAgent(cfg)
-        result = await agent.respond_async(sid, history, text)
+        try:
+            result = await agent.respond_async(sid, history, text)
+        except Exception as e:
+            await _publish_chat_event(sid, {'type': 'chat.status', 'state': 'error', 'message': str(e)})
+            await _publish_chat_event(sid, {'type': 'chat.error', 'message': str(e)})
+            return JSONResponse({'ok': False, 'error': str(e), 'session': sid}, status_code=500)
         content = result.get("reply") or ""
         meta = result.get("llm") or {}
         action = result.get("action")
@@ -620,6 +664,16 @@ def create_app() -> Any:
                 mcp_exec = {"error": str(e)}
 
         append_message(CHAT_CONN, sid, "assistant", content, json.dumps(action, ensure_ascii=False) if action else None)
+        await _publish_chat_event(sid, {
+            'type': 'chat.message',
+            'role': 'assistant',
+            'content': content,
+            'action': action,
+            'mcp': mcp_exec,
+            'srs_path': srs_saved,
+        })
+        await _publish_chat_event(sid, {'type': 'chat.action', 'action': action, 'srs_path': srs_saved})
+        await _publish_chat_event(sid, {'type': 'chat.status', 'state': 'idle'})
         # 追加聊天审计日志（JSONL）
         try:
             from datetime import datetime as _dt
@@ -1000,6 +1054,38 @@ def create_app() -> Any:
     async def agent_events(websocket: WebSocket):
         await websocket.accept()
         job_id = websocket.query_params.get('job_id')
+        session_id = (
+            websocket.query_params.get('session')
+            or websocket.query_params.get('session_id')
+            or websocket.query_params.get('chat_session')
+        )
+        if session_id:
+            queue = await _chat_subscribe(session_id)
+            try:
+                history = get_history(CHAT_CONN, session_id, limit=200)
+                await websocket.send_json({'type': 'chat.init', 'session': session_id, 'history': history})
+                await websocket.send_json({'type': 'chat.status', 'state': 'idle'})
+                while True:
+                    try:
+                        event = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_INTERVAL)
+                    except asyncio.TimeoutError:
+                        await websocket.send_json({'type': 'ping', 'ts': datetime.utcnow().isoformat() + 'Z'})
+                        continue
+                    await websocket.send_json(event)
+            except WebSocketDisconnect:
+                pass
+            except Exception as e:
+                try:
+                    await websocket.send_json({'type': 'chat.error', 'message': str(e)})
+                except Exception:
+                    pass
+            finally:
+                await _chat_unsubscribe(session_id, queue)
+                try:
+                    await websocket.close()
+                except Exception:
+                    pass
+            return
         if not job_id:
             await websocket.send_json({'type': 'error', 'message': 'missing_job_id'})
             await websocket.close()
@@ -1007,6 +1093,8 @@ def create_app() -> Any:
         try:
             notified = False
             cursor = 0
+            loop = asyncio.get_running_loop()
+            last_ping = loop.time()
             while True:
                 job = JOBS.get(job_id)
                 if not job:
@@ -1021,11 +1109,17 @@ def create_app() -> Any:
                     else:
                         await websocket.send_json({'type': 'log', 'line': entry.get('line'), 'ts': entry.get('ts')})
                     notified = True
+                    last_ping = loop.time()
                 if job.get('done'):
                     break
                 if not notified:
                     await websocket.send_json({'type': 'status', 'state': 'pending'})
                     notified = True
+                    last_ping = loop.time()
+                now = loop.time()
+                if now - last_ping >= HEARTBEAT_INTERVAL:
+                    await websocket.send_json({'type': 'ping', 'ts': datetime.utcnow().isoformat() + 'Z'})
+                    last_ping = now
                 await asyncio.sleep(0.3)
             job = JOBS.get(job_id)
             if not job:
@@ -1053,8 +1147,10 @@ def create_app() -> Any:
                     job['events'] = events
                     job['episode'] = episode_summary
             await websocket.send_json({'type': 'status', 'state': 'completed', 'trace_id': trace_id})
+            last_ping = loop.time()
             for ev in events:
                 await websocket.send_json({'type': 'event', 'event': ev})
+                last_ping = loop.time()
                 await asyncio.sleep(0.05)
             await websocket.send_json({'type': 'final', 'result': result, 'trace_id': trace_id, 'episode': episode_summary})
         except WebSocketDisconnect:
